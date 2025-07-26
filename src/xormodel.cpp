@@ -17,11 +17,11 @@ void XORLinearRegression() {
   auto get_random_float = [&](float min, float max) {
     return (float)rand() / RAND_MAX * (max - min) + min;
   };
-  // auto TOTAL_SIZE = 10000;
-  auto TOTAL_SIZE = 50;
+  auto TOTAL_SIZE = 10000;
+  // auto TOTAL_SIZE = 50;
   auto BATCH_SIZE = 16;
-  // auto TOTAL_EPOCH = 10000;
-  auto TOTAL_EPOCH = 10;
+  auto TOTAL_EPOCH = 10000;
+  // auto TOTAL_EPOCH = 10;
   auto TRACE_EVERY = TOTAL_EPOCH / 10;
   auto LR0 = 0.01f;
   auto LR = LR0;
@@ -97,7 +97,7 @@ void XORLinearRegression() {
       expected.push_back(yi);
     }
     auto loss = MSE(predicted, expected);
-    losses.push_back(loss);
+    losses.push_back(val(loss->data));
     for (auto p : params) {
       p->grad = 0.0f;
     }
