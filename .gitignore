@@ -1,0 +1,12 @@
+build/
+.cache/
+*.dot
+# tmp dump
+data/
+data/*.json
+data/*.png
+data/*.gif
+data/*.mp4
+data/frames
+.DS_Store
+*.trace
