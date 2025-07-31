@@ -31,6 +31,10 @@ void XORLinearRegression() {
   auto LR0 = 0.01f;
   auto LR = LR0;
   auto momentum_beta = 0.5f;
+  std::cout << "Total dataset size: " << TOTAL_SIZE << std::endl;
+  std::cout << "Batch size: " << BATCH_SIZE << std::endl;
+  std::cout << "Total epochs: " << TOTAL_EPOCH << std::endl;
+  std::cout << "Momentum beta: " << momentum_beta << std::endl;
   // std::map<MemPoolIndex, float> momentum;
   std::vector<float> losses;
   std::vector<std::vector<MemPoolIndex>> x_all;
