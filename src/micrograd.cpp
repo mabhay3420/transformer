@@ -50,7 +50,6 @@ std::vector<MemPoolIndex> softmax(const std::vector<MemPoolIndex> &x,
                                   std::shared_ptr<MemPool<Value>> mem_pool) {
   // NOTE: not doing the max version for now
   auto o_i = mem_pool->alloc();
-  auto o = mem_pool->get(o_i);
   auto xmax = max(x, mem_pool);
   std::vector<MemPoolIndex> exps;
   for (auto xi : x) {
@@ -84,18 +83,13 @@ one_hot_encode(int category, int total_categories,
 MemPoolIndex add(const MemPoolIndex &a_i, const MemPoolIndex &b_i,
                  std::shared_ptr<MemPool<Value>> mem_pool) {
   auto o_i = mem_pool->alloc();
-  auto a = mem_pool->get(a_i);
-  auto b = mem_pool->get(b_i);
-  auto o = mem_pool->get(o_i);
-  o->data = a->data + b->data;
-  o->children = {a_i, b_i};
-  o->op = "+";
-  o->backward = [a_i, b_i, o_i, mem_pool]() {
-    auto a = mem_pool->get(a_i);
-    auto b = mem_pool->get(b_i);
-    auto o = mem_pool->get(o_i);
-    a->grad += 1.0f * o->grad;
-    b->grad += 1.0f * o->grad;
+  mem_pool->get(o_i)->data =
+      mem_pool->get(a_i)->data + mem_pool->get(b_i)->data;
+  mem_pool->get(o_i)->children = {a_i, b_i};
+  mem_pool->get(o_i)->op = "+";
+  mem_pool->get(o_i)->backward = [a_i, b_i, o_i, m = mem_pool.get()]() {
+    m->get(a_i)->grad += 1.0f * m->get(o_i)->grad;
+    m->get(b_i)->grad += 1.0f * m->get(o_i)->grad;
   };
   return o_i;
 }
@@ -103,18 +97,16 @@ MemPoolIndex add(const MemPoolIndex &a_i, const MemPoolIndex &b_i,
 MemPoolIndex sub(const MemPoolIndex &a_i, const MemPoolIndex &b_i,
                  std::shared_ptr<MemPool<Value>> mem_pool) {
   auto o_i = mem_pool->alloc();
-  auto a = mem_pool->get(a_i);
-  auto b = mem_pool->get(b_i);
-  auto o = mem_pool->get(o_i);
-  o->data = a->data - b->data;
-  o->children = {a_i, b_i};
-  o->op = "-";
-  o->backward = [a_i, b_i, o_i, mem_pool]() {
-    auto a = mem_pool->get(a_i);
-    auto b = mem_pool->get(b_i);
-    auto o = mem_pool->get(o_i);
-    a->grad += 1.0f * o->grad;
-    b->grad -= 1.0f * o->grad;
+  // auto a = mem_pool->get(a_i);
+  // auto b = mem_pool->get(b_i);
+  // auto o = mem_pool->get(o_i);
+  mem_pool->get(o_i)->data =
+      mem_pool->get(a_i)->data - mem_pool->get(b_i)->data;
+  mem_pool->get(o_i)->children = {a_i, b_i};
+  mem_pool->get(o_i)->op = "-";
+  mem_pool->get(o_i)->backward = [a_i, b_i, o_i, m = mem_pool.get()]() {
+    m->get(a_i)->grad += 1.0f * m->get(o_i)->grad;
+    m->get(b_i)->grad -= 1.0f * m->get(o_i)->grad;
   };
   return o_i;
 }
@@ -122,41 +114,32 @@ MemPoolIndex sub(const MemPoolIndex &a_i, const MemPoolIndex &b_i,
 MemPoolIndex mul(const MemPoolIndex &a_i, const MemPoolIndex &b_i,
                  std::shared_ptr<MemPool<Value>> mem_pool) {
   auto o_i = mem_pool->alloc();
-  auto a = mem_pool->get(a_i);
-  auto b = mem_pool->get(b_i);
-  auto o = mem_pool->get(o_i);
-  o->data = a->data * b->data;
-  o->children = {a_i, b_i};
-  o->op = "*";
-  o->backward = [a_i, b_i, o_i, mem_pool]() {
-    auto a = mem_pool->get(a_i);
-    auto b = mem_pool->get(b_i);
-    auto o = mem_pool->get(o_i);
-    a->grad += b->data * o->grad;
-    b->grad += a->data * o->grad;
+  mem_pool->get(o_i)->data =
+      mem_pool->get(a_i)->data * mem_pool->get(b_i)->data;
+  mem_pool->get(o_i)->children = {a_i, b_i};
+  mem_pool->get(o_i)->op = "*";
+  mem_pool->get(o_i)->backward = [a_i, b_i, o_i, m = mem_pool.get()]() {
+    m->get(a_i)->grad += m->get(b_i)->data * m->get(o_i)->grad;
+    m->get(b_i)->grad += m->get(a_i)->data * m->get(o_i)->grad;
   };
   return o_i;
 }
 
 MemPoolIndex div(const MemPoolIndex &a_i, const MemPoolIndex &b_i,
                  std::shared_ptr<MemPool<Value>> mem_pool) {
-  auto o_i = mem_pool->alloc();
-  auto a = mem_pool->get(a_i);
-  auto b = mem_pool->get(b_i);
 
-  if (b->data == 0.0f) {
+  if (mem_pool->get(b_i)->data == 0.0f) {
     throw std::runtime_error("Division by zero");
   }
-  auto o = mem_pool->get(o_i);
-  o->data = a->data / b->data;
-  o->children = {a_i, b_i};
-  o->op = "/";
-  o->backward = [a_i, b_i, o_i, mem_pool]() {
-    auto a = mem_pool->get(a_i);
-    auto b = mem_pool->get(b_i);
-    auto o = mem_pool->get(o_i);
-    a->grad += o->data / b->data;
-    b->grad -= a->data * o->data / (b->data * b->data);
+  auto o_i = mem_pool->alloc();
+  mem_pool->get(o_i)->data =
+      mem_pool->get(a_i)->data / mem_pool->get(b_i)->data;
+  mem_pool->get(o_i)->children = {a_i, b_i};
+  mem_pool->get(o_i)->op = "/";
+  mem_pool->get(o_i)->backward = [a_i, b_i, o_i, m = mem_pool.get()]() {
+    m->get(a_i)->grad += m->get(o_i)->grad / m->get(b_i)->data;
+    m->get(b_i)->grad -= (m->get(a_i)->data * m->get(o_i)->grad) /
+                         (m->get(b_i)->data * m->get(b_i)->data);
   };
   return o_i;
 }
@@ -164,14 +147,11 @@ MemPoolIndex div(const MemPoolIndex &a_i, const MemPoolIndex &b_i,
 MemPoolIndex tanh(const MemPoolIndex &a_i,
                   std::shared_ptr<MemPool<Value>> mem_pool) {
   auto o_i = mem_pool->alloc();
-  auto a = mem_pool->get(a_i);
-  auto b = mem_pool->get(o_i);
-  b->data = std::tanh(a->data);
-  b->children = {a_i};
-  b->backward = [a_i, o_i, mem_pool]() {
-    auto a = mem_pool->get(a_i);
-    auto b = mem_pool->get(o_i);
-    a->grad += b->data * (1.0f - b->data * b->data);
+  mem_pool->get(o_i)->data = std::tanh(mem_pool->get(a_i)->data);
+  mem_pool->get(o_i)->children = {a_i};
+  mem_pool->get(o_i)->backward = [a_i, o_i, m = mem_pool.get()]() {
+    m->get(a_i)->grad +=
+        m->get(o_i)->grad * (1.0f - m->get(o_i)->data * m->get(o_i)->data);
   };
   return o_i;
 }
@@ -179,32 +159,24 @@ MemPoolIndex tanh(const MemPoolIndex &a_i,
 MemPoolIndex exp(const MemPoolIndex &a_i,
                  std::shared_ptr<MemPool<Value>> mem_pool) {
   auto o_i = mem_pool->alloc();
-  auto a = mem_pool->get(a_i);
-  auto b = mem_pool->get(o_i);
-  b->data = std::exp(a->data);
-  b->children = {a_i};
-  b->backward = [a_i, o_i, mem_pool]() {
-    auto a = mem_pool->get(a_i);
-    auto b = mem_pool->get(o_i);
-    a->grad += b->data * b->data;
+  mem_pool->get(o_i)->data = std::exp(mem_pool->get(a_i)->data);
+  mem_pool->get(o_i)->children = {a_i};
+  mem_pool->get(o_i)->backward = [a_i, o_i, m = mem_pool.get()]() {
+    m->get(a_i)->grad += m->get(o_i)->grad * m->get(o_i)->data;
   };
   return o_i;
 }
 
 MemPoolIndex log(const MemPoolIndex &a_i,
                  std::shared_ptr<MemPool<Value>> mem_pool) {
+  if (mem_pool->get(a_i)->data <= 0.0f) {
+    throw std::runtime_error("Log of non-positive number");
+  }
   auto o_i = mem_pool->alloc();
-  auto a = mem_pool->get(a_i);
-  auto b = mem_pool->get(o_i);
-  b->data = std::log(a->data);
-  b->children = {a_i};
-  b->backward = [a_i, o_i, mem_pool]() {
-    auto a = mem_pool->get(a_i);
-    auto b = mem_pool->get(o_i);
-    if (a->data == 0.0f) {
-      throw std::runtime_error("Division by zero");
-    }
-    a->grad += b->data / a->data;
+  mem_pool->get(o_i)->data = std::log(mem_pool->get(a_i)->data);
+  mem_pool->get(o_i)->children = {a_i};
+  mem_pool->get(o_i)->backward = [a_i, o_i, m = mem_pool.get()]() {
+    m->get(a_i)->grad += m->get(o_i)->grad / m->get(a_i)->data;
   };
   return o_i;
 }

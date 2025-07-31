@@ -41,7 +41,7 @@ void to_dot(const graph &g, std::string &filename) {
     auto node = mem_pool->get(node_i);
     auto addr = reinterpret_cast<uintptr_t>(node);
     std::string recordInfo = "shape = record";
-    if (node->persistent)
+    if (node->is_param)
       recordInfo += ", color = red";
     recordInfo += "];\n";
     file << "  \"" << addr << "\" [label=\"" << node->label << "| data "

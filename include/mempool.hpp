@@ -7,10 +7,6 @@ struct Value;
 
 typedef size_t MemPoolIndex;
 
-struct MemPoolEntry {
-  size_t id;
-  bool persistent = false;
-};
 template <typename T> struct MemPool {
   size_t persitent_boundary = 0;
   std::vector<T> mem;
@@ -18,7 +14,6 @@ template <typename T> struct MemPool {
 
   MemPoolIndex alloc() {
     mem.push_back(T());
-    mem.back().id = mem.size() - 1;
     return mem.size() - 1;
   }
   MemPoolIndex size() { return mem.size(); }

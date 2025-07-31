@@ -14,12 +14,12 @@ Neuron::Neuron(int dim, std::shared_ptr<MemPool<Value>> mem_pool,
     return 2 * rnd - 1;
   };
   b = val(get_random(), mem_pool);
-  mem_pool->get(b)->persistent = true;
   w.resize(dim);
+  mem_pool->get(b)->is_param = true;
   // fill with random values between -1 and 1
   for (int i = 0; i < dim; i++) {
     w[i] = val(get_random(), mem_pool);
-    mem_pool->get(w[i])->persistent = true;
+    mem_pool->get(w[i])->is_param = true;
   }
 }
 

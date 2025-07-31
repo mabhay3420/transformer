@@ -16,20 +16,21 @@ void XORLinearRegression() {
   auto mem_pool = std::make_shared<MemPool<Value>>(1000);
   auto n = MLP(2, {10, 5, 1}, mem_pool);
   auto params = n.params();
+  auto last_param_end = mem_pool->size();
   std::cout << "Total params: " << params.size() << std::endl;
 
   auto get_random_float = [&](float min, float max) {
     return (float)rand() / RAND_MAX * (max - min) + min;
   };
-  auto TOTAL_SIZE = 10000;
-  // auto TOTAL_SIZE = 50;
+  // auto TOTAL_SIZE = 10000;
+  auto TOTAL_SIZE = 500;
   auto BATCH_SIZE = 16;
-  auto TOTAL_EPOCH = 10000;
-  // auto TOTAL_EPOCH = 10;
+  // auto TOTAL_EPOCH = 5000;
+  auto TOTAL_EPOCH = 1000;
   auto TRACE_EVERY = TOTAL_EPOCH / 10;
   auto LR0 = 0.01f;
   auto LR = LR0;
-  auto momentum_beta = 0.0f;
+  auto momentum_beta = 0.5f;
   // std::map<MemPoolIndex, float> momentum;
   std::vector<float> losses;
   std::vector<std::vector<MemPoolIndex>> x_all;
@@ -62,16 +63,7 @@ void XORLinearRegression() {
   // IMPORTANT
   mem_pool->set_persistent_boundary();
   std::vector<float> momentum;
-  momentum.resize(mem_pool->persitent_boundary);
-
-  // {
-  //     {val(0.0), val(1.0)},
-  //     {val(1.0), val(0.0)},
-  //     {val(1.0), val(1.0)},
-  //     {val(0.0), val(0.0)},
-  // };
-
-  // = {val(1.0), val(1.0), val(0.0), val(0.0)};
+  momentum.resize(last_param_end);
 
   auto getRandomBatch = [&](int batch_size) {
     // choose a list of indices
@@ -98,6 +90,7 @@ void XORLinearRegression() {
   };
 
   std::vector<std::vector<float>> y_val_epoch;
+  std::vector<float> val_accuracy;
   for (int epoch = 0; epoch < TOTAL_EPOCH; epoch++) {
     mem_pool->reset();
     std::vector<float> y_val;
@@ -107,7 +100,6 @@ void XORLinearRegression() {
     for (auto [xi, yi] : batch) {
       auto yi_hat = n(xi);
       predicted.push_back(yi_hat[0]);
-      // predicted.push_back(yi_hat);
       expected.push_back(yi);
     }
     auto loss = MSE(predicted, expected);
@@ -121,29 +113,40 @@ void XORLinearRegression() {
       mem_pool->get(p)->data += -LR * momentum[p];
     }
     if (epoch % TRACE_EVERY == 0) {
-      auto loss_v = mem_pool->get(loss);
-      std::cout << "Epoch: " << epoch << " Loss: " << loss_v->data << std::endl;
+      // auto loss_v = mem_pool->get(loss);
+      auto total = 0;
+      auto correct = 0;
       for (auto x : x_val) {
-        auto result_i = n(x)[0];
-        auto result = mem_pool->get(result_i);
-        if (result->data > 0.5f) {
-          result_i = val(1.0f, mem_pool);
+        auto result_v_i = n(x);
+        auto result_i = result_v_i[0];
+        auto out = mem_pool->get(result_i)->data;
+        if (out > 0.5f) {
+          out = 1.0f;
         } else {
-          result_i = val(0.0f, mem_pool);
+          out = 0.0f;
         }
-        result = mem_pool->get(result_i);
-        y_val.push_back(result->data);
+        auto first = mem_pool->get(x[0])->data;
+        auto second = mem_pool->get(x[1])->data;
+        auto correct_result = (first > 0.5f) ^ (second > 0.5f);
+        total++;
+        correct += (correct_result == out);
+        y_val.push_back(out);
       }
+      auto accuracy = static_cast<float>(correct) / total;
+      std::cout << "Epoch: " << epoch << " Loss: " << mem_pool->get(loss)->data
+                << " Accuracy: " << accuracy << std::endl;
+      val_accuracy.push_back(accuracy);
       y_val_epoch.push_back(y_val);
     }
   }
   auto end = std::chrono::high_resolution_clock::now();
-  std::cout << "Time taken: "
-            << std::chrono::duration_cast<std::chrono::milliseconds>(end -
-                                                                     start)
-                   .count()
-            << " ms" << std::endl;
-  // dumpMemPoolEntries(losses, mem_pool, "data/losses.json");
+  auto end_ms =
+      std::chrono::duration_cast<std::chrono::milliseconds>(end - start)
+          .count();
+  std::cout << "Time taken: " << end_ms << " ms" << std::endl;
+  std::cout << "Time take per epoch per batch: "
+            << static_cast<float>(end_ms) / (TOTAL_EPOCH * BATCH_SIZE) << " ms"
+            << std::endl;
   json j = losses;
   dumpJson(j, "data/losses.json");
   dumpMemPoolEntries(params, mem_pool, "data/params.json");
@@ -162,8 +165,8 @@ void XORLinearRegression() {
       {"y_across_epochs", y_val_epoch},
   };
   dumpJson(j, "data/xor_val.json");
-  std::cout << "Loss in the end: " << mem_pool->get(losses.back())->data
-            << std::endl;
+  std::cout << "Val accuracy in the end: " << val_accuracy.back() << std::endl;
+  std::cout << "Loss in the end: " << losses.back() << std::endl;
 }
 
 void XORMLP() {}

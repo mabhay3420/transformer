@@ -8,9 +8,9 @@
 #include <vector>
 
 struct Neuron {
-  int d;                 // dimension
-  std::vector<size_t> w; // weight
-  size_t b;              // bias
+  int d;                       // dimension
+  std::vector<MemPoolIndex> w; // weight
+  size_t b;                    // bias
   bool with_activation;
   std::shared_ptr<MemPool<Value>> mem_pool;
   Neuron(int dim, std::shared_ptr<MemPool<Value>> mem_pool,
@@ -18,7 +18,7 @@ struct Neuron {
 
   size_t operator()(const std::vector<size_t> &x);
 
-  std::vector<size_t> params();
+  std::vector<MemPoolIndex> params();
 
   friend std::ostream &operator<<(std::ostream &os, const Neuron &);
   friend std::ostream &operator<<(std::ostream &os,
