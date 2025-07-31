@@ -10,6 +10,8 @@ void XORLinearRegression() {
 
   // auto n = Neuron(2, false);
   // auto n = Neuron(2, true);
+  // start time
+  auto start = std::chrono::high_resolution_clock::now();
   auto n = MLP(2, {10, 5, 1});
   auto params = n.params();
   std::cout << "Total params: " << params.size() << std::endl;
@@ -120,6 +122,12 @@ void XORLinearRegression() {
       y_val_epoch.push_back(y_val);
     }
   }
+  auto end = std::chrono::high_resolution_clock::now();
+  std::cout << "Time taken: "
+            << std::chrono::duration_cast<std::chrono::milliseconds>(end -
+                                                                     start)
+                   .count()
+            << " ms" << std::endl;
   dumpValues(losses, "data/losses.json");
   dumpValues(params, "data/params.json");
   json j = json{
