@@ -1,3 +1,6 @@
-cmake -S . -B build/release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
-cmake --build build/release
-./build/release/tformer
+./build_release.sh
+time ./build/release/tformer
+source .venv/bin/activate
+if [ "$1" == "v" ];then
+	python vis_loss.py
+fi
