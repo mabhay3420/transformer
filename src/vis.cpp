@@ -1,26 +1,29 @@
 #include "vis.hpp"
+#include "mempool.hpp"
 #include <cstdint>
 #include <fstream>
 #include <iomanip>
 #include <memory>
 #include <stdexcept>
 
-void build(const V value, graph &g) {
-  if (!value)
+void build(const MemPoolIndex value, graph &g) {
+  auto [nodes, edges, mem_pool] = g;
+  if (nodes.find(value) != nodes.end())
     return;
-  if (g.first.find(value) != g.first.end())
-    return;
-  g.first.insert(value);
-  for (auto child : value->children) {
-    g.second.insert({value, child.lock()});
-    build(child.lock(), g);
+  // if (g.0.find(value) != g.first.end())
+  //   return;
+  nodes.insert(value);
+  auto v_value = mem_pool->get(value);
+  for (auto child : v_value->children) {
+    edges.insert({value, child});
+    build(child, g);
   }
 }
 
-graph trace(const V root) {
+graph trace(const MemPoolIndex root, std::shared_ptr<MemPool<Value>> mem_pool) {
   snode nodes;
   sedge edges;
-  graph g = {nodes, edges};
+  graph g = {nodes, edges, mem_pool};
   build(root, g);
   return g;
 }
@@ -30,13 +33,15 @@ void to_dot(const graph &g, std::string &filename) {
   if (!file.is_open()) {
     throw std::runtime_error("Could not open file for writing: " + filename);
   }
+  auto [nodes, edges, mem_pool] = g;
   file << "digraph G {\n";
   file << "concentrate = true;\n";
   file << "rankdir = LR;\n";
-  for (const auto &node : g.first) {
-    auto addr = reinterpret_cast<uintptr_t>(node.get());
+  for (const auto &node_i : nodes) {
+    auto node = mem_pool->get(node_i);
+    auto addr = reinterpret_cast<uintptr_t>(node);
     std::string recordInfo = "shape = record";
-    if (node->is_param)
+    if (node->persistent)
       recordInfo += ", color = red";
     recordInfo += "];\n";
     file << "  \"" << addr << "\" [label=\"" << node->label << "| data "
@@ -46,15 +51,17 @@ void to_dot(const graph &g, std::string &filename) {
       file << "  \"" << addr << node->op << "\" [label=\"" << node->op
            << "\"];\n";
   }
-  for (const auto &edge : g.second) {
-    auto first_addr = reinterpret_cast<uintptr_t>(edge.first.get());
-    auto second_addr = reinterpret_cast<uintptr_t>(edge.second.get());
+  for (const auto &edge : edges) {
+    auto node_first = mem_pool->get(edge.first);
+    auto node_second = mem_pool->get(edge.second);
+    auto first_addr = reinterpret_cast<uintptr_t>(node_first);
+    auto second_addr = reinterpret_cast<uintptr_t>(node_second);
     // op to parent node
-    file << "\"" << first_addr << edge.first->op << "\" -> \"" << first_addr
+    file << "\"" << first_addr << node_first->op << "\" -> \"" << first_addr
          << "\";\n";
 
     // child to op
-    file << "\"" << second_addr << "\" -> \"" << first_addr << edge.first->op
+    file << "\"" << second_addr << "\" -> \"" << first_addr << node_first->op
          << "\";\n";
   }
   file << "}\n";

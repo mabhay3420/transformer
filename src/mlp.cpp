@@ -1,13 +1,16 @@
 #include "mlp.hpp"
+#include "mempool.hpp"
 #include "utils.hpp"
+#include <cstddef>
 #include <fstream>
 #include <iostream>
 #include <nlohmann/json.hpp>
 #include <ostream>
 
-Layer::Layer(int in_dim, int out_dim) {
+Layer::Layer(int in_dim, int out_dim, std::shared_ptr<MemPool<Value>> mem_pool)
+    : mem_pool(mem_pool) {
   for (int i = 0; i < out_dim; i++) {
-    neurons.push_back(std::make_shared<Neuron>(in_dim));
+    neurons.push_back(std::make_shared<Neuron>(in_dim, mem_pool));
   }
 }
 
@@ -24,8 +27,8 @@ std::ostream &operator<<(std::ostream &os, const std::shared_ptr<Layer> l) {
   return os;
 }
 
-std::vector<V> Layer::operator()(const std::vector<V> &x) {
-  std::vector<V> result;
+std::vector<size_t> Layer::operator()(const std::vector<size_t> &x) {
+  std::vector<size_t> result;
   for (int i = 0; i < neurons.size(); i++) {
     auto n = *neurons[i];
     result.push_back(n(x));
@@ -33,8 +36,8 @@ std::vector<V> Layer::operator()(const std::vector<V> &x) {
   return result;
 }
 
-std::vector<V> Layer::params() {
-  std::vector<V> params;
+std::vector<size_t> Layer::params() {
+  std::vector<size_t> params;
   for (auto n : neurons) {
     auto p = n->params();
     params.insert(params.end(), p.begin(), p.end());
@@ -42,25 +45,27 @@ std::vector<V> Layer::params() {
   return params;
 }
 
-MLP::MLP(int in_dim, std::vector<int> out_dim)
-    : in_dim(in_dim), out_dim(out_dim) {
+MLP::MLP(int in_dim, std::vector<int> out_dim,
+         std::shared_ptr<MemPool<Value>> mem_pool)
+    : in_dim(in_dim), out_dim(out_dim), mem_pool(mem_pool) {
   std::vector<int> layers_dim = {in_dim};
   layers_dim.insert(layers_dim.end(), out_dim.begin(), out_dim.end());
   for (int i = 0; i < layers_dim.size() - 1; i++) {
-    layers.push_back(std::make_shared<Layer>(layers_dim[i], layers_dim[i + 1]));
+    layers.push_back(
+        std::make_shared<Layer>(layers_dim[i], layers_dim[i + 1], mem_pool));
   };
 }
 
-std::vector<V> MLP::operator()(const std::vector<V> &x) {
-  std::vector<V> result(x);
+std::vector<size_t> MLP::operator()(const std::vector<size_t> &x) {
+  std::vector<size_t> result(x);
   for (int i = 0; i < layers.size(); i++) {
     auto l = *layers[i];
     result = l(result);
   }
   return result;
 }
-std::vector<V> MLP::params() {
-  std::vector<V> params;
+std::vector<MemPoolIndex> MLP::params() {
+  std::vector<MemPoolIndex> params;
   for (auto l : layers) {
     auto p = l->params();
     params.insert(params.end(), p.begin(), p.end());

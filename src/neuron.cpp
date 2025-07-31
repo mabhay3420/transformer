@@ -1,45 +1,50 @@
 #include "neuron.hpp"
+#include "mempool.hpp"
 #include "utils.hpp"
+#include <memory>
 #include <nlohmann/json.hpp>
 #include <ostream>
 
 using nlohmann::json;
-Neuron::Neuron(int dim, bool with_activation)
-    : d(dim), with_activation(with_activation) {
+Neuron::Neuron(int dim, std::shared_ptr<MemPool<Value>> mem_pool,
+               bool with_activation)
+    : d(dim), with_activation(with_activation), mem_pool(mem_pool) {
   auto get_random = []() {
     auto rnd = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
     return 2 * rnd - 1;
   };
-  b = val(get_random());
-  b->is_param = true;
+  b = val(get_random(), mem_pool);
+  mem_pool->get(b)->persistent = true;
   w.resize(dim);
   // fill with random values between -1 and 1
   for (int i = 0; i < dim; i++) {
-    w[i] = val(get_random());
-    w[i]->is_param = true;
+    w[i] = val(get_random(), mem_pool);
+    mem_pool->get(w[i])->persistent = true;
   }
 }
 
-V Neuron::operator()(const std::vector<V> &x) {
-  auto sum = b;
+size_t Neuron::operator()(const std::vector<MemPoolIndex> &x) {
+  auto sum = val(mem_pool->get(b)->data, mem_pool);
   for (int i = 0; i < d; i++) {
-    sum = sum + w[i] * x[i];
+    auto y = mul(w[i], x[i], mem_pool);
+    sum = add(sum, y, mem_pool);
   }
   if (with_activation) {
-    auto act = sum->tanh();
+    auto act = tanh(sum, mem_pool);
     return act;
   }
   return sum;
 }
 
-std::vector<V> Neuron::params() {
+std::vector<MemPoolIndex> Neuron::params() {
   auto params = w;
   params.push_back(b);
   return params;
 }
 
 std::ostream &operator<<(std::ostream &os, const Neuron &n) {
-  os << "Neuron(d=" << n.d << ", b=" << n.b << ", w=" << n.w << ")";
+  os << "Neuron(d=" << n.d << ", b=" << n.mem_pool->get(n.b)
+     << ", w=" << n.mem_pool->get(n.w) << ")";
   return os;
 }
 std::ostream &operator<<(std::ostream &os, const std::shared_ptr<Neuron> n) {

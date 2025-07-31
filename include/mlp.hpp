@@ -1,6 +1,7 @@
 #ifndef MLP_HPP
 #define MLP_HPP
 
+#include "mempool.hpp"
 #include "neuron.hpp"
 #include "nlohmann/json.hpp"
 #include <memory>
@@ -9,11 +10,12 @@
 
 using nlohmann::json;
 struct Layer {
+  std::shared_ptr<MemPool<Value>> mem_pool;
   std::vector<std::shared_ptr<Neuron>> neurons;
-  Layer(int in_dim, int out_dim);
+  Layer(int in_dim, int out_dim, std::shared_ptr<MemPool<Value>> mem_pool);
 
-  std::vector<V> operator()(const std::vector<V> &x);
-  std::vector<V> params();
+  std::vector<size_t> operator()(const std::vector<size_t> &x);
+  std::vector<size_t> params();
   friend std::ostream &operator<<(std::ostream &os, const Layer &);
   friend std::ostream &operator<<(std::ostream &os,
                                   const std::shared_ptr<Layer>);
@@ -24,11 +26,13 @@ void to_json(json &j, const std::weak_ptr<Layer> l);
 
 struct MLP {
   int in_dim;
+  std::shared_ptr<MemPool<Value>> mem_pool;
   std::vector<int> out_dim;
   std::vector<std::shared_ptr<Layer>> layers;
-  MLP(int in_dim, std::vector<int> out_dim);
-  std::vector<V> operator()(const std::vector<V> &x);
-  std::vector<V> params();
+  MLP(int in_dim, std::vector<int> out_dim,
+      std::shared_ptr<MemPool<Value>> mem_pool);
+  std::vector<size_t> operator()(const std::vector<size_t> &x);
+  std::vector<size_t> params();
   friend std::ostream &operator<<(std::ostream &os, const MLP &);
   void dump(const int indent = 4);
   void dump(std::string filename, const int indent = 4);

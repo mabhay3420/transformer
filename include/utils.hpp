@@ -1,6 +1,7 @@
 #ifndef UTILS_HPP
 #define UTILS_HPP
 
+#include "mempool.hpp"
 #include "micrograd.hpp"
 #include <iomanip>
 #include <ostream>
@@ -92,3 +93,16 @@ void dumpValues(std::vector<std::pair<V, V>> values, const char *filename);
 void dumpValues(std::vector<std::pair<V, V>> values, std::string filename);
 void dumpValues(std::vector<V> values, std::string filename);
 void dumpValues(std::vector<std::pair<V, V>> values, std::string filename);
+void dumpMemPoolEntries(
+    std::vector<std::pair<MemPoolIndex, MemPoolIndex>> entries,
+    std::shared_ptr<MemPool<Value>> mem_pool, std::string filename);
+void dumpMemPoolEntries(
+    std::vector<std::pair<MemPoolIndex, MemPoolIndex>> entries,
+    std::shared_ptr<MemPool<Value>> mem_pool, const char *filename);
+void dumpMemPoolEntries(std::vector<MemPoolIndex> entries,
+                        std::shared_ptr<MemPool<Value>> mem_pool,
+                        std::string filename);
+
+void dumpMemPoolEntries(std::vector<MemPoolIndex> entries,
+                        std::shared_ptr<MemPool<Value>> mem_pool,
+                        const char *filename);

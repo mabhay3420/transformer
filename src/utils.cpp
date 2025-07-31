@@ -1,6 +1,8 @@
 #include "utils.hpp"
+#include "mempool.hpp"
 #include <fstream>
 #include <iostream>
+#include <memory>
 
 void dumpJson(json &j, std::string filename) {
   std::ofstream file(filename);
@@ -31,4 +33,40 @@ void dumpValues(std::vector<std::pair<V, V>> values, std::string filename) {
 void dumpValues(std::vector<std::pair<V, V>> values, const char *filename) {
   std::string str(filename);
   dumpValues(values, str);
+}
+
+void dumpMemPoolEntries(
+    std::vector<std::pair<MemPoolIndex, MemPoolIndex>> entries,
+    std::shared_ptr<MemPool<Value>> mem_pool, std::string filename) {
+  std::vector<Value *> values;
+  for (auto e : entries) {
+    values.push_back(mem_pool->get(e.first));
+    values.push_back(mem_pool->get(e.second));
+  }
+  json j = values;
+  dumpJson(j, filename);
+}
+
+void dumpMemPoolEntries(
+    std::vector<std::pair<MemPoolIndex, MemPoolIndex>> entries,
+    std::shared_ptr<MemPool<Value>> mem_pool, const char *filename) {
+  std::string str(filename);
+  dumpMemPoolEntries(entries, mem_pool, str);
+}
+void dumpMemPoolEntries(std::vector<MemPoolIndex> entries,
+                        std::shared_ptr<MemPool<Value>> mem_pool,
+                        std::string filename) {
+  std::vector<Value *> values;
+  for (auto e : entries) {
+    values.push_back(mem_pool->get(e));
+  }
+  json j = values;
+  dumpJson(j, filename);
+}
+
+void dumpMemPoolEntries(std::vector<MemPoolIndex> entries,
+                        std::shared_ptr<MemPool<Value>> mem_pool,
+                        const char *filename) {
+  std::string str(filename);
+  dumpMemPoolEntries(entries, mem_pool, str);
 }
