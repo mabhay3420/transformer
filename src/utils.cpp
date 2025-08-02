@@ -70,3 +70,7 @@ void dumpMemPoolEntries(std::vector<MemPoolIndex> entries,
   std::string str(filename);
   dumpMemPoolEntries(entries, mem_pool, str);
 }
+
+float get_random_float(float min, float max) {
+  return (float)rand() / RAND_MAX * (max - min) + min;
+};

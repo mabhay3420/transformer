@@ -33,6 +33,18 @@ std::ostream &operator<<(std::ostream &os, const std::vector<Value *> &v) {
   return os;
 }
 
+size_t argmax(const std::vector<MemPoolIndex> &xs,
+              std::shared_ptr<MemPool<Value>> mem_pool) {
+  auto max_idx = 0;
+  for (int i = 1; i < xs.size(); i++) {
+    auto xi = mem_pool->get(xs[i]);
+    if (xi->data > mem_pool->get(xs[max_idx])->data) {
+      max_idx = i;
+    }
+  }
+  return max_idx;
+}
+
 MemPoolIndex max(const std::vector<MemPoolIndex> &xs,
                  std::shared_ptr<MemPool<Value>> mem_pool) {
   auto max_i = xs[0];

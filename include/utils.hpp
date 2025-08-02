@@ -106,3 +106,5 @@ void dumpMemPoolEntries(std::vector<MemPoolIndex> entries,
 void dumpMemPoolEntries(std::vector<MemPoolIndex> entries,
                         std::shared_ptr<MemPool<Value>> mem_pool,
                         const char *filename);
+
+float get_random_float(float min, float max);

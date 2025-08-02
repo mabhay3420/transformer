@@ -41,8 +41,11 @@ struct Value {
 };
 
 V max(const std::vector<V> &x);
-std::vector<V> softmax(const std::vector<V> &x);
-std::vector<V> one_hot_encode(int category, int total_categories);
+std::vector<MemPoolIndex> softmax(const std::vector<MemPoolIndex> &x,
+                                  std::shared_ptr<MemPool<Value>> mem_pool);
+std::vector<MemPoolIndex> one_hot_encode(int category, int total_categories);
+size_t argmax(const std::vector<MemPoolIndex> &xs,
+              std::shared_ptr<MemPool<Value>> mem_pool);
 
 inline MemPoolIndex val(float x, std::shared_ptr<MemPool<Value>> mem_pool) {
   auto v = mem_pool->alloc();

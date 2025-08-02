@@ -19,14 +19,11 @@ void XORLinearRegression() {
   auto last_param_end = mem_pool->size();
   std::cout << "Total params: " << params.size() << std::endl;
 
-  auto get_random_float = [&](float min, float max) {
-    return (float)rand() / RAND_MAX * (max - min) + min;
-  };
-  auto TOTAL_SIZE = 10000;
-  // auto TOTAL_SIZE = 500;
+  // auto TOTAL_SIZE = 10000;
+  auto TOTAL_SIZE = 50;
   auto BATCH_SIZE = 16;
-  auto TOTAL_EPOCH = 5000;
-  // auto TOTAL_EPOCH = 1000;
+  // auto TOTAL_EPOCH = 5000;
+  auto TOTAL_EPOCH = 1000;
   auto TRACE_EVERY = TOTAL_EPOCH / 10;
   auto LR0 = 0.01f;
   auto LR = LR0;

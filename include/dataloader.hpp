@@ -57,8 +57,8 @@ struct MnistDataset {
 struct MNIST {
   MnistDataset data;
 
-  MNIST(std::string train_csv = "data/mnist_train.csv",
-        std::string test_csv = "data/mnist_test.csv", int max_lines = 100);
+  MNIST(int max_lines = 100, std::string train_csv = "data/mnist_train.csv",
+        std::string test_csv = "data/mnist_test.csv");
 
   void summary();
 

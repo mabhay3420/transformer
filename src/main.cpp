@@ -3,6 +3,7 @@
 #include "linear_regression.hpp"
 #include "micrograd.hpp"
 #include "mlp.hpp"
+#include "mnist.hpp"
 #include "neuron.hpp"
 #include "probs.hpp"
 #include "tokenizer.hpp"
@@ -233,6 +234,7 @@ int main() {
   // file.close();
 
   // LinearRegression();
-  XORLinearRegression();
+  // XORLinearRegression();
+  MnistDnn();
   return 0;
 }

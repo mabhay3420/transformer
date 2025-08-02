@@ -60,7 +60,7 @@ void Sampler::sample(Batch &batch, bool is_train) {
   }
 }
 
-MNIST::MNIST(std::string train_csv, std::string test_csv, int max_lines)
+MNIST::MNIST(int max_lines, std::string train_csv, std::string test_csv)
     : train_csv(train_csv), test_csv(test_csv) {
   auto train_data = load_data(train_csv, max_lines);
   auto test_data = load_data(test_csv, max_lines);
@@ -71,7 +71,6 @@ MNIST::MNIST(std::string train_csv, std::string test_csv, int max_lines)
       .test_labels = test_data.second,
   };
 };
-
 void MNIST::summary() {
   std::cout << "Train data size: " << data.train_data.size() << std::endl;
   std::cout << "Train labels size: " << data.train_labels.size() << std::endl;

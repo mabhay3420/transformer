@@ -36,4 +36,5 @@ template <typename T> struct MemPool {
     //           << persitent_boundary << std::endl;
     mem.resize(persitent_boundary);
   }
+  void clear() { mem.clear(); }
 };
