@@ -11,7 +11,7 @@
 void MnistDnn() {
 
   // load data
-  MNIST mnist(60000);
+  MNIST mnist(100);
   mnist.summary();
   auto start = std::chrono::high_resolution_clock::now();
   auto mem_pool = std::make_shared<MemPool<Value>>(10000);
@@ -25,7 +25,7 @@ void MnistDnn() {
   auto BATCH_SIZE = 64;
   auto TRAIN_FRACTION = 0.8;
   int VAL_SIZE = (1 - TRAIN_FRACTION) * TOTAL_SIZE;
-  auto TOTAL_EPOCH = 10000;
+  auto TOTAL_EPOCH = 100;
   auto TRACE_EVERY = TOTAL_EPOCH / TOTAL_EPOCH;
   TRACE_EVERY = std::max(TRACE_EVERY, 1);
   std::cout << "Total dataset size: " << TOTAL_SIZE << std::endl;
@@ -41,7 +41,8 @@ void MnistDnn() {
   auto LR_GAMMA = 0.1f;
   auto LR_CLIFF = 100;
   ConstantLRScheduler lr_scheduler(LR0);
-  AdamOptimizer<ConstantLRScheduler> optimizer(mem_pool, params, lr_scheduler, momentum_beta);
+  AdamOptimizer<ConstantLRScheduler> optimizer(mem_pool, params, lr_scheduler,
+                                               momentum_beta);
   auto getRandomBatch = [&](int batch_size) {
     // choose a list of indices
     std::vector<int> indices(batch_size);
