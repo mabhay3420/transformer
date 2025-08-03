@@ -1,16 +1,16 @@
 #include "xormodel.hpp"
+#include "learning_rate.hpp"
 #include "mempool.hpp"
 #include "micrograd.hpp"
 #include "mlp.hpp"
 #include "neuron.hpp"
+#include "optimizer.hpp"
 #include "utils.hpp"
 #include <iostream>
 #include <vector>
 
 void XORLinearRegression() {
 
-  // auto n = Neuron(2, false);
-  // auto n = Neuron(2, true);
   // start time
   auto start = std::chrono::high_resolution_clock::now();
   auto mem_pool = std::make_shared<MemPool<Value>>(1000);
@@ -19,20 +19,19 @@ void XORLinearRegression() {
   auto last_param_end = mem_pool->size();
   std::cout << "Total params: " << params.size() << std::endl;
 
-  // auto TOTAL_SIZE = 10000;
-  auto TOTAL_SIZE = 50;
-  auto BATCH_SIZE = 16;
-  // auto TOTAL_EPOCH = 5000;
+  auto TOTAL_SIZE = 10000;
+  auto BATCH_SIZE = 64;
   auto TOTAL_EPOCH = 1000;
   auto TRACE_EVERY = TOTAL_EPOCH / 10;
   auto LR0 = 0.01f;
-  auto LR = LR0;
-  auto momentum_beta = 0.5f;
+  auto momentum_beta = 0.9f;
+  ConstantLRScheduler lr_scheduler(LR0);
+  AdamOptimizer<ConstantLRScheduler> optimizer(mem_pool, params, lr_scheduler,
+                                               momentum_beta);
   std::cout << "Total dataset size: " << TOTAL_SIZE << std::endl;
   std::cout << "Batch size: " << BATCH_SIZE << std::endl;
   std::cout << "Total epochs: " << TOTAL_EPOCH << std::endl;
   std::cout << "Momentum beta: " << momentum_beta << std::endl;
-  // std::map<MemPoolIndex, float> momentum;
   std::vector<float> losses;
   std::vector<std::vector<MemPoolIndex>> x_all;
   std::vector<std::vector<MemPoolIndex>> x_val;
@@ -63,8 +62,8 @@ void XORLinearRegression() {
 
   // IMPORTANT
   mem_pool->set_persistent_boundary();
-  std::vector<float> momentum;
-  momentum.resize(last_param_end);
+  // std::vector<float> momentum;
+  // momentum.resize(last_param_end);
 
   auto getRandomBatch = [&](int batch_size) {
     // choose a list of indices
@@ -105,16 +104,10 @@ void XORLinearRegression() {
     }
     auto loss = MSE(predicted, expected);
     losses.push_back(mem_pool->get(loss)->data);
-    for (auto p : params) {
-      mem_pool->get(p)->grad = 0.0f;
-    }
+    optimizer.zero_grad();
     backprop(loss, mem_pool);
-    for (auto p : params) {
-      momentum[p] = (momentum_beta * momentum[p]) + mem_pool->get(p)->grad;
-      mem_pool->get(p)->data += -LR * momentum[p];
-    }
+    optimizer.step();
     if (epoch % TRACE_EVERY == 0) {
-      // auto loss_v = mem_pool->get(loss);
       auto total = 0;
       auto correct = 0;
       for (auto x : x_val) {

@@ -11,7 +11,8 @@
 
 void MnistDnn() {
 
-  MNIST mnist(60000);
+  auto LINES_TO_READ = 60;
+  MNIST mnist(LINES_TO_READ);
   mnist.summary();
   auto start = std::chrono::high_resolution_clock::now();
   auto mem_pool = std::make_shared<MemPool<Value>>(10000);
