@@ -201,6 +201,11 @@ void backprop(const MemPoolIndex root,
        ++iter) {
     iter->backward();
   }
+  // update params now
+  for (auto iter = mem_pool->persistent.rbegin();
+       iter != mem_pool->persistent.rend(); ++iter) {
+    iter->backward();
+  }
 }
 
 void to_json(json &j, const V &v) { j = v->data; }

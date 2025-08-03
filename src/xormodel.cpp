@@ -13,7 +13,7 @@ void XORLinearRegression() {
 
   // start time
   auto start = std::chrono::high_resolution_clock::now();
-  auto mem_pool = std::make_shared<MemPool<Value>>(1000);
+  auto mem_pool = std::make_shared<MemPool<Value>>();
   auto n = MLP(2, {10, 5, 1}, mem_pool);
   auto params = n.params();
   auto last_param_end = mem_pool->size();

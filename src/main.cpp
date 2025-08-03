@@ -81,7 +81,7 @@ int main() {
   //   std::cout << sample2 << " : " << sample2_nll << std::endl;
 
   // LinearRegression();
-  // XORLinearRegression();
-  MnistDnn();
+  XORLinearRegression();
+  // MnistDnn();
   return 0;
 }

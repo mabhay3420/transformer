@@ -11,9 +11,7 @@ template <typename T> struct MemPool {
   bool persistent_done = false;
   std::vector<T> persistent;
   std::vector<T> mem;
-  MemPool(MemPoolIndex size) : mem(size) {
-    persistent.reserve(size);
-  }
+  MemPool() = default;
 
   MemPoolIndex alloc() {
     if (persistent_done) {

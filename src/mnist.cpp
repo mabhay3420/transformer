@@ -15,7 +15,7 @@ void MnistDnn() {
   MNIST mnist(LINES_TO_READ);
   mnist.summary();
   auto start = std::chrono::high_resolution_clock::now();
-  auto mem_pool = std::make_shared<MemPool<Value>>(10000);
+  auto mem_pool = std::make_shared<MemPool<Value>>();
   auto in_size = mnist.data.train_data[0].size();
   auto out_size = 10; // 10 classes
 
@@ -39,7 +39,6 @@ void MnistDnn() {
   std::vector<float> losses;
   //   IMPORTANT
   auto LR0 = 0.01f;
-  // auto momentum_beta = 0.9f;
   auto LR_GAMMA = 0.1f;
   auto LR_CLIFF = 100;
   ConstantLRScheduler lr_scheduler(LR0);
