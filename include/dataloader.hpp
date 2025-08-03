@@ -1,5 +1,5 @@
-#ifndef DATALOADER_HPP
-#define DATALOADER_HPP
+#pragma once
+#include <functional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -83,4 +83,25 @@ struct SwedishAutoInsurance {
 private:
   std::string filename;
 };
-#endif
+
+template <typename InputDataType, typename LableType,
+          typename InputMemPoolIndexType, typename LabelMemPoolIndexType>
+std::vector<std::pair<InputMemPoolIndexType, LabelMemPoolIndexType>>
+getRandomBatch(
+    const std::vector<InputDataType> &x, const std::vector<LableType> &y,
+    std::function<InputMemPoolIndexType(const InputDataType &)> inputTransform,
+    std::function<LabelMemPoolIndexType(const LableType &)> labelTransform,
+    int batch_size, int start_index = 0, int end_index = -1) {
+  if (end_index == -1)
+    end_index = x.size();
+  std::vector<int> indices(batch_size);
+  auto total_size = x.size();
+  for (int i = 0; i < batch_size; i++) {
+    indices[i] = (rand() % (end_index - start_index)) + start_index;
+  }
+  std::vector<std::pair<InputMemPoolIndexType, LabelMemPoolIndexType>> batch;
+  for (auto i : indices) {
+    batch.push_back({inputTransform(x[i]), labelTransform(y[i])});
+  }
+  return batch;
+}

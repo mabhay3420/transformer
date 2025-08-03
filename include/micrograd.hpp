@@ -47,11 +47,23 @@ std::vector<MemPoolIndex> one_hot_encode(int category, int total_categories);
 size_t argmax(const std::vector<MemPoolIndex> &xs,
               std::shared_ptr<MemPool<Value>> mem_pool);
 
-inline MemPoolIndex val(float x, std::shared_ptr<MemPool<Value>> mem_pool) {
+inline MemPoolIndex val(const float x, std::shared_ptr<MemPool<Value>> mem_pool) {
   auto v = mem_pool->alloc();
   mem_pool->get(v)->data = x;
   return v;
 }
+
+inline std::vector<MemPoolIndex> val(const std::vector<float> &x,
+                                     std::shared_ptr<MemPool<Value>> mem_pool) {
+  std::vector<MemPoolIndex> out;
+  for (auto xi : x) {
+    auto xi_v = mem_pool->alloc();
+    mem_pool->get(xi_v)->data = xi;
+    out.push_back(xi_v);
+  }
+  return out;
+}
+
 inline MemPoolIndex val(float x, std::vector<MemPoolIndex> children,
                         std::string op,
                         std::shared_ptr<MemPool<Value>> mem_pool,

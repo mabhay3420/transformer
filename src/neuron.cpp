@@ -24,7 +24,7 @@ Neuron::Neuron(int dim, std::shared_ptr<MemPool<Value>> mem_pool,
 }
 
 size_t Neuron::operator()(const std::vector<MemPoolIndex> &x) {
-  auto sum = val(mem_pool->get(b)->data, mem_pool);
+  auto sum = b;
   for (int i = 0; i < d; i++) {
     auto y = mul(w[i], x[i], mem_pool);
     sum = add(sum, y, mem_pool);

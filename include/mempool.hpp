@@ -8,33 +8,38 @@ struct Value;
 typedef size_t MemPoolIndex;
 
 template <typename T> struct MemPool {
-  size_t persitent_boundary = 0;
+  bool persistent_done = false;
+  std::vector<T> persistent;
   std::vector<T> mem;
   MemPool(MemPoolIndex size) : mem(size) { mem.reserve(size); }
 
   MemPoolIndex alloc() {
-    mem.push_back(T());
-    return mem.size() - 1;
+    if (persistent_done) {
+      mem.push_back(T());
+      return persistent.size() + mem.size() - 1;
+    } else {
+      persistent.push_back(T());
+      return persistent.size() - 1;
+    }
   }
-  MemPoolIndex size() { return mem.size(); }
-  T *get(size_t i) { return &mem[i]; }
+  MemPoolIndex size() { return persistent.size() + mem.size(); }
+  T *get(size_t i) {
+    if (i < persistent.size())
+      return &persistent[i];
+    else
+      return &mem[i - persistent.size()];
+  }
   std::vector<T *> get(std::vector<size_t> i) {
     std::vector<T *> out;
     for (auto j : i) {
-      out.push_back(&mem[j]);
+      out.push_back(this->get(j));
     }
     return out;
   }
-  void set_persistent_boundary() {
-    std::cout << "Setting persitent boundary to: " << mem.size() << std::endl;
-    persitent_boundary = mem.size();
+  void set_persistent_boundary() { persistent_done = true; }
+  void reset() { mem.clear(); }
+  void clear() {
+    persistent.clear();
+    mem.clear();
   }
-
-  void reset() {
-    // resize mem to persitent_boundary
-    // std::cout << "Resetting mempool from size: " << mem.size() << " -> "
-    //           << persitent_boundary << std::endl;
-    mem.resize(persitent_boundary);
-  }
-  void clear() { mem.clear(); }
 };
