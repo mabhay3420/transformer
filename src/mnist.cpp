@@ -39,12 +39,11 @@ void MnistDnn() {
   std::vector<float> losses;
   //   IMPORTANT
   auto LR0 = 0.01f;
-  auto momentum_beta = 0.9f;
+  // auto momentum_beta = 0.9f;
   auto LR_GAMMA = 0.1f;
   auto LR_CLIFF = 100;
   ConstantLRScheduler lr_scheduler(LR0);
-  AdamOptimizer<ConstantLRScheduler> optimizer(mem_pool, params, lr_scheduler,
-                                               momentum_beta);
+  AdamOptimizer<ConstantLRScheduler> optimizer(mem_pool, params, lr_scheduler);
 
   auto inputTransform = [&](const std::vector<float> &x) {
     return val(x, mem_pool);

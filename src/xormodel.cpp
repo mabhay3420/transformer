@@ -24,14 +24,13 @@ void XORLinearRegression() {
   auto TOTAL_EPOCH = 1000;
   auto TRACE_EVERY = TOTAL_EPOCH / 10;
   auto LR0 = 0.01f;
-  auto momentum_beta = 0.9f;
+  // auto momentum_beta = 0.9f;
   ConstantLRScheduler lr_scheduler(LR0);
-  AdamOptimizer<ConstantLRScheduler> optimizer(mem_pool, params, lr_scheduler,
-                                               momentum_beta);
+  AdamOptimizer<ConstantLRScheduler> optimizer(mem_pool, params, lr_scheduler);
   std::cout << "Total dataset size: " << TOTAL_SIZE << std::endl;
   std::cout << "Batch size: " << BATCH_SIZE << std::endl;
   std::cout << "Total epochs: " << TOTAL_EPOCH << std::endl;
-  std::cout << "Momentum beta: " << momentum_beta << std::endl;
+  // std::cout << "Momentum beta: " << momentum_beta << std::endl;
   std::vector<float> losses;
   std::vector<std::vector<MemPoolIndex>> x_all;
   std::vector<std::vector<MemPoolIndex>> x_val;
