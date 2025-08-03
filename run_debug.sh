@@ -1,5 +1,5 @@
-./build_release.sh
-time ./build/release/tformer
+./build_debug.sh
+time ./build/tformer
 source .venv/bin/activate
 if [ "$1" == "v" ];then
 	python vis_loss.py

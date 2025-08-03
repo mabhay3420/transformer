@@ -1,4 +1,4 @@
-./build.sh
+./build_debug.sh
 sudo rm -rf tformer_trace.trace 
 codesign --entitlements entitlements.plist --sign - --force ./build/tformer
 if [ $1 == "t" ]; then
