@@ -7,10 +7,12 @@
 #include <nlohmann/json.hpp>
 #include <ostream>
 
-Layer::Layer(int in_dim, int out_dim, std::shared_ptr<MemPool<Value>> mem_pool)
+Layer::Layer(int in_dim, int out_dim, std::shared_ptr<MemPool<Value>> mem_pool,
+             bool with_activation)
     : mem_pool(mem_pool) {
   for (int i = 0; i < out_dim; i++) {
-    neurons.push_back(std::make_shared<Neuron>(in_dim, mem_pool));
+    neurons.push_back(
+        std::make_shared<Neuron>(in_dim, mem_pool, with_activation));
   }
 }
 
@@ -46,14 +48,18 @@ std::vector<size_t> Layer::params() {
 }
 
 MLP::MLP(int in_dim, std::vector<int> out_dim,
-         std::shared_ptr<MemPool<Value>> mem_pool)
+         std::shared_ptr<MemPool<Value>> mem_pool, bool last_with_activation)
     : in_dim(in_dim), out_dim(out_dim), mem_pool(mem_pool) {
   std::vector<int> layers_dim = {in_dim};
   layers_dim.insert(layers_dim.end(), out_dim.begin(), out_dim.end());
-  for (int i = 0; i < layers_dim.size() - 1; i++) {
+  for (int i = 0; i < layers_dim.size() - 2; i++) {
     layers.push_back(
         std::make_shared<Layer>(layers_dim[i], layers_dim[i + 1], mem_pool));
   };
+  // auto last_layer_dims = layers_dim.back();
+  layers.push_back(std::make_shared<Layer>(layers_dim[layers_dim.size() - 2],
+                                           layers_dim[layers_dim.size() - 1],
+                                           mem_pool, last_with_activation));
 }
 
 std::vector<size_t> MLP::operator()(const std::vector<size_t> &x) {

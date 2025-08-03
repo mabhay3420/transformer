@@ -63,9 +63,10 @@ std::vector<MemPoolIndex> softmax(const std::vector<MemPoolIndex> &x,
   // NOTE: not doing the max version for now
   auto o_i = mem_pool->alloc();
   auto xmax = max(x, mem_pool);
+  auto xmax_v = val(mem_pool->get(xmax)->data, mem_pool);
   std::vector<MemPoolIndex> exps;
   for (auto xi : x) {
-    auto xnorm = sub(xi, xmax, mem_pool);
+    auto xnorm = sub(xi, xmax_v, mem_pool);
     exps.push_back(exp(xnorm, mem_pool));
   }
   auto sum = val(0.0f, mem_pool);

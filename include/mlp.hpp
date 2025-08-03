@@ -12,7 +12,7 @@ using nlohmann::json;
 struct Layer {
   std::shared_ptr<MemPool<Value>> mem_pool;
   std::vector<std::shared_ptr<Neuron>> neurons;
-  Layer(int in_dim, int out_dim, std::shared_ptr<MemPool<Value>> mem_pool);
+  Layer(int in_dim, int out_dim, std::shared_ptr<MemPool<Value>> mem_pool, bool with_activation = true);
 
   std::vector<size_t> operator()(const std::vector<size_t> &x);
   std::vector<size_t> params();
@@ -30,7 +30,7 @@ struct MLP {
   std::vector<int> out_dim;
   std::vector<std::shared_ptr<Layer>> layers;
   MLP(int in_dim, std::vector<int> out_dim,
-      std::shared_ptr<MemPool<Value>> mem_pool);
+      std::shared_ptr<MemPool<Value>> mem_pool, bool last_with_activation = true);
   std::vector<size_t> operator()(const std::vector<size_t> &x);
   std::vector<size_t> params();
   friend std::ostream &operator<<(std::ostream &os, const MLP &);

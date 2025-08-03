@@ -11,7 +11,7 @@
 
 void MnistDnn() {
 
-  auto LINES_TO_READ = 60;
+  auto LINES_TO_READ = 60000;
   MNIST mnist(LINES_TO_READ);
   mnist.summary();
   auto start = std::chrono::high_resolution_clock::now();
@@ -19,17 +19,19 @@ void MnistDnn() {
   auto in_size = mnist.data.train_data[0].size();
   auto out_size = 10; // 10 classes
 
-  auto n = MLP(in_size, {128, 128, out_size}, mem_pool);
+  auto n = MLP(in_size, {128, 128, out_size}, mem_pool, false);
   mem_pool->set_persistent_boundary();
 
   auto params = n.params();
   auto TOTAL_SIZE = mnist.data.train_data.size();
   auto BATCH_SIZE = 64;
   auto TRAIN_FRACTION = 0.8;
+  // int VAL_SIZE =
+  //     std::min<int>((1 - TRAIN_FRACTION) * TOTAL_SIZE, BATCH_SIZE * 4);
   int VAL_SIZE = (1 - TRAIN_FRACTION) * TOTAL_SIZE;
-  auto TOTAL_EPOCH = 10000;
+  auto TOTAL_EPOCH = TOTAL_SIZE / BATCH_SIZE;
   auto TRACE_EVERY = TOTAL_EPOCH / TOTAL_EPOCH;
-  TRACE_EVERY = std::max(TRACE_EVERY, 1);
+  TRACE_EVERY = std::max<int>(TRACE_EVERY, 1);
 
   std::cout << "Total dataset size: " << TOTAL_SIZE << std::endl;
   std::cout << "Batch size: " << BATCH_SIZE << std::endl;
@@ -56,6 +58,7 @@ void MnistDnn() {
 
   // TRAINING LOOP
   for (int epoch = 0; epoch < TOTAL_EPOCH; epoch++) {
+    optimizer.zero_grad();
     mem_pool->reset();
     auto batch = getRandomBatchFn();
     std::vector<std::vector<MemPoolIndex>> predicted;
@@ -68,7 +71,6 @@ void MnistDnn() {
     }
     auto loss = cross_entropy(predicted, expected, mem_pool);
     losses.push_back(mem_pool->get(loss)->data);
-    optimizer.zero_grad();
     backprop(loss, mem_pool);
     optimizer.step();
     if (epoch % TRACE_EVERY == 0) {
