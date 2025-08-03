@@ -10,6 +10,12 @@ template <typename T> struct LRScheduler {
   float get() { return static_cast<T *>(this)->get(); }
 };
 
+struct ConstantLRScheduler : LRScheduler<ConstantLRScheduler> {
+  ConstantLRScheduler(float init_lr)
+      : LRScheduler<ConstantLRScheduler>(init_lr){};
+  float get() { return init_lr; }
+};
+
 struct StepLRScheduler : LRScheduler<StepLRScheduler> {
   int cliff;
   float gamma;

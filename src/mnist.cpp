@@ -18,7 +18,7 @@ void MnistDnn() {
   auto in_size = mnist.data.train_data[0].size();
   auto out_size = 10; // 10 classes
 
-  auto n = MLP(in_size, {out_size}, mem_pool);
+  auto n = MLP(in_size, {128, 128, out_size}, mem_pool);
   auto params = n.params();
   auto last_param_end = mem_pool->size();
   auto TOTAL_SIZE = mnist.data.train_data.size();
@@ -26,25 +26,22 @@ void MnistDnn() {
   auto TRAIN_FRACTION = 0.8;
   int VAL_SIZE = (1 - TRAIN_FRACTION) * TOTAL_SIZE;
   auto TOTAL_EPOCH = 10000;
-  auto TRACE_EVERY = TOTAL_EPOCH / 100;
+  auto TRACE_EVERY = TOTAL_EPOCH / TOTAL_EPOCH;
   TRACE_EVERY = std::max(TRACE_EVERY, 1);
-  auto momentum_beta = 0.9f;
   std::cout << "Total dataset size: " << TOTAL_SIZE << std::endl;
   std::cout << "Batch size: " << BATCH_SIZE << std::endl;
   std::cout << "Total epochs: " << TOTAL_EPOCH << std::endl;
-  std::cout << "Momentum beta: " << momentum_beta << std::endl;
   std::cout << "Total parameters: " << params.size() << std::endl;
   std::vector<float> losses;
   std::vector<std::vector<MemPoolIndex>> x_val;
   //   IMPORTANT
   mem_pool->set_persistent_boundary();
-  auto LR0 = 0.5f;
-  auto LR = LR0;
-  StepLRScheduler lr_scheduler(LR0, 100, 0.1);
-  SGDOptimizer optimizer(mem_pool, params, lr_scheduler);
-  std::vector<float> momentum;
-  momentum.resize(last_param_end);
-
+  auto LR0 = 0.1f;
+  auto momentum_beta = 0.9f;
+  auto LR_GAMMA = 0.1f;
+  auto LR_CLIFF = 100;
+  ConstantLRScheduler lr_scheduler(LR0);
+  AdamOptimizer<ConstantLRScheduler> optimizer(mem_pool, params, lr_scheduler, momentum_beta);
   auto getRandomBatch = [&](int batch_size) {
     // choose a list of indices
     std::vector<int> indices(batch_size);
@@ -98,11 +95,6 @@ void MnistDnn() {
     optimizer.zero_grad();
     backprop(loss, mem_pool);
     optimizer.step();
-    // auto CURR_LR = lr_scheduler.get();
-    // for (auto p : params) {
-    //   momentum[p] = (momentum_beta * momentum[p]) + mem_pool->get(p)->grad;
-    //   mem_pool->get(p)->data += -CURR_LR * momentum[p];
-    // }
     if (epoch % TRACE_EVERY == 0) {
       std::cout << "Epoch: " << epoch << " Loss: " << mem_pool->get(loss)->data
                 << std::endl;
