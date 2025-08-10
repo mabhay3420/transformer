@@ -13,9 +13,9 @@ from sklearn.neighbors import KNeighborsClassifier
 import os
 
 # ---------- 1. Existing loss‑curve plot ----------
-with open('data/losses.json') as f:
+with open('data/losses_lri.json') as f:
     losses = json.load(f)
-cleaned_losses = [d for d in losses if d != "null"]
+cleaned_losses = [d for d in losses["losses"] if d != "null"]
 
 plt.figure()
 plt.plot(cleaned_losses)

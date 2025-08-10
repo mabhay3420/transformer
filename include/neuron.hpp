@@ -7,15 +7,19 @@
 #include <memory>
 #include <vector>
 
+enum class Activation { RELU, TANH };
+
 struct Neuron {
   int d;                       // dimension
   std::vector<MemPoolIndex> w; // weight
   MemPoolIndex b;              // bias
   bool with_activation;
-  bool with_bias ;
+  bool with_bias;
+  Activation act;
   std::shared_ptr<MemPool<Value>> mem_pool;
   Neuron(int dim, std::shared_ptr<MemPool<Value>> mem_pool,
-         bool is_activation = true, bool with_bias = true);
+         bool is_activation = true, bool with_bias = true,
+         Activation act = Activation::RELU);
 
   MemPoolIndex operator()(const std::vector<MemPoolIndex> &x);
   std::vector<MemPoolIndex>

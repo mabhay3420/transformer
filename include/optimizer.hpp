@@ -27,10 +27,10 @@ struct OptimizerWithLRSchedule
   using Base::mem_pool;
   using Base::params;
   using Base::step_count;
-  LRScheduleType lr_scheduler;
+  LRScheduleType& lr_scheduler;
   OptimizerWithLRSchedule(std::shared_ptr<MemPool<Value>> mem_pool,
                           std::vector<MemPoolIndex> params,
-                          LRScheduleType lr_scheduler)
+                          LRScheduleType& lr_scheduler)
       : Optimizer<OptimizerWithLRSchedule<LRScheduleType>>(mem_pool, params),
         lr_scheduler(lr_scheduler) {}
   void step();
@@ -46,7 +46,7 @@ struct SGDOptimizer : OptimizerWithLRSchedule<LRSchedulerType> {
   float momentum_beta;
   std::unordered_map<MemPoolIndex, float> momentum;
   SGDOptimizer(std::shared_ptr<MemPool<Value>> mem_pool,
-               std::vector<MemPoolIndex> params, LRSchedulerType lr_scheduler,
+               std::vector<MemPoolIndex> params, LRSchedulerType& lr_scheduler,
                float momentum_beta = 0.0f)
       : Base(mem_pool, params, lr_scheduler), momentum_beta(momentum_beta) {}
   void step() {
@@ -76,7 +76,7 @@ struct AdamOptimizer : OptimizerWithLRSchedule<LRSchedulerType> {
   std::unordered_map<MemPoolIndex, float> moment_2_max;
 
   AdamOptimizer(std::shared_ptr<MemPool<Value>> mem_pool,
-                std::vector<MemPoolIndex> params, LRSchedulerType lr_scheduler,
+                std::vector<MemPoolIndex> params, LRSchedulerType& lr_scheduler,
                 float beta1 = 0.9f, float beta2 = 0.999f,
                 float weight_decay = 0, bool amsgrad = false,
                 float epsilon = 1e-8f)
@@ -129,7 +129,7 @@ struct AdamWOptimizer : OptimizerWithLRSchedule<LRSchedulerType> {
   std::unordered_map<MemPoolIndex, float> moment_1_max;
 
   AdamWOptimizer(std::shared_ptr<MemPool<Value>> mem_pool,
-                 std::vector<MemPoolIndex> params, LRSchedulerType lr_scheduler,
+                 std::vector<MemPoolIndex> params, LRSchedulerType& lr_scheduler,
                  float beta1 = 0.9f, float beta2 = 0.999f,
                  float weight_decay = 0, bool amsgrad = false,
                  float epsilon = 1e-8f)

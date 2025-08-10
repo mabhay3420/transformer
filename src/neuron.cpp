@@ -8,9 +8,9 @@
 
 using nlohmann::json;
 Neuron::Neuron(int dim, std::shared_ptr<MemPool<Value>> mem_pool,
-               bool with_activation, bool with_bias)
+               bool with_activation, bool with_bias, Activation act)
     : d(dim), with_activation(with_activation), with_bias(with_bias),
-      mem_pool(mem_pool) {
+      mem_pool(mem_pool), act(act) {
   w.resize(dim);
   unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
   std::default_random_engine generator(seed);
@@ -41,6 +41,17 @@ MemPoolIndex Neuron::operator()(const std::vector<MemPoolIndex> &x) {
     sum = add(sum, y, mem_pool);
   }
   if (with_activation) {
+    MemPoolIndex actResult;
+    switch (act) {
+    case Activation::RELU:
+      actResult = relu(sum, mem_pool);
+      return actResult;
+    case Activation::TANH:
+      actResult = tanh(sum, mem_pool);
+      return actResult;
+    default:
+      return sum; // No activation
+    }
     auto act = relu(sum, mem_pool);
     return act;
   }

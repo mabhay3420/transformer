@@ -1,4 +1,5 @@
 #include "bigramnn.hpp"
+#include "embednlp.hpp"
 #include "linear_regression.hpp"
 #include "utils.hpp"
 int main() {
@@ -6,6 +7,7 @@ int main() {
   // XORLinearRegression();
   // MnistDnn();
   // BigraLm();
-  BigramNN();
+  // BigramNN();
+  EmbedNLP();
   return 0;
 }

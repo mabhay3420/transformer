@@ -23,16 +23,6 @@ std::string load_text_data(std::string filename) {
   return data;
 }
 
-void split_data(const float ratio, const std::vector<int> &data,
-                std::vector<int> &train_data, std::vector<int> &val_data) {
-  assert(ratio > 0.0f && ratio < 1.0f && "Ratio must be between 0 and 1");
-  auto split_index = static_cast<size_t>(data.size() * ratio);
-  train_data.assign(data.begin(), data.begin() + split_index);
-  val_data.assign(data.begin() + split_index, data.end());
-  if (train_data.empty() || val_data.empty()) {
-    throw std::runtime_error("Split resulted in empty dataset");
-  }
-}
 
 void Sampler::sample(Batch &batch, bool is_train) {
 
