@@ -30,7 +30,7 @@ void MnistDnn() {
   //     std::min<int>((1 - TRAIN_FRACTION) * TOTAL_SIZE, BATCH_SIZE * 4);
   int VAL_SIZE = (1 - TRAIN_FRACTION) * TOTAL_SIZE;
   // auto TOTAL_EPOCH = TOTAL_SIZE / BATCH_SIZE;
-  auto TOTAL_EPOCH = 1500;
+  auto TOTAL_EPOCH = 1000;
   auto TRACE_EVERY = TOTAL_EPOCH / TOTAL_EPOCH;
   TRACE_EVERY = std::max<int>(TRACE_EVERY, 1);
 
@@ -41,12 +41,12 @@ void MnistDnn() {
 
   std::vector<float> losses;
   //   IMPORTANT
+  auto LR0 = 0.01f;
   auto LR_GAMMA = 0.5f;
-  auto LR_CLIFF = TOTAL_EPOCH / 2;
-  // StepLRScheduler lr_scheduler(LR0, LR_CLIFF, LR_GAMMA);
-  auto LR0 = 0.001f;
-  ConstantLRScheduler lr_scheduler(LR0);
-  AdamWOptimizer<ConstantLRScheduler> optimizer(mem_pool, params, lr_scheduler);
+  auto LR_CLIFF = TOTAL_EPOCH / 5;
+  StepLRScheduler lr_scheduler(LR0, LR_CLIFF, LR_GAMMA);
+  // ConstantLRScheduler lr_scheduler(LR0);
+  AdamWOptimizer<StepLRScheduler> optimizer(mem_pool, params, lr_scheduler);
 
   auto inputTransform = [&](const std::vector<float> &x) {
     return val(x, mem_pool);

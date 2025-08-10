@@ -12,9 +12,12 @@ using nlohmann::json;
 struct Layer {
   std::shared_ptr<MemPool<Value>> mem_pool;
   std::vector<std::shared_ptr<Neuron>> neurons;
-  Layer(int in_dim, int out_dim, std::shared_ptr<MemPool<Value>> mem_pool, bool with_activation = true);
+  Layer(int in_dim, int out_dim, std::shared_ptr<MemPool<Value>> mem_pool,
+        bool with_activation = true);
 
-  std::vector<size_t> operator()(const std::vector<size_t> &x);
+  std::vector<MemPoolIndex> operator()(const std::vector<MemPoolIndex> &x);
+  std::vector<std::vector<MemPoolIndex>>
+  operator()(const std::vector<std::vector<MemPoolIndex>> &x);
   std::vector<size_t> params();
   friend std::ostream &operator<<(std::ostream &os, const Layer &);
   friend std::ostream &operator<<(std::ostream &os,
@@ -30,7 +33,8 @@ struct MLP {
   std::vector<int> out_dim;
   std::vector<std::shared_ptr<Layer>> layers;
   MLP(int in_dim, std::vector<int> out_dim,
-      std::shared_ptr<MemPool<Value>> mem_pool, bool last_with_activation = true);
+      std::shared_ptr<MemPool<Value>> mem_pool,
+      bool last_with_activation = true);
   std::vector<size_t> operator()(const std::vector<size_t> &x);
   std::vector<size_t> params();
   friend std::ostream &operator<<(std::ostream &os, const MLP &);

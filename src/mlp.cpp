@@ -38,6 +38,15 @@ std::vector<size_t> Layer::operator()(const std::vector<size_t> &x) {
   return result;
 }
 
+std::vector<std::vector<MemPoolIndex>>
+Layer::operator()(const std::vector<std::vector<MemPoolIndex>> &x) {
+  std::vector<std::vector<MemPoolIndex>> result;
+  for (auto xi : x) {
+    auto r = (*this)(xi);
+    result.push_back(r);
+  }
+  return result;
+}
 std::vector<size_t> Layer::params() {
   std::vector<size_t> params;
   for (auto n : neurons) {

@@ -11,7 +11,8 @@ Neuron::Neuron(int dim, std::shared_ptr<MemPool<Value>> mem_pool,
                bool with_activation)
     : d(dim), with_activation(with_activation), mem_pool(mem_pool) {
   w.resize(dim);
-  std::default_random_engine generator;
+  unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
+  std::default_random_engine generator(seed);
   std::uniform_int_distribution<int> distribution(0, dim + 1);
   auto get_random = [&generator, &distribution, dim]() {
     auto rnd = distribution(generator);
@@ -27,7 +28,7 @@ Neuron::Neuron(int dim, std::shared_ptr<MemPool<Value>> mem_pool,
   }
 }
 
-size_t Neuron::operator()(const std::vector<MemPoolIndex> &x) {
+MemPoolIndex Neuron::operator()(const std::vector<MemPoolIndex> &x) {
   auto sum = b;
   for (int i = 0; i < d; i++) {
     auto y = mul(w[i], x[i], mem_pool);
@@ -39,7 +40,16 @@ size_t Neuron::operator()(const std::vector<MemPoolIndex> &x) {
   }
   return sum;
 }
-
+std::vector<MemPoolIndex>
+Neuron::operator()(const std::vector<std::vector<MemPoolIndex>> &x) {
+  std::vector<MemPoolIndex> out;
+  // TODO - Can be parallelized
+  for (const auto &xi : x) {
+    auto y = this->operator()(xi);
+    out.push_back(y);
+  }
+  return out;
+}
 std::vector<MemPoolIndex> Neuron::params() {
   auto params = w;
   params.push_back(b);

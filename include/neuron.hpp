@@ -10,13 +10,15 @@
 struct Neuron {
   int d;                       // dimension
   std::vector<MemPoolIndex> w; // weight
-  size_t b;                    // bias
+  MemPoolIndex b;              // bias
   bool with_activation;
   std::shared_ptr<MemPool<Value>> mem_pool;
   Neuron(int dim, std::shared_ptr<MemPool<Value>> mem_pool,
          bool is_activation = true);
 
-  size_t operator()(const std::vector<size_t> &x);
+  MemPoolIndex operator()(const std::vector<MemPoolIndex> &x);
+  std::vector<MemPoolIndex>
+  operator()(const std::vector<std::vector<MemPoolIndex>> &x);
 
   std::vector<MemPoolIndex> params();
 
