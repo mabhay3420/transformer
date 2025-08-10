@@ -36,7 +36,12 @@ template <typename T> struct MemPool {
     }
     return out;
   }
-  void set_persistent_boundary() { persistent_done = true; }
+  void set_persistent_boundary() {
+    if (persistent_done) {
+      throw std::runtime_error("Persistent boundary already set");
+    }
+    persistent_done = true;
+  }
   void reset() { mem.clear(); }
   void clear() {
     persistent.clear();

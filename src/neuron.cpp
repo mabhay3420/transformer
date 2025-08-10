@@ -8,8 +8,9 @@
 
 using nlohmann::json;
 Neuron::Neuron(int dim, std::shared_ptr<MemPool<Value>> mem_pool,
-               bool with_activation)
-    : d(dim), with_activation(with_activation), mem_pool(mem_pool) {
+               bool with_activation, bool with_bias)
+    : d(dim), with_activation(with_activation), with_bias(with_bias),
+      mem_pool(mem_pool) {
   w.resize(dim);
   unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
   std::default_random_engine generator(seed);
@@ -19,9 +20,11 @@ Neuron::Neuron(int dim, std::shared_ptr<MemPool<Value>> mem_pool,
     auto rnd_f = static_cast<float>(rnd) / (dim + 1);
     return 2 * rnd_f - 1;
   };
-  // fill with random values between -1 and 1
-  b = val(get_random(), mem_pool);
-  mem_pool->get(b)->is_param = true;
+  if (with_bias) {
+    // fill with random values between -1 and 1
+    b = val(get_random(), mem_pool);
+    mem_pool->get(b)->is_param = true;
+  }
   for (int i = 0; i < dim; i++) {
     w[i] = val(get_random(), mem_pool);
     mem_pool->get(w[i])->is_param = true;
@@ -29,7 +32,10 @@ Neuron::Neuron(int dim, std::shared_ptr<MemPool<Value>> mem_pool,
 }
 
 MemPoolIndex Neuron::operator()(const std::vector<MemPoolIndex> &x) {
-  auto sum = b;
+  auto sum = val(0.0f, mem_pool);
+  if (with_bias) {
+    auto sum = b;
+  }
   for (int i = 0; i < d; i++) {
     auto y = mul(w[i], x[i], mem_pool);
     sum = add(sum, y, mem_pool);

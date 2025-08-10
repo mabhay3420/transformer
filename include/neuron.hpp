@@ -12,9 +12,10 @@ struct Neuron {
   std::vector<MemPoolIndex> w; // weight
   MemPoolIndex b;              // bias
   bool with_activation;
+  bool with_bias ;
   std::shared_ptr<MemPool<Value>> mem_pool;
   Neuron(int dim, std::shared_ptr<MemPool<Value>> mem_pool,
-         bool is_activation = true);
+         bool is_activation = true, bool with_bias = true);
 
   MemPoolIndex operator()(const std::vector<MemPoolIndex> &x);
   std::vector<MemPoolIndex>
