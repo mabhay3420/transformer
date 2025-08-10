@@ -12,9 +12,8 @@ CharTokenizer::CharTokenizer(const std::set<char> &chars)
   }
 }
 
-void CharTokenizer::encode(const std::string &text,
-                           std::vector<int> &encoded) const {
-  encoded.clear();
+std::vector<int> CharTokenizer::encode(const std::string &text) const {
+  std::vector<int> encoded;
   for (char c : text) {
     auto it = char_to_id.find(c);
     if (it != char_to_id.end()) {
@@ -23,11 +22,20 @@ void CharTokenizer::encode(const std::string &text,
       throw std::out_of_range("Character not in tokenizer");
     }
   }
+  return encoded;
 }
 
-void CharTokenizer::decode(const std::vector<int> &encoded,
-                           std::string &text) const {
-  text.clear();
+int CharTokenizer::encode(char c) const {
+  auto it = char_to_id.find(c);
+  if (it != char_to_id.end()) {
+    return it->second;
+  } else {
+    throw std::out_of_range("Character not in tokenizer");
+  }
+}
+
+std::string CharTokenizer::decode(const std::vector<int> &encoded) const {
+  std::string text;
   for (int id : encoded) {
     auto it = id_to_char.find(id);
     if (it != id_to_char.end()) {
@@ -36,5 +44,14 @@ void CharTokenizer::decode(const std::vector<int> &encoded,
       throw std::out_of_range("Encoded value out of range");
     }
   }
-}
-;
+  return text;
+};
+
+char CharTokenizer::decode(const int &encoded) const {
+  auto it = id_to_char.find(encoded);
+  if (it != id_to_char.end()) {
+    return it->second;
+  } else {
+    throw std::out_of_range("Encoded value out of range");
+  }
+};

@@ -3,6 +3,7 @@
 #include "tokenizer.hpp"
 #include <iostream>
 #include <set>
+#include <vector>
 
 void BigraLm() {
   vvint table;
@@ -11,30 +12,25 @@ void BigraLm() {
   auto result = load_text_data("data/input.txt");
   std::set<char> unique_chars(result.begin(), result.end());
   CharTokenizer tokenizer(unique_chars);
-  std::vector<int> data;
-  tokenizer.encode(result, data);
+  auto data = tokenizer.encode(result);
   std::vector<int> train_data, val_data;
   split_data(0.9f, data, train_data, val_data);
   int block_size = 8;
   auto batch_size = 4; // number of sequences to process in parallel
   auto sampler = Sampler(batch_size, block_size, train_data, val_data);
-  // auto inputTransform = [&](const std::vector<float> &x) {
-  //   return val(x, mem_pool);
-  // };
-  // auto labelTransform = [&](const float x) { return val(x, mem_pool); };
-  // auto getRandomBatchFn =
-  //     std::bind(getRandomBatch<std::vector<float>, float,
-  //                              std::vector<MemPoolIndex>, MemPoolIndex>,
-  //               mnist.data.train_data, mnist.data.train_labels,
-  //               inputTransform, labelTransform, BATCH_SIZE, VAL_SIZE, -1);
   auto predict_next = [&](int first) {
-    // probability distribution for the next word given the first word
-    //   auto p = pdist[first];
     auto &sampler = samplers[first];
     return sampler.sample(1)[0];
   };
   Batch trainingBatch;
   sampler.sample(trainingBatch, true); // sample training data
+  auto &[context, target] = trainingBatch;
+  for (auto i = 0; i < context.size(); i++) {
+    auto &x = context[i];
+    auto &t = target[i];
+    std::cout << i << ": #" << tokenizer.decode(x) << "# -> #"
+              << tokenizer.decode(t) << "#" << std::endl;
+  }
   auto vocab_size = unique_chars.size();
   table.resize(vocab_size, std::vector<int>(vocab_size, 0));
   // Build the bigram frequency table
@@ -78,19 +74,21 @@ void BigraLm() {
   std::cout << "Negative log likelihood of the training data: " << nll_train
             << std::endl;
   float nll_val = nll(val_data);
-  // auto total_samples = val_data.size() - 1;
   std::cout << "Negative log likelihood of the validation data: " << nll_val
             << std::endl;
 
   string sample1 = "Hey Wassup bro?";
   string sample2 = "Thou art a good person.";
-  std::vector<int> encoded1, encoded2;
-  tokenizer.encode(sample1, encoded1);
-  tokenizer.encode(sample2, encoded2);
-
-  auto sample1_nll = nll(encoded1);
-  auto sample2_nll = nll(encoded2);
+  auto sample1_nll = nll(tokenizer.encode(sample1));
+  auto sample2_nll = nll(tokenizer.encode(sample2));
 
   std::cout << sample1 << " : " << sample1_nll << std::endl;
   std::cout << sample2 << " : " << sample2_nll << std::endl;
+
+  auto predictTotal = 1000;
+  auto predictedToken = tokenizer.encode(' ');
+  for (int i = 0; i < predictTotal; i++) {
+    std::cout << tokenizer.decode(predictedToken);
+    predictedToken = predict_next(predictedToken);
+  }
 }
