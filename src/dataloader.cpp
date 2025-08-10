@@ -99,7 +99,7 @@ MNIST_BATCH MNIST::load_data(std::string filename, int max_lines) {
     labels.push_back(std::stoi(tokens[0]));
     MNIST_IN in;
     for (int i = 1; i < tokens.size(); i++) {
-      in.push_back(std::stof(tokens[i]));
+      in.push_back(std::stof(tokens[i]) / 255);
     }
     ins.push_back(in);
     num_lines++;

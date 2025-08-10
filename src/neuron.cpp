@@ -4,19 +4,23 @@
 #include <memory>
 #include <nlohmann/json.hpp>
 #include <ostream>
+#include <random>
 
 using nlohmann::json;
 Neuron::Neuron(int dim, std::shared_ptr<MemPool<Value>> mem_pool,
                bool with_activation)
     : d(dim), with_activation(with_activation), mem_pool(mem_pool) {
-  auto get_random = []() {
-    auto rnd = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
-    return 2 * rnd - 1;
-  };
-  b = val(get_random(), mem_pool);
   w.resize(dim);
-  mem_pool->get(b)->is_param = true;
+  std::default_random_engine generator;
+  std::uniform_int_distribution<int> distribution(0, dim + 1);
+  auto get_random = [&generator, &distribution, dim]() {
+    auto rnd = distribution(generator);
+    auto rnd_f = static_cast<float>(rnd) / (dim + 1);
+    return 2 * rnd_f - 1;
+  };
   // fill with random values between -1 and 1
+  b = val(get_random(), mem_pool);
+  mem_pool->get(b)->is_param = true;
   for (int i = 0; i < dim; i++) {
     w[i] = val(get_random(), mem_pool);
     mem_pool->get(w[i])->is_param = true;
@@ -30,7 +34,7 @@ size_t Neuron::operator()(const std::vector<MemPoolIndex> &x) {
     sum = add(sum, y, mem_pool);
   }
   if (with_activation) {
-    auto act = tanh(sum, mem_pool);
+    auto act = relu(sum, mem_pool);
     return act;
   }
   return sum;

@@ -19,7 +19,7 @@ void MnistDnn() {
   auto in_size = mnist.data.train_data[0].size();
   auto out_size = 10; // 10 classes
 
-  auto n = MLP(in_size, {128, 128, out_size}, mem_pool, false);
+  auto n = MLP(in_size, {10, out_size}, mem_pool, false);
   mem_pool->set_persistent_boundary();
 
   auto params = n.params();
@@ -29,7 +29,8 @@ void MnistDnn() {
   // int VAL_SIZE =
   //     std::min<int>((1 - TRAIN_FRACTION) * TOTAL_SIZE, BATCH_SIZE * 4);
   int VAL_SIZE = (1 - TRAIN_FRACTION) * TOTAL_SIZE;
-  auto TOTAL_EPOCH = TOTAL_SIZE / BATCH_SIZE;
+  // auto TOTAL_EPOCH = TOTAL_SIZE / BATCH_SIZE;
+  auto TOTAL_EPOCH = 1500;
   auto TRACE_EVERY = TOTAL_EPOCH / TOTAL_EPOCH;
   TRACE_EVERY = std::max<int>(TRACE_EVERY, 1);
 
@@ -40,11 +41,12 @@ void MnistDnn() {
 
   std::vector<float> losses;
   //   IMPORTANT
-  auto LR0 = 0.01f;
-  auto LR_GAMMA = 0.1f;
-  auto LR_CLIFF = 100;
+  auto LR_GAMMA = 0.5f;
+  auto LR_CLIFF = TOTAL_EPOCH / 2;
+  // StepLRScheduler lr_scheduler(LR0, LR_CLIFF, LR_GAMMA);
+  auto LR0 = 0.001f;
   ConstantLRScheduler lr_scheduler(LR0);
-  AdamOptimizer<ConstantLRScheduler> optimizer(mem_pool, params, lr_scheduler);
+  AdamWOptimizer<ConstantLRScheduler> optimizer(mem_pool, params, lr_scheduler);
 
   auto inputTransform = [&](const std::vector<float> &x) {
     return val(x, mem_pool);
@@ -83,15 +85,15 @@ void MnistDnn() {
       std::chrono::duration_cast<std::chrono::milliseconds>(end - start)
           .count();
   std::cout << "Time taken: " << end_ms << " ms" << std::endl;
-  std::cout << "Time take per epoch per batch: "
-            << static_cast<float>(end_ms) / (TOTAL_EPOCH * BATCH_SIZE) << " ms"
-            << std::endl;
+  std::cout << "Time take per epoch: "
+            << static_cast<float>(end_ms) / TOTAL_EPOCH << " ms" << std::endl;
   std::vector<std::vector<float>> x_val_float;
   std::vector<float> y_val_float;
   auto total = 0;
   auto correct = 0;
   for (int i = 0; i < VAL_SIZE; i++) {
     if (i % BATCH_SIZE == 0) {
+      std::cout << "Validating: " << i << "/" << VAL_SIZE << std::endl;
       mem_pool->reset();
     }
     auto x_f = mnist.data.train_data[i];

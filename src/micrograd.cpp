@@ -140,19 +140,17 @@ MemPoolIndex mul(const MemPoolIndex &a_i, const MemPoolIndex &b_i,
 
 MemPoolIndex div(const MemPoolIndex &a_i, const MemPoolIndex &b_i,
                  std::shared_ptr<MemPool<Value>> mem_pool) {
-
-  if (mem_pool->get(b_i)->data == 0.0f) {
-    throw std::runtime_error("Division by zero");
-  }
+  auto epsilon = 1e-8f;
   auto o_i = mem_pool->alloc();
   mem_pool->get(o_i)->data =
-      mem_pool->get(a_i)->data / mem_pool->get(b_i)->data;
+      mem_pool->get(a_i)->data / (mem_pool->get(b_i)->data + epsilon);
   mem_pool->get(o_i)->children = {a_i, b_i};
   mem_pool->get(o_i)->op = "/";
-  mem_pool->get(o_i)->backward = [a_i, b_i, o_i, m = mem_pool.get()]() {
-    m->get(a_i)->grad += m->get(o_i)->grad / m->get(b_i)->data;
+  mem_pool->get(o_i)->backward = [a_i, b_i, o_i, m = mem_pool.get(),
+                                  epsilon]() {
+    m->get(a_i)->grad += m->get(o_i)->grad / (m->get(b_i)->data + epsilon);
     m->get(b_i)->grad -= (m->get(a_i)->data * m->get(o_i)->grad) /
-                         (m->get(b_i)->data * m->get(b_i)->data);
+                         (m->get(b_i)->data * m->get(b_i)->data + epsilon);
   };
   return o_i;
 }
@@ -165,6 +163,19 @@ MemPoolIndex tanh(const MemPoolIndex &a_i,
   mem_pool->get(o_i)->backward = [a_i, o_i, m = mem_pool.get()]() {
     m->get(a_i)->grad +=
         m->get(o_i)->grad * (1.0f - m->get(o_i)->data * m->get(o_i)->data);
+  };
+  return o_i;
+}
+
+MemPoolIndex relu(const MemPoolIndex &a_i,
+                  std::shared_ptr<MemPool<Value>> mem_pool) {
+  auto o_i = mem_pool->alloc();
+  mem_pool->get(o_i)->data =
+      mem_pool->get(a_i)->data > 0.0f ? mem_pool->get(a_i)->data : 0.0f;
+  mem_pool->get(o_i)->children = {a_i};
+  mem_pool->get(o_i)->backward = [a_i, o_i, m = mem_pool.get()]() {
+    m->get(a_i)->grad +=
+        m->get(o_i)->grad * (m->get(o_i)->data > 0.0f ? 1.0f : 0.0f);
   };
   return o_i;
 }
@@ -182,14 +193,12 @@ MemPoolIndex exp(const MemPoolIndex &a_i,
 
 MemPoolIndex log(const MemPoolIndex &a_i,
                  std::shared_ptr<MemPool<Value>> mem_pool) {
-  if (mem_pool->get(a_i)->data <= 0.0f) {
-    throw std::runtime_error("Log of non-positive number");
-  }
+  float epsilon = 1e-8f;
   auto o_i = mem_pool->alloc();
-  mem_pool->get(o_i)->data = std::log(mem_pool->get(a_i)->data);
+  mem_pool->get(o_i)->data = std::log(mem_pool->get(a_i)->data + epsilon);
   mem_pool->get(o_i)->children = {a_i};
-  mem_pool->get(o_i)->backward = [a_i, o_i, m = mem_pool.get()]() {
-    m->get(a_i)->grad += m->get(o_i)->grad / m->get(a_i)->data;
+  mem_pool->get(o_i)->backward = [a_i, o_i, m = mem_pool.get(), epsilon]() {
+    m->get(a_i)->grad += m->get(o_i)->grad / (m->get(a_i)->data + epsilon);
   };
   return o_i;
 }
