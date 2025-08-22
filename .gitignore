@@ -11,3 +11,4 @@ data/logs.txt
 data/frames
 .DS_Store
 *.trace
+time.txt

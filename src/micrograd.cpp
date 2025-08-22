@@ -206,14 +206,16 @@ MemPoolIndex log(const MemPoolIndex &a_i,
 void backprop(const MemPoolIndex root,
               std::shared_ptr<MemPool<Value>> mem_pool) {
   mem_pool->get(root)->grad = 1.0f;
+  auto mrend = mem_pool->mem.rend();
+  auto mrbegin = mem_pool->mem.rbegin();
   // guaranteed to be in topological order
-  for (auto iter = mem_pool->mem.rbegin(); iter != mem_pool->mem.rend();
-       ++iter) {
+  for (auto iter = mrbegin; iter != mrend; ++iter) {
     iter->backward();
   }
+  auto prend = mem_pool->persistent.rend();
+  auto prbegin = mem_pool->persistent.rbegin();
   // update params now
-  for (auto iter = mem_pool->persistent.rbegin();
-       iter != mem_pool->persistent.rend(); ++iter) {
+  for (auto iter = prbegin; iter != prend; ++iter) {
     iter->backward();
   }
 }

@@ -22,6 +22,7 @@ target_link_libraries(
     nlohmann_json::nlohmann_json
 )
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDEBUG")
     target_compile_options(tformer PRIVATE -fsanitize=address)
     target_link_options(tformer PRIVATE -fsanitize=address)
 endif()
