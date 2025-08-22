@@ -8,12 +8,12 @@
 #include <nlohmann/json.hpp>
 #include <ostream>
 
-Layer::Layer(int in_dim, int out_dim, std::shared_ptr<MemPool<Value>> mem_pool,
+Layer::Layer(int in_dim, int out_dim, MemPool<Value> *mem_pool,
              bool with_activation, bool with_bias, Activation act)
     : mem_pool(mem_pool) {
   for (int i = 0; i < out_dim; i++) {
-    neurons.push_back(std::make_shared<Neuron>(
-        in_dim, mem_pool, with_activation, with_bias, act));
+    auto n = new Neuron(in_dim, mem_pool, with_activation, with_bias, act);
+    neurons.push_back(n);
   }
 }
 
@@ -25,7 +25,7 @@ std::ostream &operator<<(std::ostream &os, const Layer &l) {
   os << "])\n";
   return os;
 }
-std::ostream &operator<<(std::ostream &os, const std::shared_ptr<Layer> l) {
+std::ostream &operator<<(std::ostream &os, const Layer *l) {
   os << *l;
   return os;
 }
@@ -57,19 +57,20 @@ std::vector<size_t> Layer::params() {
   return params;
 }
 
-MLP::MLP(int in_dim, std::vector<int> out_dim,
-         std::shared_ptr<MemPool<Value>> mem_pool, bool last_with_activation,
-         bool with_bias, Activation act)
+MLP::MLP(int in_dim, std::vector<int> out_dim, MemPool<Value> *mem_pool,
+         bool last_with_activation, bool with_bias, Activation act)
     : in_dim(in_dim), out_dim(out_dim), mem_pool(mem_pool) {
   std::vector<int> layers_dim = {in_dim};
   layers_dim.insert(layers_dim.end(), out_dim.begin(), out_dim.end());
   for (int i = 0; i < layers_dim.size() - 2; i++) {
-    layers.push_back(std::make_shared<Layer>(layers_dim[i], layers_dim[i + 1],
-                                             mem_pool, true, with_bias, act));
+    auto l = new Layer(layers_dim[i], layers_dim[i + 1], mem_pool, true,
+                       with_bias, act);
+    layers.push_back(l);
   };
-  layers.push_back(std::make_shared<Layer>(
-      layers_dim[layers_dim.size() - 2], layers_dim[layers_dim.size() - 1],
-      mem_pool, last_with_activation, with_bias, act));
+  auto l = new Layer(layers_dim[layers_dim.size() - 2],
+                     layers_dim[layers_dim.size() - 1], mem_pool,
+                     last_with_activation, with_bias, act);
+  layers.push_back(l);
 }
 
 std::vector<size_t> MLP::operator()(const std::vector<size_t> &x) {
@@ -107,7 +108,7 @@ void to_json(json &j, const Layer &l) {
       {"neurons", l.neurons},
   };
 }
-void to_json(json &j, const std::shared_ptr<Layer> l) { j = *l; }
+void to_json(json &j, const Layer *l) { j = *l; }
 void to_json(json &j, const MLP &mlp) {
   j = json{
       {"in_dim", mlp.in_dim},

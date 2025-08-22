@@ -20,7 +20,7 @@ void build(const MemPoolIndex value, graph &g) {
   }
 }
 
-graph trace(const MemPoolIndex root, std::shared_ptr<MemPool<Value>> mem_pool) {
+graph trace(const MemPoolIndex root, MemPool<Value> *mem_pool) {
   snode nodes;
   sedge edges;
   graph g = {nodes, edges, mem_pool};

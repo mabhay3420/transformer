@@ -13,7 +13,7 @@ void XORLinearRegression() {
 
   // start time
   auto start = std::chrono::high_resolution_clock::now();
-  auto mem_pool = std::make_shared<MemPool<Value>>();
+  auto mem_pool = new MemPool<Value>();
   auto n = MLP(2, {10, 5, 1}, mem_pool);
   auto params = n.params();
   auto last_param_end = mem_pool->size();
@@ -21,7 +21,7 @@ void XORLinearRegression() {
 
   auto TOTAL_SIZE = 100000;
   auto BATCH_SIZE = 64;
-  auto TOTAL_EPOCH = 100;
+  auto TOTAL_EPOCH = 10;
   auto TRACE_EVERY = TOTAL_EPOCH / TOTAL_EPOCH;
   auto LR0 = 0.01f;
   // auto momentum_beta = 0.9f;
@@ -91,7 +91,7 @@ void XORLinearRegression() {
   std::vector<std::vector<float>> y_val_epoch;
   std::vector<float> val_accuracy;
   for (int epoch = 0; epoch < TOTAL_EPOCH; epoch++) {
-    mem_pool->reset();
+    mem_pool->deallocate_temp();
     std::vector<float> y_val;
     auto batch = getRandomBatch(BATCH_SIZE);
     std::vector<MemPoolIndex> predicted;

@@ -37,7 +37,7 @@ void dumpValues(std::vector<std::pair<V, V>> values, const char *filename) {
 
 void dumpMemPoolEntries(
     std::vector<std::pair<MemPoolIndex, MemPoolIndex>> entries,
-    std::shared_ptr<MemPool<Value>> mem_pool, std::string filename) {
+    MemPool<Value> *mem_pool, std::string filename) {
   std::vector<Value *> values;
   for (auto e : entries) {
     values.push_back(mem_pool->get(e.first));
@@ -49,13 +49,12 @@ void dumpMemPoolEntries(
 
 void dumpMemPoolEntries(
     std::vector<std::pair<MemPoolIndex, MemPoolIndex>> entries,
-    std::shared_ptr<MemPool<Value>> mem_pool, const char *filename) {
+    MemPool<Value> *mem_pool, const char *filename) {
   std::string str(filename);
   dumpMemPoolEntries(entries, mem_pool, str);
 }
 void dumpMemPoolEntries(std::vector<MemPoolIndex> entries,
-                        std::shared_ptr<MemPool<Value>> mem_pool,
-                        std::string filename) {
+                        MemPool<Value> *mem_pool, std::string filename) {
   std::vector<Value *> values;
   for (auto e : entries) {
     values.push_back(mem_pool->get(e));
@@ -65,8 +64,7 @@ void dumpMemPoolEntries(std::vector<MemPoolIndex> entries,
 }
 
 void dumpMemPoolEntries(std::vector<MemPoolIndex> entries,
-                        std::shared_ptr<MemPool<Value>> mem_pool,
-                        const char *filename) {
+                        MemPool<Value> *mem_pool, const char *filename) {
   std::string str(filename);
   dumpMemPoolEntries(entries, mem_pool, str);
 }

@@ -74,13 +74,13 @@ void EmbedNLP() {
       getBigramMLPData(val_data, CONTEXT_LENGTH, START_CHAR_INDEX);
   std::cout << "Training data size: " << trainSeqData.input.size() << std::endl;
   std::cout << "Validation data size: " << valSeqData.input.size() << std::endl;
-  auto mem_pool = std::make_shared<MemPool<Value>>();
+  auto mem_pool = new MemPool<Value>();
 
   //   auto n = Neuron(vocab_size, mem_pool, false);
   // auto n = Layer(EMBED_DIM * CONTEXT_LENGTH, 100, mem_pool, false, true,
   //                Activation::TANH);
-  auto n = MLP(EMBED_DIM * CONTEXT_LENGTH, {100, 100, vocab_size}, mem_pool, false,
-               true, Activation::TANH);
+  auto n = MLP(EMBED_DIM * CONTEXT_LENGTH, {100, 100, vocab_size}, mem_pool,
+               false, true, Activation::TANH);
   auto params = n.params();
   std::vector<std::vector<MemPoolIndex>> embedding_matrix(
       vocab_size, std::vector<MemPoolIndex>(EMBED_DIM));
@@ -124,23 +124,23 @@ void EmbedNLP() {
   // 0.01 good
   auto LR0 = 0.01f;
   auto LR_GAMMA = 0.5f;
-  auto LR_CLIFF = TOTAL_EPOCH - (TOTAL_EPOCH /10);
+  auto LR_CLIFF = TOTAL_EPOCH - (TOTAL_EPOCH / 10);
   auto START_LR_EXP = -3.0f;
   auto END_LR_EXP = -1.0f;
   StepLRScheduler lr_scheduler(LR0, LR_CLIFF, LR_GAMMA);
   // ConstantLRScheduler lr_scheduler(LR0);
   // ExpLinspaceLRScheduler lr_scheduler(START_LR_EXP, END_LR_EXP, TOTAL_EPOCH);
   AdamWOptimizer<StepLRScheduler> optimizer(mem_pool, params, lr_scheduler);
-  // AdamWOptimizer<ConstantLRScheduler> optimizer(mem_pool, params, lr_scheduler);
-  // AdamWOptimizer<ExpLinspaceLRScheduler> optimizer(mem_pool, params,
-  // lr_scheduler);
+  // AdamWOptimizer<ConstantLRScheduler> optimizer(mem_pool, params,
+  // lr_scheduler); AdamWOptimizer<ExpLinspaceLRScheduler> optimizer(mem_pool,
+  // params, lr_scheduler);
 
   vector<float> losses;
   vector<float> lri;
   std::cout << "Total epochs: " << TOTAL_EPOCH << std::endl;
   for (auto epoch = 0; epoch < TOTAL_EPOCH; epoch++) {
     optimizer.zero_grad();
-    mem_pool->reset();
+    mem_pool->deallocate_temp();
     std::vector<std::vector<MemPoolIndex>> predicted;
     std::vector<MemPoolIndex> expected;
     auto batch = getRandomBatchFn(BATCH_SIZE);
@@ -164,7 +164,7 @@ void EmbedNLP() {
   std::vector<int> predictedCharIndices(CONTEXT_LENGTH, START_CHAR_INDEX);
   auto totalToPredict = 100;
   for (int i = 0; i < totalToPredict; i++) {
-    mem_pool->reset();
+    mem_pool->deallocate_temp();
     std::vector<MemPoolIndex> embedding;
     for (auto c_i : predictedCharIndices) {
       auto c_i_embedding = embedding_matrix[c_i];

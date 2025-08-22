@@ -7,8 +7,8 @@
 #include <random>
 
 using nlohmann::json;
-Neuron::Neuron(int dim, std::shared_ptr<MemPool<Value>> mem_pool,
-               bool with_activation, bool with_bias, Activation act)
+Neuron::Neuron(int dim, MemPool<Value> *mem_pool, bool with_activation,
+               bool with_bias, Activation act)
     : d(dim), with_activation(with_activation), with_bias(with_bias),
       mem_pool(mem_pool), act(act) {
   w.resize(dim);
@@ -78,11 +78,11 @@ std::ostream &operator<<(std::ostream &os, const Neuron &n) {
      << ", w=" << n.mem_pool->get(n.w) << ")";
   return os;
 }
-std::ostream &operator<<(std::ostream &os, const std::shared_ptr<Neuron> n) {
+std::ostream &operator<<(std::ostream &os, const Neuron *n) {
   os << *n;
   return os;
 }
 void to_json(json &j, const Neuron &n) {
   j = json{{"dim", n.d}, {"b", n.b}, {"w", n.w}};
 }
-void to_json(json &j, const std::shared_ptr<Neuron> n) { j = *n; }
+void to_json(json &j, const Neuron *n) { j = *n; }

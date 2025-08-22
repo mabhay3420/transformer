@@ -28,7 +28,7 @@ void BigramNN() {
 
   std::cout << "Training data size: " << train_data.size() << std::endl;
   std::cout << "Validation data size: " << val_data.size() << std::endl;
-  auto mem_pool = std::make_shared<MemPool<Value>>();
+  auto mem_pool = new MemPool<Value>();
 
   //   auto n = Neuron(vocab_size, mem_pool, false);
   auto n = Layer(vocab_size, vocab_size, mem_pool, false, false);
@@ -68,7 +68,7 @@ void BigramNN() {
   std::cout << "Total epochs: " << TOTAL_EPOCH << std::endl;
   for (auto epoch = 0; epoch < TOTAL_EPOCH; epoch++) {
     optimizer.zero_grad();
-    mem_pool->reset();
+    mem_pool->deallocate_temp();
     std::vector<std::vector<MemPoolIndex>> predicted;
     std::vector<MemPoolIndex> expected;
     auto batch = getRandomBatchFn();
@@ -99,7 +99,7 @@ void BigramNN() {
   int total_val_size = val_data_input.size();
   for (int i = 0; i < total_val_size; i++) {
     if (i % BATCH_SIZE == 0) {
-      mem_pool->reset();
+      mem_pool->deallocate_temp();
       std::cout << "Validating: " << i << "/" << val_data_input.size()
                 << std::endl;
     }

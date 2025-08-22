@@ -15,7 +15,7 @@ void MnistDnn() {
   MNIST mnist(LINES_TO_READ);
   mnist.summary();
   auto start = std::chrono::high_resolution_clock::now();
-  auto mem_pool = std::make_shared<MemPool<Value>>();
+  auto mem_pool = new MemPool<Value>();
   auto in_size = mnist.data.train_data[0].size();
   auto out_size = 10; // 10 classes
 
@@ -61,7 +61,7 @@ void MnistDnn() {
   // TRAINING LOOP
   for (int epoch = 0; epoch < TOTAL_EPOCH; epoch++) {
     optimizer.zero_grad();
-    mem_pool->reset();
+    mem_pool->deallocate_temp();
     auto batch = getRandomBatchFn();
     std::vector<std::vector<MemPoolIndex>> predicted;
     std::vector<MemPoolIndex> expected;
@@ -94,7 +94,7 @@ void MnistDnn() {
   for (int i = 0; i < VAL_SIZE; i++) {
     if (i % BATCH_SIZE == 0) {
       std::cout << "Validating: " << i << "/" << VAL_SIZE << std::endl;
-      mem_pool->reset();
+      mem_pool->deallocate_temp();
     }
     auto x_f = mnist.data.train_data[i];
     auto x = inputTransform(x_f);
@@ -119,5 +119,5 @@ void MnistDnn() {
       {"y_across_epochs", y_val_float},
   };
   dumpJson(j, "data/xor_val.json");
-  mem_pool->clear();
+  mem_pool->deallocate_all();
 }

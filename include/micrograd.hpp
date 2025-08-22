@@ -42,22 +42,19 @@ struct Value {
 
 V max(const std::vector<V> &x);
 std::vector<MemPoolIndex> softmax(const std::vector<MemPoolIndex> &x,
-                                  std::shared_ptr<MemPool<Value>> mem_pool);
-std::vector<MemPoolIndex>
-one_hot_encode(int category, int total_categories,
-               std::shared_ptr<MemPool<Value>> mem_pool);
-size_t argmax(const std::vector<MemPoolIndex> &xs,
-              std::shared_ptr<MemPool<Value>> mem_pool);
+                                  MemPool<Value> *mem_pool);
+std::vector<MemPoolIndex> one_hot_encode(int category, int total_categories,
+                                         MemPool<Value> *mem_pool);
+size_t argmax(const std::vector<MemPoolIndex> &xs, MemPool<Value> *mem_pool);
 
-inline MemPoolIndex val(const float x,
-                        std::shared_ptr<MemPool<Value>> mem_pool) {
+inline MemPoolIndex val(const float x, MemPool<Value> *mem_pool) {
   auto v = mem_pool->alloc();
   mem_pool->get(v)->data = x;
   return v;
 }
 
 inline std::vector<MemPoolIndex> val(const std::vector<float> &x,
-                                     std::shared_ptr<MemPool<Value>> mem_pool) {
+                                     MemPool<Value> *mem_pool) {
   std::vector<MemPoolIndex> out;
   for (auto xi : x) {
     auto xi_v = mem_pool->alloc();
@@ -68,8 +65,7 @@ inline std::vector<MemPoolIndex> val(const std::vector<float> &x,
 }
 
 inline MemPoolIndex val(float x, std::vector<MemPoolIndex> children,
-                        std::string op,
-                        std::shared_ptr<MemPool<Value>> mem_pool,
+                        std::string op, MemPool<Value> *mem_pool,
                         std::string label = "") {
   auto v = mem_pool->alloc();
   auto p = mem_pool->get(v);
@@ -80,24 +76,19 @@ inline MemPoolIndex val(float x, std::vector<MemPoolIndex> children,
   return v;
 }
 MemPoolIndex add(const MemPoolIndex &a, const MemPoolIndex &b,
-                 std::shared_ptr<MemPool<Value>> mem_pool);
+                 MemPool<Value> *mem_pool);
 MemPoolIndex sub(const MemPoolIndex &a, const MemPoolIndex &b,
-                 std::shared_ptr<MemPool<Value>> mem_pool);
+                 MemPool<Value> *mem_pool);
 MemPoolIndex mul(const MemPoolIndex &a, const MemPoolIndex &b,
-                 std::shared_ptr<MemPool<Value>> mem_pool);
+                 MemPool<Value> *mem_pool);
 MemPoolIndex div(const MemPoolIndex &a, const MemPoolIndex &b,
-                 std::shared_ptr<MemPool<Value>> mem_pool);
-MemPoolIndex tanh(const MemPoolIndex &a,
-                  std::shared_ptr<MemPool<Value>> mem_pool);
-MemPoolIndex relu(const MemPoolIndex &a,
-                  std::shared_ptr<MemPool<Value>> mem_pool);
-MemPoolIndex exp(const MemPoolIndex &a,
-                 std::shared_ptr<MemPool<Value>> mem_pool);
-MemPoolIndex log(const MemPoolIndex &a,
-                 std::shared_ptr<MemPool<Value>> mem_pool);
+                 MemPool<Value> *mem_pool);
+MemPoolIndex tanh(const MemPoolIndex &a, MemPool<Value> *mem_pool);
+MemPoolIndex relu(const MemPoolIndex &a, MemPool<Value> *mem_pool);
+MemPoolIndex exp(const MemPoolIndex &a, MemPool<Value> *mem_pool);
+MemPoolIndex log(const MemPoolIndex &a, MemPool<Value> *mem_pool);
 
-void backprop(const MemPoolIndex root,
-              std::shared_ptr<MemPool<Value>> mem_pool);
+void backprop(const MemPoolIndex root, MemPool<Value> *mem_pool);
 void to_json(json &j, const V &v);
 void to_json(json &j, const Value *v);
 

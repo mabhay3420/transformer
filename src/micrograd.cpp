@@ -33,8 +33,7 @@ std::ostream &operator<<(std::ostream &os, const std::vector<Value *> &v) {
   return os;
 }
 
-size_t argmax(const std::vector<MemPoolIndex> &xs,
-              std::shared_ptr<MemPool<Value>> mem_pool) {
+size_t argmax(const std::vector<MemPoolIndex> &xs, MemPool<Value> *mem_pool) {
   auto max_idx = 0;
   for (int i = 1; i < xs.size(); i++) {
     auto xi = mem_pool->get(xs[i]);
@@ -46,7 +45,7 @@ size_t argmax(const std::vector<MemPoolIndex> &xs,
 }
 
 MemPoolIndex max(const std::vector<MemPoolIndex> &xs,
-                 std::shared_ptr<MemPool<Value>> mem_pool) {
+                 MemPool<Value> *mem_pool) {
   auto max_i = xs[0];
   for (auto x_i : xs) {
     auto x = mem_pool->get(x_i);
@@ -59,7 +58,7 @@ MemPoolIndex max(const std::vector<MemPoolIndex> &xs,
 }
 
 std::vector<MemPoolIndex> softmax(const std::vector<MemPoolIndex> &x,
-                                  std::shared_ptr<MemPool<Value>> mem_pool) {
+                                  MemPool<Value> *mem_pool) {
   // NOTE: not doing the max version for now
   auto o_i = mem_pool->alloc();
   auto xmax = max(x, mem_pool);
@@ -79,9 +78,8 @@ std::vector<MemPoolIndex> softmax(const std::vector<MemPoolIndex> &x,
   return exps;
 }
 
-std::vector<MemPoolIndex>
-one_hot_encode(int category, int total_categories,
-               std::shared_ptr<MemPool<Value>> mem_pool) {
+std::vector<MemPoolIndex> one_hot_encode(int category, int total_categories,
+                                         MemPool<Value> *mem_pool) {
   std::vector<MemPoolIndex> out;
   for (int i = 0; i < total_categories; i++) {
     if (i == category) {
@@ -94,13 +92,13 @@ one_hot_encode(int category, int total_categories,
 }
 
 MemPoolIndex add(const MemPoolIndex &a_i, const MemPoolIndex &b_i,
-                 std::shared_ptr<MemPool<Value>> mem_pool) {
+                 MemPool<Value> *mem_pool) {
   auto o_i = mem_pool->alloc();
   mem_pool->get(o_i)->data =
       mem_pool->get(a_i)->data + mem_pool->get(b_i)->data;
   mem_pool->get(o_i)->children = {a_i, b_i};
   mem_pool->get(o_i)->op = "+";
-  mem_pool->get(o_i)->backward = [a_i, b_i, o_i, m = mem_pool.get()]() {
+  mem_pool->get(o_i)->backward = [a_i, b_i, o_i, m = mem_pool]() {
     m->get(a_i)->grad += 1.0f * m->get(o_i)->grad;
     m->get(b_i)->grad += 1.0f * m->get(o_i)->grad;
   };
@@ -108,16 +106,13 @@ MemPoolIndex add(const MemPoolIndex &a_i, const MemPoolIndex &b_i,
 }
 
 MemPoolIndex sub(const MemPoolIndex &a_i, const MemPoolIndex &b_i,
-                 std::shared_ptr<MemPool<Value>> mem_pool) {
+                 MemPool<Value> *mem_pool) {
   auto o_i = mem_pool->alloc();
-  // auto a = mem_pool->get(a_i);
-  // auto b = mem_pool->get(b_i);
-  // auto o = mem_pool->get(o_i);
   mem_pool->get(o_i)->data =
       mem_pool->get(a_i)->data - mem_pool->get(b_i)->data;
   mem_pool->get(o_i)->children = {a_i, b_i};
   mem_pool->get(o_i)->op = "-";
-  mem_pool->get(o_i)->backward = [a_i, b_i, o_i, m = mem_pool.get()]() {
+  mem_pool->get(o_i)->backward = [a_i, b_i, o_i, m = mem_pool]() {
     m->get(a_i)->grad += 1.0f * m->get(o_i)->grad;
     m->get(b_i)->grad -= 1.0f * m->get(o_i)->grad;
   };
@@ -125,13 +120,13 @@ MemPoolIndex sub(const MemPoolIndex &a_i, const MemPoolIndex &b_i,
 }
 
 MemPoolIndex mul(const MemPoolIndex &a_i, const MemPoolIndex &b_i,
-                 std::shared_ptr<MemPool<Value>> mem_pool) {
+                 MemPool<Value> *mem_pool) {
   auto o_i = mem_pool->alloc();
   mem_pool->get(o_i)->data =
       mem_pool->get(a_i)->data * mem_pool->get(b_i)->data;
   mem_pool->get(o_i)->children = {a_i, b_i};
   mem_pool->get(o_i)->op = "*";
-  mem_pool->get(o_i)->backward = [a_i, b_i, o_i, m = mem_pool.get()]() {
+  mem_pool->get(o_i)->backward = [a_i, b_i, o_i, m = mem_pool]() {
     m->get(a_i)->grad += m->get(b_i)->data * m->get(o_i)->grad;
     m->get(b_i)->grad += m->get(a_i)->data * m->get(o_i)->grad;
   };
@@ -139,15 +134,14 @@ MemPoolIndex mul(const MemPoolIndex &a_i, const MemPoolIndex &b_i,
 }
 
 MemPoolIndex div(const MemPoolIndex &a_i, const MemPoolIndex &b_i,
-                 std::shared_ptr<MemPool<Value>> mem_pool) {
+                 MemPool<Value> *mem_pool) {
   auto epsilon = 1e-8f;
   auto o_i = mem_pool->alloc();
   mem_pool->get(o_i)->data =
       mem_pool->get(a_i)->data / (mem_pool->get(b_i)->data + epsilon);
   mem_pool->get(o_i)->children = {a_i, b_i};
   mem_pool->get(o_i)->op = "/";
-  mem_pool->get(o_i)->backward = [a_i, b_i, o_i, m = mem_pool.get(),
-                                  epsilon]() {
+  mem_pool->get(o_i)->backward = [a_i, b_i, o_i, m = mem_pool, epsilon]() {
     m->get(a_i)->grad += m->get(o_i)->grad / (m->get(b_i)->data + epsilon);
     m->get(b_i)->grad -= (m->get(a_i)->data * m->get(o_i)->grad) /
                          (m->get(b_i)->data * m->get(b_i)->data + epsilon);
@@ -155,68 +149,63 @@ MemPoolIndex div(const MemPoolIndex &a_i, const MemPoolIndex &b_i,
   return o_i;
 }
 
-MemPoolIndex tanh(const MemPoolIndex &a_i,
-                  std::shared_ptr<MemPool<Value>> mem_pool) {
+MemPoolIndex tanh(const MemPoolIndex &a_i, MemPool<Value> *mem_pool) {
   auto o_i = mem_pool->alloc();
   mem_pool->get(o_i)->data = std::tanh(mem_pool->get(a_i)->data);
   mem_pool->get(o_i)->children = {a_i};
-  mem_pool->get(o_i)->backward = [a_i, o_i, m = mem_pool.get()]() {
+  mem_pool->get(o_i)->backward = [a_i, o_i, m = mem_pool]() {
     m->get(a_i)->grad +=
         m->get(o_i)->grad * (1.0f - m->get(o_i)->data * m->get(o_i)->data);
   };
   return o_i;
 }
 
-MemPoolIndex relu(const MemPoolIndex &a_i,
-                  std::shared_ptr<MemPool<Value>> mem_pool) {
+MemPoolIndex relu(const MemPoolIndex &a_i, MemPool<Value> *mem_pool) {
   auto o_i = mem_pool->alloc();
   mem_pool->get(o_i)->data =
       mem_pool->get(a_i)->data > 0.0f ? mem_pool->get(a_i)->data : 0.0f;
   mem_pool->get(o_i)->children = {a_i};
-  mem_pool->get(o_i)->backward = [a_i, o_i, m = mem_pool.get()]() {
+  mem_pool->get(o_i)->backward = [a_i, o_i, m = mem_pool]() {
     m->get(a_i)->grad +=
         m->get(o_i)->grad * (m->get(o_i)->data > 0.0f ? 1.0f : 0.0f);
   };
   return o_i;
 }
 
-MemPoolIndex exp(const MemPoolIndex &a_i,
-                 std::shared_ptr<MemPool<Value>> mem_pool) {
+MemPoolIndex exp(const MemPoolIndex &a_i, MemPool<Value> *mem_pool) {
   auto o_i = mem_pool->alloc();
   mem_pool->get(o_i)->data = std::exp(mem_pool->get(a_i)->data);
   mem_pool->get(o_i)->children = {a_i};
-  mem_pool->get(o_i)->backward = [a_i, o_i, m = mem_pool.get()]() {
+  mem_pool->get(o_i)->backward = [a_i, o_i, m = mem_pool]() {
     m->get(a_i)->grad += m->get(o_i)->grad * m->get(o_i)->data;
   };
   return o_i;
 }
 
-MemPoolIndex log(const MemPoolIndex &a_i,
-                 std::shared_ptr<MemPool<Value>> mem_pool) {
+MemPoolIndex log(const MemPoolIndex &a_i, MemPool<Value> *mem_pool) {
   float epsilon = 1e-8f;
   auto o_i = mem_pool->alloc();
   mem_pool->get(o_i)->data = std::log(mem_pool->get(a_i)->data + epsilon);
   mem_pool->get(o_i)->children = {a_i};
-  mem_pool->get(o_i)->backward = [a_i, o_i, m = mem_pool.get(), epsilon]() {
+  mem_pool->get(o_i)->backward = [a_i, o_i, m = mem_pool, epsilon]() {
     m->get(a_i)->grad += m->get(o_i)->grad / (m->get(a_i)->data + epsilon);
   };
   return o_i;
 }
 
-void backprop(const MemPoolIndex root,
-              std::shared_ptr<MemPool<Value>> mem_pool) {
+void backprop(const MemPoolIndex root, MemPool<Value> *mem_pool) {
   mem_pool->get(root)->grad = 1.0f;
   auto mrend = mem_pool->mem.rend();
   auto mrbegin = mem_pool->mem.rbegin();
   // guaranteed to be in topological order
   for (auto iter = mrbegin; iter != mrend; ++iter) {
-    iter->backward();
+    (*iter)->backward();
   }
   auto prend = mem_pool->persistent.rend();
   auto prbegin = mem_pool->persistent.rbegin();
   // update params now
   for (auto iter = prbegin; iter != prend; ++iter) {
-    iter->backward();
+    (*iter)->backward();
   }
 }
 

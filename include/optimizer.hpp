@@ -5,11 +5,11 @@
 #include <unordered_map>
 template <typename T> struct Optimizer {
   int step_count;
-  std::shared_ptr<MemPool<Value>> mem_pool;
+  MemPool<Value> *mem_pool;
   std::vector<MemPoolIndex> params;
 
-  Optimizer(std::shared_ptr<MemPool<Value>> mem_pool,
-            std::vector<MemPoolIndex> params, float momentum_beta = 0.0f)
+  Optimizer(MemPool<Value> *mem_pool, std::vector<MemPoolIndex> params,
+            float momentum_beta = 0.0f)
       : mem_pool(mem_pool), params(params), step_count(0) {}
 
   void zero_grad() {
@@ -27,10 +27,10 @@ struct OptimizerWithLRSchedule
   using Base::mem_pool;
   using Base::params;
   using Base::step_count;
-  LRScheduleType& lr_scheduler;
-  OptimizerWithLRSchedule(std::shared_ptr<MemPool<Value>> mem_pool,
+  LRScheduleType &lr_scheduler;
+  OptimizerWithLRSchedule(MemPool<Value> *mem_pool,
                           std::vector<MemPoolIndex> params,
-                          LRScheduleType& lr_scheduler)
+                          LRScheduleType &lr_scheduler)
       : Optimizer<OptimizerWithLRSchedule<LRScheduleType>>(mem_pool, params),
         lr_scheduler(lr_scheduler) {}
   void step();
@@ -45,9 +45,8 @@ struct SGDOptimizer : OptimizerWithLRSchedule<LRSchedulerType> {
   using Base::step_count;
   float momentum_beta;
   std::unordered_map<MemPoolIndex, float> momentum;
-  SGDOptimizer(std::shared_ptr<MemPool<Value>> mem_pool,
-               std::vector<MemPoolIndex> params, LRSchedulerType& lr_scheduler,
-               float momentum_beta = 0.0f)
+  SGDOptimizer(MemPool<Value> *mem_pool, std::vector<MemPoolIndex> params,
+               LRSchedulerType &lr_scheduler, float momentum_beta = 0.0f)
       : Base(mem_pool, params, lr_scheduler), momentum_beta(momentum_beta) {}
   void step() {
     step_count++;
@@ -75,11 +74,10 @@ struct AdamOptimizer : OptimizerWithLRSchedule<LRSchedulerType> {
   std::unordered_map<MemPoolIndex, float> moment_2;
   std::unordered_map<MemPoolIndex, float> moment_2_max;
 
-  AdamOptimizer(std::shared_ptr<MemPool<Value>> mem_pool,
-                std::vector<MemPoolIndex> params, LRSchedulerType& lr_scheduler,
-                float beta1 = 0.9f, float beta2 = 0.999f,
-                float weight_decay = 0, bool amsgrad = false,
-                float epsilon = 1e-8f)
+  AdamOptimizer(MemPool<Value> *mem_pool, std::vector<MemPoolIndex> params,
+                LRSchedulerType &lr_scheduler, float beta1 = 0.9f,
+                float beta2 = 0.999f, float weight_decay = 0,
+                bool amsgrad = false, float epsilon = 1e-8f)
       : OptimizerWithLRSchedule<LRSchedulerType>(mem_pool, params,
                                                  lr_scheduler),
         beta1(beta1), beta2(beta2), weight_decay(weight_decay),
@@ -128,11 +126,10 @@ struct AdamWOptimizer : OptimizerWithLRSchedule<LRSchedulerType> {
   std::unordered_map<MemPoolIndex, float> moment_2_max;
   std::unordered_map<MemPoolIndex, float> moment_1_max;
 
-  AdamWOptimizer(std::shared_ptr<MemPool<Value>> mem_pool,
-                 std::vector<MemPoolIndex> params, LRSchedulerType& lr_scheduler,
-                 float beta1 = 0.9f, float beta2 = 0.999f,
-                 float weight_decay = 0, bool amsgrad = false,
-                 float epsilon = 1e-8f)
+  AdamWOptimizer(MemPool<Value> *mem_pool, std::vector<MemPoolIndex> params,
+                 LRSchedulerType &lr_scheduler, float beta1 = 0.9f,
+                 float beta2 = 0.999f, float weight_decay = 0,
+                 bool amsgrad = false, float epsilon = 1e-8f)
       : OptimizerWithLRSchedule<LRSchedulerType>(mem_pool, params,
                                                  lr_scheduler),
         beta1(beta1), beta2(beta2), weight_decay(weight_decay),

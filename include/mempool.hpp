@@ -9,27 +9,29 @@ typedef size_t MemPoolIndex;
 
 template <typename T> struct MemPool {
   bool persistent_done = false;
-  std::vector<T> persistent;
-  std::vector<T> mem;
+  std::vector<T *> persistent;
+  std::vector<T *> mem;
   MemPool() = default;
+  ~MemPool() { deallocate_all(); }
 
   MemPoolIndex alloc() {
+    T *obj = new T();
     if (persistent_done) {
-      mem.push_back(T());
+      mem.push_back(obj);
       return persistent.size() + mem.size() - 1;
     } else {
-      persistent.push_back(T());
+      persistent.push_back(obj);
       return persistent.size() - 1;
     }
   }
   MemPoolIndex size() { return persistent.size() + mem.size(); }
   T *get(size_t i) {
     if (i < persistent.size())
-      return &persistent[i];
+      return persistent[i];
     else
-      return &mem[i - persistent.size()];
+      return mem[i - persistent.size()];
   }
-  std::vector<T *> get(std::vector<size_t> i) {
+  std::vector<T *> get(const std::vector<size_t> &i) {
     std::vector<T *> out;
     for (auto j : i) {
       out.push_back(this->get(j));
@@ -42,8 +44,19 @@ template <typename T> struct MemPool {
     }
     persistent_done = true;
   }
-  void reset() { mem.clear(); }
-  void clear() {
+  void deallocate_temp() {
+    for (auto p : mem) {
+      delete p;
+    }
+    mem.clear();
+  }
+  void deallocate_all() {
+    for (auto p : persistent) {
+      delete p;
+    }
+    for (auto p : mem) {
+      delete p;
+    }
     persistent.clear();
     mem.clear();
   }
