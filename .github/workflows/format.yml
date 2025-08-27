@@ -1,0 +1,24 @@
+name: Format
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+
+jobs:
+  clang-format:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install clang-format
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-format
+
+      - name: Run formatting check
+        run: |
+          chmod +x ./format.sh
+          ./format.sh --check
+
