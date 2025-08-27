@@ -12,54 +12,70 @@
 
 struct ParameterStore;
 
-enum class OpType { Add, Sub, Mul, Relu, Tanh, Sigmoid, Log, Sum, Matmul, AddRowwise };
-
-struct Tensor {
-  ParameterStore *store = nullptr;
-  size_t offset = 0;                // start index into store buffers
-  std::vector<int> shape;           // simple, contiguous layout
-  size_t numel = 0;                 // product(shape)
-
-  Tensor() = default;
-  Tensor(ParameterStore *s, size_t off, std::vector<int> sh, size_t n)
-      : store(s), offset(off), shape(std::move(sh)), numel(n) {}
-
-  float *data();
-  float *grad();
-  const float *data() const;
-  const float *grad() const;
-
-  void zero_grad();
-  void fill(float v);
+enum class OpType
+{
+    Add,
+    Sub,
+    Mul,
+    Relu,
+    Tanh,
+    Sigmoid,
+    Log,
+    Sum,
+    Matmul,
+    AddRowwise
 };
 
-struct TapeOp {
-  OpType type;
-  Tensor out;
-  // For binary ops (Add, Mul, Matmul) use a and b; for unary (Relu, Sum) use a
-  Tensor a;
-  Tensor b; // unused for unary
+struct Tensor
+{
+    ParameterStore *store = nullptr;
+    size_t offset = 0;      // start index into store buffers
+    std::vector<int> shape; // simple, contiguous layout
+    size_t numel = 0;       // product(shape)
+
+    Tensor() = default;
+    Tensor(ParameterStore *s, size_t off, std::vector<int> sh, size_t n)
+        : store(s), offset(off), shape(std::move(sh)), numel(n)
+    {
+    }
+
+    float *data();
+    float *grad();
+    const float *data() const;
+    const float *grad() const;
+
+    void zero_grad();
+    void fill(float v);
 };
 
-struct ParameterStore {
-  std::vector<float> data_buf;
-  std::vector<float> grad_buf;
-  std::vector<TapeOp> tape;
+struct TapeOp
+{
+    OpType type;
+    Tensor out;
+    // For binary ops (Add, Mul, Matmul) use a and b; for unary (Relu, Sum) use a
+    Tensor a;
+    Tensor b; // unused for unary
+};
 
-  // Reserve space for a tensor; returns starting offset.
-  size_t allocate(size_t count);
+struct ParameterStore
+{
+    std::vector<float> data_buf;
+    std::vector<float> grad_buf;
+    std::vector<TapeOp> tape;
 
-  // Factory helpers
-  Tensor tensor(const std::vector<int> &shape);
-  Tensor parameter(const std::vector<int> &shape, float scale = 0.01f,
-                   unsigned seed = 0);
+    // Reserve space for a tensor; returns starting offset.
+    size_t allocate(size_t count);
 
-  // Bulk zero grads (optional convenience)
-  void zero_grad();
+    // Factory helpers
+    Tensor tensor(const std::vector<int> &shape);
+    Tensor parameter(const std::vector<int> &shape, float scale = 0.01f, unsigned seed = 0);
 
-  // Autograd controls
-  void clear_tape();
-  void backward(const Tensor &loss);
+    // Bulk zero grads (optional convenience)
+    void zero_grad();
+
+    // Autograd controls
+    void clear_tape();
+    void backward(const Tensor &loss);
 };
 
 // Basic elementwise ops (contiguous, same-shape only; minimal checks)
