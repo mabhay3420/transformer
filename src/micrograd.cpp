@@ -1,5 +1,5 @@
 #include "micrograd.hpp"
-#include "mempool.hpp"
+
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
@@ -9,6 +9,8 @@
 #include <queue>
 #include <set>
 #include <unordered_map>
+
+#include "mempool.hpp"
 
 std::ostream &operator<<(std::ostream &os, const Value &v) {
   os << "Value(data=" << v.data << ")";

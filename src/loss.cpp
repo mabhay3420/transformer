@@ -1,4 +1,5 @@
 #include "loss.hpp"
+
 #include "mempool.hpp"
 #include "micrograd.hpp"
 MemPoolIndex mse(const std::vector<MemPoolIndex> &predicted,
@@ -13,10 +14,9 @@ MemPoolIndex mse(const std::vector<MemPoolIndex> &predicted,
   return div(mse, val(predicted.size(), mem_pool), mem_pool);
 }
 
-MemPoolIndex
-cross_entropy(const std::vector<std::vector<MemPoolIndex>> &predicted,
-              const std::vector<MemPoolIndex> &expected,
-              MemPool<Value> *mem_pool) {
+MemPoolIndex cross_entropy(
+    const std::vector<std::vector<MemPoolIndex>> &predicted,
+    const std::vector<MemPoolIndex> &expected, MemPool<Value> *mem_pool) {
   auto total = predicted.size();
   auto error = val(0.0f, mem_pool);
   for (int i = 0; i < total; i++) {

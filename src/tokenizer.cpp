@@ -1,4 +1,5 @@
 #include "tokenizer.hpp"
+
 #include <stdexcept>
 
 // must initialize with a set of unique characters

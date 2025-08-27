@@ -1,12 +1,13 @@
 #ifndef MLP_HPP
 #define MLP_HPP
 
-#include "mempool.hpp"
-#include "neuron.hpp"
-#include "nlohmann/json.hpp"
 #include <memory>
 #include <ostream>
 #include <string_view>
+
+#include "mempool.hpp"
+#include "neuron.hpp"
+#include "nlohmann/json.hpp"
 
 using nlohmann::json;
 struct Layer {
@@ -17,8 +18,8 @@ struct Layer {
         Activation act = Activation::RELU);
 
   std::vector<MemPoolIndex> operator()(const std::vector<MemPoolIndex> &x);
-  std::vector<std::vector<MemPoolIndex>>
-  operator()(const std::vector<std::vector<MemPoolIndex>> &x);
+  std::vector<std::vector<MemPoolIndex>> operator()(
+      const std::vector<std::vector<MemPoolIndex>> &x);
   std::vector<size_t> params();
   friend std::ostream &operator<<(std::ostream &os, const Layer &);
   friend std::ostream &operator<<(std::ostream &os, const Layer *);
@@ -44,4 +45,4 @@ struct MLP {
 
 void to_json(json &j, const MLP &m);
 
-#endif // MLP_HPP
+#endif  // MLP_HPP

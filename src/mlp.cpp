@@ -1,12 +1,14 @@
 #include "mlp.hpp"
-#include "mempool.hpp"
-#include "neuron.hpp"
-#include "utils.hpp"
+
 #include <cstddef>
 #include <fstream>
 #include <iostream>
 #include <nlohmann/json.hpp>
 #include <ostream>
+
+#include "mempool.hpp"
+#include "neuron.hpp"
+#include "utils.hpp"
 
 Layer::Layer(int in_dim, int out_dim, MemPool<Value> *mem_pool,
              bool with_activation, bool with_bias, Activation act)
@@ -39,8 +41,8 @@ std::vector<size_t> Layer::operator()(const std::vector<size_t> &x) {
   return result;
 }
 
-std::vector<std::vector<MemPoolIndex>>
-Layer::operator()(const std::vector<std::vector<MemPoolIndex>> &x) {
+std::vector<std::vector<MemPoolIndex>> Layer::operator()(
+    const std::vector<std::vector<MemPoolIndex>> &x) {
   std::vector<std::vector<MemPoolIndex>> result;
   for (auto xi : x) {
     auto r = (*this)(xi);

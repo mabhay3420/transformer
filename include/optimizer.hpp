@@ -1,9 +1,11 @@
 #pragma once
 
-#include "mempool.hpp"
 #include <memory>
 #include <unordered_map>
-template <typename T> struct Optimizer {
+
+#include "mempool.hpp"
+template <typename T>
+struct Optimizer {
   int step_count;
   MemPool<Value> *mem_pool;
   std::vector<MemPoolIndex> params;
@@ -80,8 +82,11 @@ struct AdamOptimizer : OptimizerWithLRSchedule<LRSchedulerType> {
                 bool amsgrad = false, float epsilon = 1e-8f)
       : OptimizerWithLRSchedule<LRSchedulerType>(mem_pool, params,
                                                  lr_scheduler),
-        beta1(beta1), beta2(beta2), weight_decay(weight_decay),
-        amsgrad(amsgrad), epsilon(epsilon){};
+        beta1(beta1),
+        beta2(beta2),
+        weight_decay(weight_decay),
+        amsgrad(amsgrad),
+        epsilon(epsilon){};
 
   void step() {
     step_count++;
@@ -132,8 +137,11 @@ struct AdamWOptimizer : OptimizerWithLRSchedule<LRSchedulerType> {
                  bool amsgrad = false, float epsilon = 1e-8f)
       : OptimizerWithLRSchedule<LRSchedulerType>(mem_pool, params,
                                                  lr_scheduler),
-        beta1(beta1), beta2(beta2), weight_decay(weight_decay),
-        amsgrad(amsgrad), epsilon(epsilon){};
+        beta1(beta1),
+        beta2(beta2),
+        weight_decay(weight_decay),
+        amsgrad(amsgrad),
+        epsilon(epsilon){};
 
   void step() {
     step_count++;

@@ -1,7 +1,8 @@
 #pragma once
 #include <cmath>
 
-template <typename T> struct LRScheduler {
+template <typename T>
+struct LRScheduler {
   float init_lr;
   float curr_lr;
   int cnt;
@@ -30,7 +31,11 @@ struct ExpLinspaceLRScheduler : LRScheduler<ExpLinspaceLRScheduler> {
   ExpLinspaceLRScheduler(float start, float end, float steps,
                          float limit = -4.0f, float base = 10.0f)
       : LRScheduler<ExpLinspaceLRScheduler>(std::pow(base, start)),
-        start(start), end(end), steps(steps), limit(limit), base(base) {}
+        start(start),
+        end(end),
+        steps(steps),
+        limit(limit),
+        base(base) {}
   float get() {
     cnt++;
     auto stepSize = std::abs(end - start) / steps;
@@ -54,7 +59,9 @@ struct StepLRScheduler : LRScheduler<StepLRScheduler> {
   float limit;
 
   StepLRScheduler(float init_lr, int cliff, float gamma, float limit = 1e-4f)
-      : LRScheduler<StepLRScheduler>(init_lr), cliff(cliff), gamma(gamma),
+      : LRScheduler<StepLRScheduler>(init_lr),
+        cliff(cliff),
+        gamma(gamma),
         limit(limit) {}
 
   float get();

@@ -1,4 +1,7 @@
 #include "mnist.hpp"
+
+#include <memory>
+
 #include "dataloader.hpp"
 #include "learning_rate.hpp"
 #include "loss.hpp"
@@ -7,17 +10,15 @@
 #include "mlp.hpp"
 #include "optimizer.hpp"
 #include "utils.hpp"
-#include <memory>
 
 void MnistDnn() {
-
   auto LINES_TO_READ = 60000;
   MNIST mnist(LINES_TO_READ);
   mnist.summary();
   auto start = std::chrono::high_resolution_clock::now();
   auto mem_pool = new MemPool<Value>();
   auto in_size = mnist.data.train_data[0].size();
-  auto out_size = 10; // 10 classes
+  auto out_size = 10;  // 10 classes
 
   auto n = MLP(in_size, {10, out_size}, mem_pool, false);
   mem_pool->set_persistent_boundary();

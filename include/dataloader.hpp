@@ -31,11 +31,10 @@ Batch 2:
 */
 typedef std::vector<std::vector<int>> vvint;
 typedef std::vector<std::vector<float>> vvfloat;
-typedef std::pair<vvint, vvint> Batch; // (data, target)
+typedef std::pair<vvint, vvint> Batch;  // (data, target)
 struct Sampler {
-
-  uint32_t batch_size; // to be processed in parallel
-  uint32_t block_size; // context length
+  uint32_t batch_size;  // to be processed in parallel
+  uint32_t block_size;  // context length
 
   std::vector<int> train_data;
   std::vector<int> val_data;
@@ -44,7 +43,9 @@ struct Sampler {
   //   TODO - If yes then figure out something else
   Sampler(size_t batch_size, size_t block_size,
           const std::vector<int> &train_data, const std::vector<int> &val_data)
-      : batch_size(batch_size), block_size(block_size), train_data(train_data),
+      : batch_size(batch_size),
+        block_size(block_size),
+        train_data(train_data),
         val_data(val_data) {}
 
   void sample(Batch &batch, bool is_train = true);
@@ -71,7 +72,7 @@ struct MNIST {
 
   void summary();
 
-private:
+ private:
   std::string train_csv;
   std::string test_csv;
   MNIST_BATCH load_data(std::string filename, int max_lines);
@@ -89,7 +90,7 @@ struct SwedishAutoInsurance {
   SwedishAutoInsurance(std::string filename = "data/swedish_auto_insurace.csv");
   void summary();
 
-private:
+ private:
   std::string filename;
 };
 
@@ -101,8 +102,7 @@ getRandomBatch(
     std::function<InputMemPoolIndexType(const InputDataType &)> inputTransform,
     std::function<LabelMemPoolIndexType(const LableType &)> labelTransform,
     int batch_size, int start_index = 0, int end_index = -1) {
-  if (end_index == -1)
-    end_index = x.size();
+  if (end_index == -1) end_index = x.size();
   std::vector<int> indices(batch_size);
   auto total_size = x.size();
   for (int i = 0; i < batch_size; i++) {

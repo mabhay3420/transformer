@@ -1,8 +1,10 @@
 #include "utils.hpp"
-#include "mempool.hpp"
+
 #include <fstream>
 #include <iostream>
 #include <memory>
+
+#include "mempool.hpp"
 
 void dumpJson(json &j, std::string filename) {
   std::ofstream file(filename);

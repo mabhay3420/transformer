@@ -1,4 +1,5 @@
 #include "probs.hpp"
+
 #include <iostream>
 #include <random>
 #include <sstream>
@@ -19,8 +20,8 @@ MultinomialDistribution::MultinomialDistribution(
   }
   if (std::abs(sum - 1.0f) > 1e-5f) {
     std::stringstream ss;
-    ss << "Probability distribution must sum to 1, but has some extra" << (sum - 1.0f)
-       << ". Please check your input probabilities.";
+    ss << "Probability distribution must sum to 1, but has some extra"
+       << (sum - 1.0f) << ". Please check your input probabilities.";
     throw std::invalid_argument(ss.str());
   }
 }

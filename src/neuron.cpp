@@ -1,16 +1,21 @@
 #include "neuron.hpp"
-#include "mempool.hpp"
-#include "utils.hpp"
+
 #include <memory>
 #include <nlohmann/json.hpp>
 #include <ostream>
 #include <random>
 
+#include "mempool.hpp"
+#include "utils.hpp"
+
 using nlohmann::json;
 Neuron::Neuron(int dim, MemPool<Value> *mem_pool, bool with_activation,
                bool with_bias, Activation act)
-    : d(dim), with_activation(with_activation), with_bias(with_bias),
-      mem_pool(mem_pool), act(act) {
+    : d(dim),
+      with_activation(with_activation),
+      with_bias(with_bias),
+      mem_pool(mem_pool),
+      act(act) {
   w.resize(dim);
   unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
   std::default_random_engine generator(seed);
@@ -43,22 +48,22 @@ MemPoolIndex Neuron::operator()(const std::vector<MemPoolIndex> &x) {
   if (with_activation) {
     MemPoolIndex actResult;
     switch (act) {
-    case Activation::RELU:
-      actResult = relu(sum, mem_pool);
-      return actResult;
-    case Activation::TANH:
-      actResult = tanh(sum, mem_pool);
-      return actResult;
-    default:
-      return sum; // No activation
+      case Activation::RELU:
+        actResult = relu(sum, mem_pool);
+        return actResult;
+      case Activation::TANH:
+        actResult = tanh(sum, mem_pool);
+        return actResult;
+      default:
+        return sum;  // No activation
     }
     auto act = relu(sum, mem_pool);
     return act;
   }
   return sum;
 }
-std::vector<MemPoolIndex>
-Neuron::operator()(const std::vector<std::vector<MemPoolIndex>> &x) {
+std::vector<MemPoolIndex> Neuron::operator()(
+    const std::vector<std::vector<MemPoolIndex>> &x) {
   std::vector<MemPoolIndex> out;
   // TODO - Can be parallelized
   for (const auto &xi : x) {

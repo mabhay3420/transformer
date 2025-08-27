@@ -1,12 +1,13 @@
+#include <cmath>
+#include <fstream>
+#include <iostream>
+
 #include "dataloader.hpp"
 #include "micrograd.hpp"
 #include "mlp.hpp"
 #include "neuron.hpp"
 #include "utils.hpp"
 #include "vis.hpp"
-#include <cmath>
-#include <fstream>
-#include <iostream>
 void LinearRegression() {
   SwedishAutoInsurance autoInsurance;
   autoInsurance.summary();
@@ -110,8 +111,8 @@ void LinearRegression() {
   // auto filename = "data/losses.json";
   // std::ofstream file(filename);
   // if (!file.is_open()) {
-  //   std::cout << "Could not open file for writing: " << filename << std::endl;
-  //   throw std::runtime_error("FILE_NOT_FOUND");
+  //   std::cout << "Could not open file for writing: " << filename <<
+  //   std::endl; throw std::runtime_error("FILE_NOT_FOUND");
   // }
   // file << j.dump(4) << std::endl;
   // file.close();
@@ -124,8 +125,8 @@ void LinearRegression() {
   // auto filename2 = "data/params.json";
   // std::ofstream file2(filename2);
   // if (!file2.is_open()) {
-  //   std::cout << "Could not open file for writing: " << filename2 << std::endl;
-  //   throw std::runtime_error("FILE_NOT_FOUND");
+  //   std::cout << "Could not open file for writing: " << filename2 <<
+  //   std::endl; throw std::runtime_error("FILE_NOT_FOUND");
   // }
   // file2 << j2.dump(4) << std::endl;
   // file2.close();

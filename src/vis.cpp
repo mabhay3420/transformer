@@ -1,15 +1,16 @@
 #include "vis.hpp"
-#include "mempool.hpp"
+
 #include <cstdint>
 #include <fstream>
 #include <iomanip>
 #include <memory>
 #include <stdexcept>
 
+#include "mempool.hpp"
+
 void build(const MemPoolIndex value, graph &g) {
   auto [nodes, edges, mem_pool] = g;
-  if (nodes.find(value) != nodes.end())
-    return;
+  if (nodes.find(value) != nodes.end()) return;
   // if (g.0.find(value) != g.first.end())
   //   return;
   nodes.insert(value);
@@ -41,8 +42,7 @@ void to_dot(const graph &g, std::string &filename) {
     auto node = mem_pool->get(node_i);
     auto addr = reinterpret_cast<uintptr_t>(node);
     std::string recordInfo = "shape = record";
-    if (node->is_param)
-      recordInfo += ", color = red";
+    if (node->is_param) recordInfo += ", color = red";
     recordInfo += "];\n";
     file << "  \"" << addr << "\" [label=\"" << node->label << "| data "
          << std::setprecision(3) << node->data << " | grad " << node->grad

@@ -1,4 +1,8 @@
 #include "embednlp.hpp"
+
+#include <iomanip>
+#include <vector>
+
 #include "bigramnn.hpp"
 #include "dataloader.hpp"
 #include "iostream"
@@ -13,8 +17,6 @@
 #include "probs.hpp"
 #include "tokenizer.hpp"
 #include "utils.hpp"
-#include <iomanip>
-#include <vector>
 
 // Each Input = CONTEXT_LENGTH number of characters x EMBED_DIM number of float
 // values target a single character
@@ -45,8 +47,7 @@ BigramMLPData getBigramMLPData(std::vector<int> &data, int context_length,
     std::vector<int> target;
     for (int j = 0; j < context_length; j++) {
       auto index = i - (context_length - j);
-      if (index < 0)
-        continue;
+      if (index < 0) continue;
       input[j] = data[index];
     }
     seqData.input.push_back(input);
@@ -65,7 +66,7 @@ void EmbedNLP() {
 
   // prepare train data
 
-  int CONTEXT_LENGTH = 24; // total context length
+  int CONTEXT_LENGTH = 24;  // total context length
   int START_CHAR_INDEX = tokenizer.encode('.');
   int EMBED_DIM = 10;
   BigramMLPData trainSeqData =

@@ -5,4 +5,4 @@
 
 void BigraLm();
 
-#endif // BIGRAM_HPP
+#endif  // BIGRAM_HPP

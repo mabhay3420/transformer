@@ -1,4 +1,8 @@
 #include "xormodel.hpp"
+
+#include <iostream>
+#include <vector>
+
 #include "learning_rate.hpp"
 #include "mempool.hpp"
 #include "micrograd.hpp"
@@ -6,11 +10,8 @@
 #include "neuron.hpp"
 #include "optimizer.hpp"
 #include "utils.hpp"
-#include <iostream>
-#include <vector>
 
 void XORLinearRegression() {
-
   // start time
   auto start = std::chrono::high_resolution_clock::now();
   auto mem_pool = new MemPool<Value>();

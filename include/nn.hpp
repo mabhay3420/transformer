@@ -1,77 +1,63 @@
 #pragma once
 
-#include "tensor.hpp"
-
 #include <memory>
 #include <vector>
 
-namespace nn
-{
+#include "tensor.hpp"
 
-struct Module
-{
-    virtual ~Module() = default;
-    virtual Tensor forward(const Tensor &x, ParameterStore &store) = 0;
-    Tensor operator()(const Tensor &x, ParameterStore &store)
-    {
-        return forward(x, store);
-    }
-    virtual std::vector<Tensor> params()
-    {
-        return {};
-    }
+namespace nn {
+
+struct Module {
+  virtual ~Module() = default;
+  virtual Tensor forward(const Tensor &x, ParameterStore &store) = 0;
+  Tensor operator()(const Tensor &x, ParameterStore &store) {
+    return forward(x, store);
+  }
+  virtual std::vector<Tensor> params() { return {}; }
 };
 
-struct Linear : public Module
-{
-    int in_features;
-    int out_features;
-    bool use_bias;
-    Tensor W;
-    Tensor b; // if use_bias==false, b.numel==0
+struct Linear : public Module {
+  int in_features;
+  int out_features;
+  bool use_bias;
+  Tensor W;
+  Tensor b;  // if use_bias==false, b.numel==0
 
-    Linear(int in_f, int out_f, ParameterStore &store, bool bias = true, float init_scale = 0.5f, unsigned seed = 0);
-    Tensor forward(const Tensor &x, ParameterStore &store) override;
-    std::vector<Tensor> params() override;
+  Linear(int in_f, int out_f, ParameterStore &store, bool bias = true,
+         float init_scale = 0.5f, unsigned seed = 0);
+  Tensor forward(const Tensor &x, ParameterStore &store) override;
+  std::vector<Tensor> params() override;
 };
 
-struct Tanh : public Module
-{
-    Tensor forward(const Tensor &x, ParameterStore &store) override;
+struct Tanh : public Module {
+  Tensor forward(const Tensor &x, ParameterStore &store) override;
 };
 
-struct Sigmoid : public Module
-{
-    Tensor forward(const Tensor &x, ParameterStore &store) override;
+struct Sigmoid : public Module {
+  Tensor forward(const Tensor &x, ParameterStore &store) override;
 };
 
-struct Sequential : public Module
-{
-    std::vector<std::unique_ptr<Module>> layers;
-    Sequential() = default;
-    Tensor forward(const Tensor &x, ParameterStore &store) override;
-    std::vector<Tensor> params() override;
-    void push_back(std::unique_ptr<Module> m)
-    {
-        layers.push_back(std::move(m));
-    }
+struct Sequential : public Module {
+  std::vector<std::unique_ptr<Module>> layers;
+  Sequential() = default;
+  Tensor forward(const Tensor &x, ParameterStore &store) override;
+  std::vector<Tensor> params() override;
+  void push_back(std::unique_ptr<Module> m) { layers.push_back(std::move(m)); }
 };
 
 // Losses
-Tensor bce_with_logits_loss(const Tensor &logits, const Tensor &targets, ParameterStore &store, float eps = 1e-6f);
+Tensor bce_with_logits_loss(const Tensor &logits, const Tensor &targets,
+                            ParameterStore &store, float eps = 1e-6f);
 
 // Optim
-inline void sgd_step(const std::vector<Tensor> &params, float lr)
-{
-    for (const auto &p : params)
-    {
-        float *w = p.store->data_buf.data() + p.offset;
-        float *g = p.store->grad_buf.data() + p.offset;
-        for (size_t i = 0; i < p.numel; ++i)
-        {
-            w[i] -= lr * g[i];
-        }
+inline void sgd_step(const std::vector<Tensor> &params, float lr) {
+  for (const auto &p : params) {
+    float *w = p.store->data_buf.data() + p.offset;
+    float *g = p.store->grad_buf.data() + p.offset;
+    for (size_t i = 0; i < p.numel; ++i) {
+      w[i] -= lr * g[i];
     }
+  }
 }
 
-} // namespace nn
+}  // namespace nn

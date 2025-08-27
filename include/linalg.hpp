@@ -5,4 +5,4 @@
 // float tanh(float x) {
 //   return std::tanh(x);
 // }
-#endif // LINALG_HPP
+#endif  // LINALG_HPP

@@ -1,4 +1,8 @@
 #include "bigramnn.hpp"
+
+#include <iomanip>
+#include <vector>
+
 #include "dataloader.hpp"
 #include "iostream"
 #include "learning_rate.hpp"
@@ -9,8 +13,6 @@
 #include "neuron.hpp"
 #include "optimizer.hpp"
 #include "tokenizer.hpp"
-#include <iomanip>
-#include <vector>
 
 struct BigramNNBatch {
   std::vector<std::vector<MemPoolIndex>> input;

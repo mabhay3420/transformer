@@ -1,5 +1,8 @@
-#include <__config>
+#include "dataloader.hpp"
+
 #include <_stdlib.h>
+
+#include <__config>
 #include <cassert>
 #include <fstream>
 #include <ios>
@@ -10,12 +13,9 @@
 #include <string>
 #include <utility>
 
-#include "dataloader.hpp"
-
 std::string load_text_data(std::string filename) {
   std::ifstream file(filename, std::ios::ate);
-  if (!file)
-    throw std::runtime_error("open failed");
+  if (!file) throw std::runtime_error("open failed");
   std::streamsize size = file.tellg();
   file.seekg(0, std::ios::beg);
   std::string data(size, '\0');
@@ -23,12 +23,10 @@ std::string load_text_data(std::string filename) {
   return data;
 }
 
-
 void Sampler::sample(Batch &batch, bool is_train) {
-
   auto get_random_index = [](int size) {
     unsigned seed = 1234;
-    return rand_r(&seed) % size; // using rand_r for thread safety
+    return rand_r(&seed) % size;  // using rand_r for thread safety
   };
   auto get_random_block = [&](const std::vector<int> &data) {
     int start_index = get_random_index(data.size() - block_size);
@@ -38,7 +36,7 @@ void Sampler::sample(Batch &batch, bool is_train) {
   auto data = is_train ? train_data : val_data;
   // for each batch, sample a random block of data
   for (uint32_t i = 0; i < batch_size; ++i) {
-    unsigned seed = batch_size + i; // unique seed for each batch
+    unsigned seed = batch_size + i;  // unique seed for each batch
     auto rnd_idx = rand_r(&seed) % (data.size() - block_size);
     // get a block of data
     auto train_seq = std::vector<int>(data.begin() + rnd_idx,
@@ -93,8 +91,7 @@ MNIST_BATCH MNIST::load_data(std::string filename, int max_lines) {
     }
     ins.push_back(in);
     num_lines++;
-    if (num_lines > max_lines)
-      break;
+    if (num_lines > max_lines) break;
   }
   return {ins, labels};
 }

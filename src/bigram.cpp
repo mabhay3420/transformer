@@ -1,9 +1,11 @@
 #include "bigram.hpp"
-#include "probs.hpp"
-#include "tokenizer.hpp"
+
 #include <iostream>
 #include <set>
 #include <vector>
+
+#include "probs.hpp"
+#include "tokenizer.hpp"
 
 void BigraLm() {
   vvint table;
@@ -16,14 +18,14 @@ void BigraLm() {
   std::vector<int> train_data, val_data;
   split_data(0.9f, data, train_data, val_data);
   int block_size = 8;
-  auto batch_size = 4; // number of sequences to process in parallel
+  auto batch_size = 4;  // number of sequences to process in parallel
   auto sampler = Sampler(batch_size, block_size, train_data, val_data);
   auto predict_next = [&](int first) {
     auto &sampler = samplers[first];
     return sampler.sample(1)[0];
   };
   Batch trainingBatch;
-  sampler.sample(trainingBatch, true); // sample training data
+  sampler.sample(trainingBatch, true);  // sample training data
   auto &[context, target] = trainingBatch;
   for (auto i = 0; i < context.size(); i++) {
     auto &x = context[i];

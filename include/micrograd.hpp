@@ -1,14 +1,15 @@
 #ifndef MICROGRAD_HPP
 #define MICROGRAD_HPP
 
-#include "mempool.hpp"
-#include "nlohmann/json_fwd.hpp"
 #include <cstddef>
 #include <functional>
 #include <memory>
 #include <nlohmann/json.hpp>
 #include <ostream>
 #include <vector>
+
+#include "mempool.hpp"
+#include "nlohmann/json_fwd.hpp"
 
 using nlohmann::json;
 typedef std::function<void()> BackpropCallback;
@@ -19,7 +20,7 @@ using VWP = std::weak_ptr<Value>;
 struct Value {
   float data = 0.0f;
   float grad = 0.0f;
-  std::vector<MemPoolIndex> children; // to keep track of dependencies
+  std::vector<MemPoolIndex> children;  // to keep track of dependencies
   std::string op;
   std::string label;
   bool is_param = false;

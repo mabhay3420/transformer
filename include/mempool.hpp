@@ -7,7 +7,8 @@ struct Value;
 
 typedef size_t MemPoolIndex;
 
-template <typename T> struct MemPool {
+template <typename T>
+struct MemPool {
   bool persistent_done = false;
   std::vector<T *> persistent;
   std::vector<T *> mem;

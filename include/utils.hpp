@@ -1,41 +1,42 @@
 #ifndef UTILS_HPP
 #define UTILS_HPP
 
-#include "mempool.hpp"
-#include "micrograd.hpp"
 #include <iomanip>
 #include <ostream>
-#define _print_v(v)                                                            \
-  std::cout << "[ ";                                                           \
-  for (const auto &item : v) {                                                 \
-    std::cout << std::setw(3) << item << ",";                                  \
-  }                                                                            \
+
+#include "mempool.hpp"
+#include "micrograd.hpp"
+#define _print_v(v)                           \
+  std::cout << "[ ";                          \
+  for (const auto &item : v) {                \
+    std::cout << std::setw(3) << item << ","; \
+  }                                           \
   std::cout << "]";
 
-#define print_v(v)                                                             \
-  std::cout << "Size: " << v.size() << std::endl;                              \
-  std::cout << "[ ";                                                           \
-  for (const auto &item : v) {                                                 \
-    std::cout << std::setw(3) << item << ",";                                  \
-  }                                                                            \
+#define print_v(v)                                \
+  std::cout << "Size: " << v.size() << std::endl; \
+  std::cout << "[ ";                              \
+  for (const auto &item : v) {                    \
+    std::cout << std::setw(3) << item << ",";     \
+  }                                               \
   std::cout << "]" << std::endl;
 
 // k_xx so that it doesn't conflict with any other variable names
-#define print_v_e(v, e)                                                        \
-  std::cout << "Size: " << v.size() << std::endl;                              \
-  std::cout << "First " << e << ": " << std::endl;                             \
-  std::cout << "[ ";                                                           \
-  for (size_t k_xx = 0; k_xx < e && k_xx < v.size(); k_xx++) {                 \
-    std::cout << std::setw(3) << v[k_xx] << ",";                               \
-  }                                                                            \
+#define print_v_e(v, e)                                        \
+  std::cout << "Size: " << v.size() << std::endl;              \
+  std::cout << "First " << e << ": " << std::endl;             \
+  std::cout << "[ ";                                           \
+  for (size_t k_xx = 0; k_xx < e && k_xx < v.size(); k_xx++) { \
+    std::cout << std::setw(3) << v[k_xx] << ",";               \
+  }                                                            \
   std::cout << "]" << std::endl;
 
 // k_xx so that it doesn't conflict with any other variable names
-#define _print_v_e(v, e)                                                       \
-  std::cout << "[ ";                                                           \
-  for (size_t k_xx = 0; k_xx < e && k_xx < v.size(); k_xx++) {                 \
-    std::cout << std::setw(3) << v[k_xx] << ",";                               \
-  }                                                                            \
+#define _print_v_e(v, e)                                       \
+  std::cout << "[ ";                                           \
+  for (size_t k_xx = 0; k_xx < e && k_xx < v.size(); k_xx++) { \
+    std::cout << std::setw(3) << v[k_xx] << ",";               \
+  }                                                            \
   std::cout << "]";
 
 #define print_vv(vv)                                                           \
@@ -47,7 +48,7 @@
     std::cout << "," << std::endl;                                             \
   }                                                                            \
   std::cout << "] " << std::endl;
-#endif // UTILS_HPP
+#endif  // UTILS_HPP
 
 inline std::ostream &operator<<(std::ostream &os, const std::vector<int> &v) {
   os << "[ ";

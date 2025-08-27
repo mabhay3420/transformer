@@ -8,4 +8,5 @@ struct BigramMLPData {
   std::vector<int> target;
 };
 
-BigramMLPData getBigramMLPData(std::vector<int> &data, int context_length = 0, int start_char_index = 0);
+BigramMLPData getBigramMLPData(std::vector<int> &data, int context_length = 0,
+                               int start_char_index = 0);
