@@ -17,6 +17,7 @@ int main() {
   // LinearRegression();
   for (int i = 0; i < total; i++) {
     // XORLinearRegression();
+    // test action
     XORWithTensors();
   }
   // MnistDnn();
