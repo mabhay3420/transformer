@@ -12,3 +12,5 @@ data/frames
 .DS_Store
 *.trace
 time.txt
+
+compile_commands.json

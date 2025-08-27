@@ -1,0 +1,4 @@
+# Tasks
+
+- Design Tensor classes
+- Models should simply have a forward that are result of composing operations defined on tensor class

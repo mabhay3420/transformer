@@ -26,3 +26,9 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_options(tformer PRIVATE -fsanitize=address)
     target_link_options(tformer PRIVATE -fsanitize=address)
 endif()
+
+# Testing
+option(ENABLE_TESTS "Build unit tests" ON)
+if(ENABLE_TESTS)
+  add_subdirectory(tests)
+endif()

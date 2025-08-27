@@ -3,6 +3,7 @@
 #include "linear_regression.hpp"
 #include "utils.hpp"
 #include "xormodel.hpp"
+#include "xormodel_tensors.hpp"
 #include <chrono>
 #include <fstream>
 int main() {
@@ -14,7 +15,8 @@ int main() {
 #endif
   // LinearRegression();
   for (int i = 0; i < total; i++) {
-    XORLinearRegression();
+    // XORLinearRegression();
+    XORWithTensors();
   }
   // MnistDnn();
   // BigraLm();
