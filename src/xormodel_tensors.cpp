@@ -63,7 +63,6 @@ Tensor mse_loss(const Tensor &predicted, const Tensor &expected,
 
 }  // namespace
 
-
 void XORWithTensors() {
   using std::cout;
   using std::endl;
@@ -113,22 +112,20 @@ void XORWithTensors() {
     return batch * static_cast<size_t>(out_dim) * 3ULL;
   };
   const size_t batch_elems = static_cast<size_t>(batch_size);
-  const size_t param_hint = static_cast<size_t>(input_dim) * hidden_dim1 +
-                            static_cast<size_t>(hidden_dim1) * hidden_dim2 +
-                            static_cast<size_t>(hidden_dim2) * output_dim +
-                            static_cast<size_t>(hidden_dim1 + hidden_dim2 +
-                                                output_dim);
-  const size_t static_buffers = param_hint +
-                                batch_elems *
-                                    static_cast<size_t>(input_dim + output_dim);
+  const size_t param_hint =
+      static_cast<size_t>(input_dim) * hidden_dim1 +
+      static_cast<size_t>(hidden_dim1) * hidden_dim2 +
+      static_cast<size_t>(hidden_dim2) * output_dim +
+      static_cast<size_t>(hidden_dim1 + hidden_dim2 + output_dim);
+  const size_t static_buffers =
+      param_hint + batch_elems * static_cast<size_t>(input_dim + output_dim);
   const size_t train_forward = activation_block(batch_elems, hidden_dim1) +
                                activation_block(batch_elems, hidden_dim2) +
                                activation_block(batch_elems, output_dim);
-  const size_t loss_buffers = batch_elems *
-                                  static_cast<size_t>(output_dim) * 2ULL +
-                              3ULL;
-  const size_t train_hint = (train_forward + loss_buffers) *
-                            static_cast<size_t>(epochs);
+  const size_t loss_buffers =
+      batch_elems * static_cast<size_t>(output_dim) * 2ULL + 3ULL;
+  const size_t train_hint =
+      (train_forward + loss_buffers) * static_cast<size_t>(epochs);
 
   size_t val_hint = 0;
   if (val_size > 0) {
@@ -137,11 +134,10 @@ void XORWithTensors() {
             ? static_cast<size_t>((epochs + trace_every - 1) / trace_every)
             : 0;
     const size_t val_batch = val_size;
-    const size_t per_val =
-        val_batch * static_cast<size_t>(input_dim) +
-        activation_block(val_batch, hidden_dim1) +
-        activation_block(val_batch, hidden_dim2) +
-        activation_block(val_batch, output_dim);
+    const size_t per_val = val_batch * static_cast<size_t>(input_dim) +
+                           activation_block(val_batch, hidden_dim1) +
+                           activation_block(val_batch, hidden_dim2) +
+                           activation_block(val_batch, output_dim);
     val_hint = per_val * val_runs;
   }
 
@@ -162,8 +158,7 @@ void XORWithTensors() {
   for (const auto &p : params) total_param_count += p.numel;
   cout << "Total params: " << total_param_count << endl;
   if (total_param_count != param_hint) {
-    cout << "(parameter hint mismatch: expected " << param_hint << ")"
-         << endl;
+    cout << "(parameter hint mismatch: expected " << param_hint << ")" << endl;
   }
 
   Tensor batch_X = store.tensor({batch_size, input_dim});
@@ -209,8 +204,8 @@ void XORWithTensors() {
           correct++;
         }
       }
-      float accuracy = val_size > 0 ? static_cast<float>(correct) / val_size
-                                    : 0.0f;
+      float accuracy =
+          val_size > 0 ? static_cast<float>(correct) / val_size : 0.0f;
       cout << "Epoch: " << epoch << " Loss: " << loss_value
            << " Accuracy: " << accuracy << endl;
       val_accuracy.push_back(accuracy);
@@ -254,36 +249,5 @@ void XORWithTensors() {
     cout << "Loss in the end: " << losses.back() << endl;
   }
 
-  const auto &stats = store.get_stats();
-  const double tensor_avg_ms =
-      stats.tensor_zero_calls
-          ? stats.tensor_zero_ms / static_cast<double>(stats.tensor_zero_calls)
-          : 0.0;
-  const double zero_grad_avg_ms =
-      stats.zero_grad_calls
-          ? stats.zero_grad_ms / static_cast<double>(stats.zero_grad_calls)
-          : 0.0;
-  const double tensor_bytes =
-      static_cast<double>(stats.tensor_zero_elems) * sizeof(float);
-  const double zero_grad_bytes =
-      static_cast<double>(stats.zero_grad_elems) * sizeof(float);
-  const double tensor_mb = tensor_bytes / (1024.0 * 1024.0);
-  const double zero_grad_mb = zero_grad_bytes / (1024.0 * 1024.0);
-
-  cout << "ParameterStore zeroing stats:" << endl;
-  cout << "  tensor() zero fills: " << stats.tensor_zero_calls
-       << " calls, elements zeroed: " << stats.tensor_zero_elems
-       << ", bytes zeroed: " << tensor_bytes << " (" << tensor_mb << " MB)"
-       << ", total ms: " << stats.tensor_zero_ms
-       << ", avg ms/call: " << tensor_avg_ms << endl;
-  cout << "  zero_grad(): " << stats.zero_grad_calls
-       << " calls, elements zeroed: " << stats.zero_grad_elems
-       << ", bytes zeroed: " << zero_grad_bytes << " (" << zero_grad_mb
-       << " MB)"
-       << ", total ms: " << stats.zero_grad_ms
-       << ", avg ms/call: " << zero_grad_avg_ms << endl;
-  cout << "  reserve(): " << stats.reserve_calls
-       << " calls, max hinted elements: " << stats.reserve_elements << endl;
-  cout << "  capacity growth events: " << stats.capacity_grow_events
-       << " (peak elements: " << stats.peak_elements << ")" << endl;
+  store.print_stats();
 }

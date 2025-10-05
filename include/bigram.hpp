@@ -4,5 +4,6 @@
 #include "probs.hpp"
 
 void BigraLm();
+void BigraLmPT();
 
 #endif  // BIGRAM_HPP

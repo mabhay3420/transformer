@@ -106,6 +106,9 @@ struct ParameterStore {
   void reset_stats();
   const ParameterStoreStats &get_stats() const;
   bool stats_active() const { return stats_enabled; }
+  void print_stats() const;
+
+
 
   // Bulk zero grads (optional convenience)
   void zero_grad();

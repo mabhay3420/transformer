@@ -4,6 +4,7 @@
 #include <chrono>
 #include <cmath>
 #include <cstring>
+#include <iostream>
 #include <limits>
 #include <stdexcept>
 
@@ -24,12 +25,8 @@ inline void zero_buffer(float *ptr, size_t count) {
 }  // namespace
 
 // Tensor methods
-float *Tensor::data() {
-  return store ? store->data_ptr(offset) : nullptr;
-}
-float *Tensor::grad() {
-  return store ? store->grad_ptr(offset) : nullptr;
-}
+float *Tensor::data() { return store ? store->data_ptr(offset) : nullptr; }
+float *Tensor::grad() { return store ? store->grad_ptr(offset) : nullptr; }
 const float *Tensor::data() const {
   return store ? store->data_ptr(offset) : nullptr;
 }
@@ -74,8 +71,7 @@ void ParameterStore::reserve(size_t total_elements) {
   ensure_capacity(total_elements);
   if (stats_enabled) {
     stats.reserve_calls += 1;
-    stats.reserve_elements =
-        std::max(stats.reserve_elements, total_elements);
+    stats.reserve_elements = std::max(stats.reserve_elements, total_elements);
   }
 }
 
@@ -84,7 +80,8 @@ void ParameterStore::ensure_capacity(size_t required) {
 
   size_t new_capacity = capacity == 0 ? required : capacity;
   while (new_capacity < required) {
-    new_capacity = std::max(new_capacity * 2, new_capacity + static_cast<size_t>(1024));
+    new_capacity =
+        std::max(new_capacity * 2, new_capacity + static_cast<size_t>(1024));
   }
 
   std::unique_ptr<float[]> new_data(new float[new_capacity]);
@@ -171,6 +168,42 @@ void ParameterStore::enable_stats(bool enabled) {
 void ParameterStore::reset_stats() { stats = ParameterStoreStats{}; }
 
 const ParameterStoreStats &ParameterStore::get_stats() const { return stats; }
+
+void &ParameterStore::print_stats() const {
+  using std::cout;
+  using std::endl;
+  const double tensor_avg_ms =
+      stats.tensor_zero_calls
+          ? stats.tensor_zero_ms / static_cast<double>(stats.tensor_zero_calls)
+          : 0.0;
+  const double zero_grad_avg_ms =
+      stats.zero_grad_calls
+          ? stats.zero_grad_ms / static_cast<double>(stats.zero_grad_calls)
+          : 0.0;
+  const double tensor_bytes =
+      static_cast<double>(stats.tensor_zero_elems) * sizeof(float);
+  const double zero_grad_bytes =
+      static_cast<double>(stats.zero_grad_elems) * sizeof(float);
+  const double tensor_mb = tensor_bytes / (1024.0 * 1024.0);
+  const double zero_grad_mb = zero_grad_bytes / (1024.0 * 1024.0);
+
+  cout << "ParameterStore zeroing stats:" << endl;
+  cout << "  tensor() zero fills: " << stats.tensor_zero_calls
+       << " calls, elements zeroed: " << stats.tensor_zero_elems
+       << ", bytes zeroed: " << tensor_bytes << " (" << tensor_mb << " MB)"
+       << ", total ms: " << stats.tensor_zero_ms
+       << ", avg ms/call: " << tensor_avg_ms << endl;
+  cout << "  zero_grad(): " << stats.zero_grad_calls
+       << " calls, elements zeroed: " << stats.zero_grad_elems
+       << ", bytes zeroed: " << zero_grad_bytes << " (" << zero_grad_mb
+       << " MB)"
+       << ", total ms: " << stats.zero_grad_ms
+       << ", avg ms/call: " << zero_grad_avg_ms << endl;
+  cout << "  reserve(): " << stats.reserve_calls
+       << " calls, max hinted elements: " << stats.reserve_elements << endl;
+  cout << "  capacity growth events: " << stats.capacity_grow_events
+       << " (peak elements: " << stats.peak_elements << ")" << endl;
+}
 
 void ParameterStore::zero_grad() {
   float *grad_base = grad_ptr(0);

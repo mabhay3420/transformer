@@ -52,9 +52,13 @@ int main(int argc, char **argv) {
       {"xor-micrograd", {"XOR using micrograd-style Value graph",
                           XORLinearRegression}},
       {"bigram", {"Bigram language model (counts)", BigraLm}},
+      {"bigram-pt", {"Bigram language model (Tensor)", BigraLmPT}},
       {"bigram-nn", {"Bigram neural network (micrograd)", BigramNN}},
+      {"bigram-nn-pt", {"Bigram neural network (Tensor)", BigramNNPT}},
       {"embed", {"Embedded bigram MLP", EmbedNLP}},
+      {"embed-pt", {"Embedded bigram Tensor model", EmbedNLPPT}},
       {"mnist", {"MNIST classifier (micrograd)", MnistDnn}},
+      {"mnist-pt", {"MNIST classifier (Tensor)", MnistDnnPT}},
   };
 
   if (argc > 1) {

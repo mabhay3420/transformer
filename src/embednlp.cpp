@@ -1,5 +1,8 @@
 #include "embednlp.hpp"
 
+#include <algorithm>
+#include <cmath>
+#include <cstdlib>
 #include <iomanip>
 #include <vector>
 
@@ -17,6 +20,60 @@
 #include "probs.hpp"
 #include "tokenizer.hpp"
 #include "utils.hpp"
+#include "nn.hpp"
+#include "tensor.hpp"
+
+namespace {
+
+void encode_context_row(Tensor &tensor, int row, const std::vector<int> &context,
+                        int vocab_size) {
+  if (tensor.shape.size() != 2) return;
+  int stride = tensor.shape[1];
+  if (stride % vocab_size != 0) return;
+  int context_length = stride / vocab_size;
+  float *ptr = tensor.data() + row * stride;
+  for (int pos = 0; pos < context_length; ++pos) {
+    int idx = pos < static_cast<int>(context.size()) ? context[pos] : -1;
+    if (idx >= 0 && idx < vocab_size) {
+      ptr[pos * vocab_size + idx] = 1.0f;
+    }
+  }
+}
+
+std::vector<float> softmax_from_logits(const float *logits, int size) {
+  std::vector<float> probs(size);
+  if (size == 0) return probs;
+  float max_logit = logits[0];
+  for (int i = 1; i < size; ++i) max_logit = std::max(max_logit, logits[i]);
+  float sum = 0.0f;
+  for (int i = 0; i < size; ++i) {
+    float val = std::exp(logits[i] - max_logit);
+    probs[i] = val;
+    sum += val;
+  }
+  if (sum <= 0.0f) {
+    float inv = 1.0f / std::max(1, size);
+    for (int i = 0; i < size; ++i) probs[i] = inv;
+    return probs;
+  }
+  for (int i = 0; i < size; ++i) probs[i] /= sum;
+  return probs;
+}
+
+int argmax_from_logits(const float *logits, int size) {
+  if (size <= 0) return 0;
+  int best_idx = 0;
+  float best_val = logits[0];
+  for (int i = 1; i < size; ++i) {
+    if (logits[i] > best_val) {
+      best_val = logits[i];
+      best_idx = i;
+    }
+  }
+  return best_idx;
+}
+
+}  // namespace
 
 // Each Input = CONTEXT_LENGTH number of characters x EMBED_DIM number of float
 // values target a single character
@@ -223,4 +280,141 @@ void EmbedNLP() {
   // std::cout << "Val Total : " << total << std::endl;
   // std::cout << "Val Correct: " << correct << std::endl;
   // std::cout << "Validation accuracy: " << accuracy << std::endl;
+}
+
+void EmbedNLPPT() {
+  using std::cout;
+  using std::endl;
+
+  srand(42);
+  auto text = load_text_data("data/input.txt");
+  if (text.empty()) {
+    cout << "No input data available" << endl;
+    return;
+  }
+
+  std::set<char> unique_chars(text.begin(), text.end());
+  int vocab_size = static_cast<int>(unique_chars.size());
+  if (vocab_size <= 1) {
+    cout << "Vocabulary too small" << endl;
+    return;
+  }
+  CharTokenizer tokenizer(unique_chars);
+  auto data = tokenizer.encode(text);
+  if (data.empty()) {
+    cout << "Failed to encode data" << endl;
+    return;
+  }
+
+  std::vector<int> train_data;
+  std::vector<int> val_data;
+  split_data(0.9f, data, train_data, val_data);
+  if (train_data.empty() || val_data.empty()) {
+    cout << "Insufficient data after split" << endl;
+    return;
+  }
+
+  int CONTEXT_LENGTH = 24;
+  int START_CHAR_INDEX = tokenizer.encode('.');
+  BigramMLPData trainSeqData =
+      getBigramMLPData(train_data, CONTEXT_LENGTH, START_CHAR_INDEX);
+  BigramMLPData valSeqData =
+      getBigramMLPData(val_data, CONTEXT_LENGTH, START_CHAR_INDEX);
+
+  if (trainSeqData.input.empty()) {
+    cout << "Training sequence data is empty" << endl;
+    return;
+  }
+
+  int input_dim = CONTEXT_LENGTH * vocab_size;
+  ParameterStore store;
+  store.enable_stats(true);
+
+  constexpr int hidden_dim = 256;
+  nn::Sequential model;
+  model.emplace_back<nn::Linear>(input_dim, hidden_dim, store);
+  model.emplace_back<nn::Relu>();
+  model.emplace_back<nn::Linear>(hidden_dim, hidden_dim, store);
+  model.emplace_back<nn::Relu>();
+  model.emplace_back<nn::Linear>(hidden_dim, vocab_size, store);
+  auto params = model.params();
+
+  const int base_batch = 128;
+  const int batch_size = std::max(
+      1, std::min<int>(base_batch, static_cast<int>(trainSeqData.input.size())));
+  const int epochs = 400;
+  const float lr = 0.03f;
+
+  Tensor batch_X = store.tensor({batch_size, input_dim}, TensorInit::ZeroData);
+  Tensor batch_y = store.tensor({batch_size, vocab_size}, TensorInit::ZeroData);
+
+  std::vector<float> losses;
+  for (int epoch = 0; epoch < epochs; ++epoch) {
+    store.zero_grad();
+    batch_X.fill(0.0f);
+    batch_y.fill(0.0f);
+
+    for (int i = 0; i < batch_size; ++i) {
+      int idx = rand() % static_cast<int>(trainSeqData.input.size());
+      encode_context_row(batch_X, i, trainSeqData.input[idx], vocab_size);
+      int target = trainSeqData.target[idx];
+      if (target >= 0 && target < vocab_size) {
+        batch_y.data()[i * vocab_size + target] = 1.0f;
+      }
+    }
+
+    Tensor logits = model(batch_X, store);
+    Tensor loss = nn::bce_with_logits_loss(logits, batch_y, store);
+    losses.push_back(loss.data()[0]);
+
+    store.backward(loss);
+    nn::sgd_step(params, lr);
+    store.clear_tape();
+
+    if (epoch % 50 == 0) {
+      cout << "Epoch: " << epoch << " Loss: " << losses.back() << endl;
+    }
+  }
+
+  cout << "Final training loss: " << (losses.empty() ? 0.0f : losses.back())
+       << endl;
+
+  Tensor eval_input = store.tensor({1, input_dim}, TensorInit::ZeroData);
+  size_t eval_limit = std::min<size_t>(valSeqData.input.size(), 4000);
+  int correct = 0;
+  int total = 0;
+  for (size_t i = 0; i < eval_limit; ++i) {
+    eval_input.fill(0.0f);
+    encode_context_row(eval_input, 0, valSeqData.input[i], vocab_size);
+    Tensor logits = model(eval_input, store);
+    const float *logits_ptr = logits.data();
+    int predicted = argmax_from_logits(logits_ptr, vocab_size);
+    int expected = valSeqData.target[i];
+    if (predicted == expected) ++correct;
+    ++total;
+    store.clear_tape();
+  }
+  float accuracy = total > 0 ? static_cast<float>(correct) / total : 0.0f;
+  cout << "Validation accuracy (" << total << " samples): " << accuracy
+       << endl;
+
+  cout << "Sampled text:" << endl;
+  std::vector<int> context(CONTEXT_LENGTH, START_CHAR_INDEX);
+  int total_chars = 200;
+  for (int i = 0; i < total_chars; ++i) {
+    eval_input.fill(0.0f);
+    encode_context_row(eval_input, 0, context, vocab_size);
+    Tensor logits = model(eval_input, store);
+    const float *logits_ptr = logits.data();
+    auto probs = softmax_from_logits(logits_ptr, vocab_size);
+    store.clear_tape();
+    MultinomialDistribution dist(probs);
+    int next = dist.sample(1)[0];
+    std::cout << tokenizer.decode(next);
+    for (int j = 0; j < CONTEXT_LENGTH - 1; ++j) {
+      context[j] = context[j + 1];
+    }
+    context[CONTEXT_LENGTH - 1] = next;
+  }
+  std::cout << std::endl;
 }

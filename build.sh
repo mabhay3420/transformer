@@ -51,12 +51,12 @@ while (( "$#" )); do
   esac
 done
 
-cmake -S . -B "$BUILD_DIR" \
-  -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
-  -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-  -DCMAKE_CXX_COMPILER="$CXX" \
-  -DCMAKE_CXX_FLAGS="${DEFAULT_CXX_FLAGS}" \
-  "${EXTRA_ARGS[@]:-}"
+# cmake -S . -B "$BUILD_DIR" \
+#   -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
+#   -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+#   -DCMAKE_CXX_COMPILER="$CXX" \
+#   -DCMAKE_CXX_FLAGS="${DEFAULT_CXX_FLAGS}" \
+#   "${EXTRA_ARGS[@]:-}"
 
 if [[ -n "$TARGET" ]]; then
   cmake --build "$BUILD_DIR" --target "$TARGET" -- -j2
