@@ -19,72 +19,97 @@ size_t compute_numel(const std::vector<int> &shape) {
 
 // Tensor methods
 float *Tensor::data() {
-  return store ? store->data_buf.data() + offset : nullptr;
+  return store ? store->data_ptr(offset) : nullptr;
 }
 float *Tensor::grad() {
-  return store ? store->grad_buf.data() + offset : nullptr;
+  return store ? store->grad_ptr(offset) : nullptr;
 }
 const float *Tensor::data() const {
-  return store ? store->data_buf.data() + offset : nullptr;
+  return store ? store->data_ptr(offset) : nullptr;
 }
 const float *Tensor::grad() const {
-  return store ? store->grad_buf.data() + offset : nullptr;
+  return store ? store->grad_ptr(offset) : nullptr;
 }
 
 void Tensor::zero_grad() {
   if (!store) return;
-  std::fill(store->grad_buf.begin() + offset,
-            store->grad_buf.begin() + offset + numel, 0.0f);
+  float *ptr = store->grad_ptr(offset);
+  if (!ptr) return;
+  std::fill(ptr, ptr + numel, 0.0f);
 }
 
 void Tensor::fill(float v) {
   if (!store) return;
-  std::fill(store->data_buf.begin() + offset,
-            store->data_buf.begin() + offset + numel, v);
+  float *ptr = store->data_ptr(offset);
+  if (!ptr) return;
+  std::fill(ptr, ptr + numel, v);
 }
 
 // ParameterStore
 size_t ParameterStore::allocate(size_t count) {
-  size_t off = data_buf.size();
+  const size_t off = used;
   if (count == 0) {
     if (stats_enabled) {
-      stats.peak_elements = std::max(stats.peak_elements, off);
+      stats.peak_elements = std::max(stats.peak_elements, used);
     }
     return off;
   }
 
-  const size_t new_size = off + count;
+  const size_t required = used + count;
+  ensure_capacity(required);
+  used = required;
   if (stats_enabled) {
-    size_t grow_events = 0;
-    if (data_buf.capacity() < new_size) {
-      data_buf.reserve(new_size);
-      grow_events += 1;
-    }
-    if (grad_buf.capacity() < new_size) {
-      grad_buf.reserve(new_size);
-      grow_events += 1;
-    }
-    if (grow_events > 0) stats.capacity_grow_events += grow_events;
-    data_buf.resize(new_size);
-    grad_buf.resize(new_size);
-    stats.peak_elements = std::max(stats.peak_elements, new_size);
-  } else {
-    if (data_buf.capacity() < new_size) data_buf.reserve(new_size);
-    if (grad_buf.capacity() < new_size) grad_buf.reserve(new_size);
-    data_buf.resize(new_size);
-    grad_buf.resize(new_size);
+    stats.peak_elements = std::max(stats.peak_elements, used);
   }
   return off;
 }
 
 void ParameterStore::reserve(size_t total_elements) {
-  data_buf.reserve(total_elements);
-  grad_buf.reserve(total_elements);
+  ensure_capacity(total_elements);
   if (stats_enabled) {
     stats.reserve_calls += 1;
     stats.reserve_elements =
         std::max(stats.reserve_elements, total_elements);
   }
+}
+
+void ParameterStore::ensure_capacity(size_t required) {
+  if (required <= capacity) return;
+
+  size_t new_capacity = capacity == 0 ? required : capacity;
+  while (new_capacity < required) {
+    new_capacity = std::max(new_capacity * 2, new_capacity + static_cast<size_t>(1024));
+  }
+
+  std::unique_ptr<float[]> new_data(new float[new_capacity]);
+  std::unique_ptr<float[]> new_grad(new float[new_capacity]);
+
+  if (data_buf) std::copy_n(data_buf.get(), used, new_data.get());
+  if (grad_buf) std::copy_n(grad_buf.get(), used, new_grad.get());
+
+  data_buf.swap(new_data);
+  grad_buf.swap(new_grad);
+  capacity = new_capacity;
+
+  if (stats_enabled) {
+    stats.capacity_grow_events += 1;
+  }
+}
+
+float *ParameterStore::data_ptr(size_t offset) {
+  return data_buf ? data_buf.get() + offset : nullptr;
+}
+
+const float *ParameterStore::data_ptr(size_t offset) const {
+  return data_buf ? data_buf.get() + offset : nullptr;
+}
+
+float *ParameterStore::grad_ptr(size_t offset) {
+  return grad_buf ? grad_buf.get() + offset : nullptr;
+}
+
+const float *ParameterStore::grad_ptr(size_t offset) const {
+  return grad_buf ? grad_buf.get() + offset : nullptr;
 }
 
 Tensor ParameterStore::tensor(const std::vector<int> &shape, TensorInit init) {
@@ -94,22 +119,29 @@ Tensor ParameterStore::tensor(const std::vector<int> &shape, TensorInit init) {
 
   if (n == 0) return Tensor{this, off, shape, n};
 
+  float *data = data_ptr(off);
+  float *grad = grad_ptr(off);
+
   if (stats_enabled) {
     auto start = std::chrono::steady_clock::now();
-    if (zero_data) {
-      std::fill(data_buf.begin() + off, data_buf.begin() + off + n, 0.0f);
+    if (zero_data && data) {
+      std::fill(data, data + n, 0.0f);
     }
-    std::fill(grad_buf.begin() + off, grad_buf.begin() + off + n, 0.0f);
+    if (grad) {
+      std::fill(grad, grad + n, 0.0f);
+    }
     auto end = std::chrono::steady_clock::now();
     stats.tensor_zero_calls += 1;
     stats.tensor_zero_elems += n + (zero_data ? n : 0);
     stats.tensor_zero_ms +=
         std::chrono::duration<double, std::milli>(end - start).count();
   } else {
-    if (zero_data) {
-      std::fill(data_buf.begin() + off, data_buf.begin() + off + n, 0.0f);
+    if (zero_data && data) {
+      std::fill(data, data + n, 0.0f);
     }
-    std::fill(grad_buf.begin() + off, grad_buf.begin() + off + n, 0.0f);
+    if (grad) {
+      std::fill(grad, grad + n, 0.0f);
+    }
   }
 
   return Tensor{this, off, shape, n};
@@ -135,16 +167,25 @@ void ParameterStore::reset_stats() { stats = ParameterStoreStats{}; }
 const ParameterStoreStats &ParameterStore::get_stats() const { return stats; }
 
 void ParameterStore::zero_grad() {
+  float *grad_base = grad_ptr(0);
+  const size_t count = used;
+  if (!grad_base || count == 0) {
+    if (stats_enabled) {
+      stats.zero_grad_calls += 1;
+    }
+    return;
+  }
+
   if (stats_enabled) {
     auto start = std::chrono::steady_clock::now();
-    std::fill(grad_buf.begin(), grad_buf.end(), 0.0f);
+    std::fill(grad_base, grad_base + count, 0.0f);
     auto end = std::chrono::steady_clock::now();
     stats.zero_grad_calls += 1;
-    stats.zero_grad_elems += grad_buf.size();
+    stats.zero_grad_elems += count;
     stats.zero_grad_ms +=
         std::chrono::duration<double, std::milli>(end - start).count();
   } else {
-    std::fill(grad_buf.begin(), grad_buf.end(), 0.0f);
+    std::fill(grad_base, grad_base + count, 0.0f);
   }
 }
 
@@ -154,7 +195,7 @@ void ParameterStore::backward(const Tensor &loss) {
   if (loss.store != this)
     throw std::invalid_argument("loss belongs to different store");
   // Seed dL/dL = 1
-  float *g = loss.store->grad_buf.data() + loss.offset;
+  float *g = loss.store->grad_ptr(loss.offset);
   if (loss.numel == 1) {
     g[0] += 1.0f;
   } else {

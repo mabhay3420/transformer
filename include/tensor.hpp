@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <memory>
 #include <random>
 #include <stdexcept>
 #include <utility>
@@ -71,8 +72,10 @@ struct TapeOp {
 };
 
 struct ParameterStore {
-  std::vector<float> data_buf;
-  std::vector<float> grad_buf;
+  std::unique_ptr<float[]> data_buf;
+  std::unique_ptr<float[]> grad_buf;
+  size_t capacity = 0;
+  size_t used = 0;
   std::vector<TapeOp> tape;
   ParameterStoreStats stats;
   bool stats_enabled = false;
@@ -82,6 +85,15 @@ struct ParameterStore {
 
   // Pre-allocate capacity for upcoming tensors (in elements).
   void reserve(size_t total_elements);
+  void ensure_capacity(size_t required);
+
+  // Introspection helpers
+  size_t size() const { return used; }
+  size_t capacity_count() const { return capacity; }
+  float *data_ptr(size_t offset);
+  const float *data_ptr(size_t offset) const;
+  float *grad_ptr(size_t offset);
+  const float *grad_ptr(size_t offset) const;
 
   // Factory helpers
   Tensor tensor(const std::vector<int> &shape,
