@@ -169,7 +169,7 @@ void ParameterStore::reset_stats() { stats = ParameterStoreStats{}; }
 
 const ParameterStoreStats &ParameterStore::get_stats() const { return stats; }
 
-void &ParameterStore::print_stats() const {
+void ParameterStore::print_stats() const {
   using std::cout;
   using std::endl;
   const double tensor_avg_ms =
