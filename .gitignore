@@ -14,3 +14,5 @@ data/frames
 time.txt
 
 compile_commands.json
+
+logs/

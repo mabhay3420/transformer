@@ -1,33 +1,79 @@
 #include <chrono>
 #include <fstream>
+#include <functional>
+#include <iostream>
+#include <map>
+#include <string>
 
+#include "bigram.hpp"
 #include "bigramnn.hpp"
 #include "embednlp.hpp"
-#include "linear_regression.hpp"
+#include "mnist.hpp"
 #include "utils.hpp"
 #include "xormodel.hpp"
 #include "xormodel_tensors.hpp"
-int main() {
-  auto start = std::chrono::high_resolution_clock::now();
-#ifdef DEBUG
-  auto total = 1;
-#else
-  auto total = 1;
-#endif
-  // LinearRegression();
-  for (int i = 0; i < total; i++) {
-    // XORLinearRegression();
-    // test action
-    XORWithTensors();
+
+namespace {
+
+struct Command {
+  std::string description;
+  std::function<void()> action;
+};
+
+int run_command(const std::map<std::string, Command> &commands,
+                const std::string &name) {
+  const auto it = commands.find(name);
+  if (it == commands.end()) {
+    std::cerr << "Unknown command: " << name
+              << "\nAvailable commands:" << std::endl;
+    for (const auto &entry : commands) {
+      std::cerr << "  " << entry.first << "\t" << entry.second.description
+                << std::endl;
+    }
+    return 1;
   }
-  // MnistDnn();
-  // BigraLm();
-  // BigramNN();
-  // EmbedNLP();
+
+  auto start = std::chrono::high_resolution_clock::now();
+  it->second.action();
   auto end = std::chrono::high_resolution_clock::now();
+
   using time_unit = std::chrono::duration<double, std::milli>;
   auto duration = std::chrono::duration_cast<time_unit>(end - start);
   std::ofstream fout("time.txt", std::ios::app);
-  fout << duration.count() / total << std::endl;
+  fout << duration.count() << std::endl;
   return 0;
+}
+
+}  // namespace
+
+int main(int argc, char **argv) {
+  const std::map<std::string, Command> commands = {
+      {"xor-pt", {"Tensor autograd XOR (PyTorch-style)", XORWithTensors}},
+      {"xor-micrograd", {"XOR using micrograd-style Value graph",
+                          XORLinearRegression}},
+      {"bigram", {"Bigram language model (counts)", BigraLm}},
+      {"bigram-nn", {"Bigram neural network (micrograd)", BigramNN}},
+      {"embed", {"Embedded bigram MLP", EmbedNLP}},
+      {"mnist", {"MNIST classifier (micrograd)", MnistDnn}},
+  };
+
+  if (argc > 1) {
+    const std::string arg = argv[1];
+    if (arg == "--list" || arg == "-l") {
+      for (const auto &entry : commands) {
+        std::cout << entry.first << '\t' << entry.second.description
+                  << std::endl;
+      }
+      return 0;
+    }
+    if (arg == "--help" || arg == "-h") {
+      std::cout << "Usage: tformer [command]\n\nDefaults to 'xor-pt'.\n"
+                   "Use --list to see available commands."
+                << std::endl;
+      return 0;
+    }
+    return run_command(commands, arg);
+  }
+
+  return run_command(commands, "xor-pt");
 }

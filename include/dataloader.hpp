@@ -1,5 +1,7 @@
 #pragma once
 #include <cassert>
+#include <stdexcept>
+#include <cstdint>
 #include <functional>
 #include <string>
 #include <utility>

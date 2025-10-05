@@ -1,6 +1,8 @@
 #pragma once
 
 #include <memory>
+#include <type_traits>
+#include <utility>
 #include <vector>
 
 #include "tensor.hpp"
@@ -43,6 +45,15 @@ struct Sequential : public Module {
   Tensor forward(const Tensor &x, ParameterStore &store) override;
   std::vector<Tensor> params() override;
   void push_back(std::unique_ptr<Module> m) { layers.push_back(std::move(m)); }
+  template <typename T, typename... Args>
+  T &emplace_back(Args &&...args) {
+    static_assert(std::is_base_of_v<Module, T>,
+                  "Sequential accepts Module-derived layers only");
+    auto layer = std::make_unique<T>(std::forward<Args>(args)...);
+    T &ref = *layer;
+    layers.push_back(std::move(layer));
+    return ref;
+  }
 };
 
 // Losses

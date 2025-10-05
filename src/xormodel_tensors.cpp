@@ -1,10 +1,6 @@
 #include "xormodel_tensors.hpp"
 
-#include <algorithm>
 #include <array>
-#include <chrono>
-#include <cmath>
-#include <cstdlib>
 #include <iostream>
 #include <random>
 #include <vector>
@@ -20,8 +16,9 @@ struct Batch {
   std::vector<float> y;
 };
 
-float rand01() {
-  return static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
+float rand01(std::mt19937 &rng) {
+  static std::uniform_real_distribution<float> dist(0.f, 1.f);
+  return dist(rng);
 }
 
 void fill_tensor(Tensor &t, const std::vector<std::array<float, 2>> &rows) {
@@ -41,172 +38,121 @@ void fill_tensor(Tensor &t, const std::vector<float> &vals) {
   for (int i = 0; i < N; ++i) p[i] = vals[i];
 }
 
-Tensor mse_loss(const Tensor &pred, const Tensor &target,
-                ParameterStore &store) {
-  auto diff = sub(pred, target, store);
-  auto sq = mul(diff, diff, store);
-  auto s = sum(sq, store);
-  Tensor scale = store.tensor({1});
-  scale.data()[0] = 1.0f / static_cast<float>(pred.shape[0]);
-  return mul(s, scale, store);
+float xor_label(float a, float b) {
+  return ((a > 0.5f) ^ (b > 0.5f)) ? 1.0f : 0.0f;
+}
+
+Batch sample_batch(const std::vector<std::array<float, 2>> &x,
+                   const std::vector<float> &y, int batch_size,
+                   std::mt19937 &rng) {
+  Batch batch;
+  batch.x.reserve(batch_size);
+  batch.y.reserve(batch_size);
+  std::uniform_int_distribution<int> dist(0, static_cast<int>(x.size()) - 1);
+  for (int i = 0; i < batch_size; ++i) {
+    int idx = dist(rng);
+    batch.x.push_back(x[idx]);
+    batch.y.push_back(y[idx]);
+  }
+  return batch;
+}
+
+float binary_accuracy(const Tensor &probabilities, const Tensor &targets) {
+  int correct = 0;
+  auto *p = probabilities.data();
+  auto *t = targets.data();
+  for (size_t i = 0; i < probabilities.numel; ++i) {
+    correct += (p[i] > 0.5f) == (t[i] > 0.5f);
+  }
+  return static_cast<float>(correct) / probabilities.numel;
 }
 
 }  // namespace
 
-// Define a small PyTorch-like Module inline for XOR
-namespace nn {
-struct XORNet : public Module {
-  Linear l1;
-  Tanh act;
-  Linear l2;
-  XORNet(int in_features, int hidden, int out_features, ParameterStore &store)
-      : l1(in_features, hidden, store),
-        act(),
-        l2(hidden, out_features, store) {}
-  Tensor forward(const Tensor &x, ParameterStore &store) override {
-    auto h = l1(x, store);
-    h = act(h, store);
-    return l2(h, store);
-  }
-  std::vector<Tensor> params() override {
-    auto p1 = l1.params();
-    auto p2 = l2.params();
-    p1.insert(p1.end(), p2.begin(), p2.end());
-    return p1;
-  }
-};
-}  // namespace nn
 
 void XORWithTensors() {
   using std::cout;
   using std::endl;
-  srand(42);
+  std::mt19937 rng(42);
 
   ParameterStore store;
-  const int H = 16;       // hidden size
-  const int N = 1024;     // dataset size
-  const int B = 64;       // batch size
-  const int EPOCHS = 80;  // modest loops to validate
-  const float LR = 0.3f;
+  constexpr int input_dim = 2;
+  constexpr int hidden_dim = 16;
+  constexpr int output_dim = 1;
+  constexpr int dataset_size = 1024;
+  constexpr int batch_size = 64;
+  constexpr int epochs = 80;
+  constexpr float lr = 0.3f;
 
-  // Model class derived from Module with explicit forward
-  nn::XORNet model(2, H, 1, store);
+  nn::Sequential model;
+  model.emplace_back<nn::Linear>(input_dim, hidden_dim, store);
+  model.emplace_back<nn::Tanh>();
+  model.emplace_back<nn::Linear>(hidden_dim, output_dim, store);
   auto params = model.params();
 
-  // Dataset
-  std::vector<std::array<float, 2>> X(N);
-  std::vector<float> Y(N);
-  // Build a simple XOR dataset from 4 corners, repeated
-  std::array<std::array<float, 2>, 4> corners{
+  std::vector<std::array<float, 2>> features(dataset_size);
+  std::vector<float> targets(dataset_size);
+  const std::array<std::array<float, 2>, 4> corners{
       {{0.f, 0.f}, {0.f, 1.f}, {1.f, 0.f}, {1.f, 1.f}}};
-  std::array<float, 4> labels{{0.f, 1.f, 1.f, 0.f}};
-  for (int i = 0; i < N; ++i) {
-    X[i] = corners[i % 4];
-    Y[i] = labels[i % 4];
+  const std::array<float, 4> labels{{0.f, 1.f, 1.f, 0.f}};
+  for (int i = 0; i < dataset_size; ++i) {
+    features[i] = corners[i % 4];
+    targets[i] = labels[i % 4];
   }
 
-  auto forward = [&](const Tensor &Xb) { return model(Xb, store); };
-
-  auto accuracy_on_sample = [&](int samples = 256) {
-    store.clear_tape();
-    int correct = 0;
-    int total = samples;
-    Tensor Xb = store.tensor({samples, 2});
-    for (int i = 0; i < samples; ++i) {
-      float a = rand01();
-      float b = rand01();
-      Xb.data()[i * 2 + 0] = a;
-      Xb.data()[i * 2 + 1] = b;
-    }
-    auto yhat = forward(Xb);  // [samples,1]
-    for (int i = 0; i < samples; ++i) {
-      float a = Xb.data()[i * 2 + 0];
-      float b = Xb.data()[i * 2 + 1];
-      float ytrue = ((a > 0.5f) ^ (b > 0.5f)) ? 1.0f : 0.0f;
-      float pred = yhat.data()[i];
-      float ypred = pred > 0.5f ? 1.0f : 0.0f;
-      correct += (ypred == ytrue);
-    }
-    return static_cast<float>(correct) / total;
-  };
-
-  cout << "Training XOR with Tensor autograd..." << endl;
-  for (int epoch = 0; epoch < EPOCHS; ++epoch) {
+  cout << "Training XOR with Tensor autograd (PyTorch-style nn)..." << endl;
+  for (int epoch = 0; epoch < epochs; ++epoch) {
     store.zero_grad();
     store.clear_tape();
 
-    // sample batch
-    Batch batch;
-    batch.x.resize(B);
-    batch.y.resize(B);
-    for (int i = 0; i < B; ++i) {
-      int idx = rand() % N;
-      batch.x[i] = X[idx];
-      batch.y[i] = Y[idx];
-    }
-
-    Tensor Xb = store.tensor({B, 2});
-    Tensor yb = store.tensor({B, 1});
+    Batch batch = sample_batch(features, targets, batch_size, rng);
+    Tensor Xb = store.tensor({batch_size, input_dim});
+    Tensor yb = store.tensor({batch_size, output_dim});
     fill_tensor(Xb, batch.x);
     fill_tensor(yb, batch.y);
 
-    auto logits = forward(Xb);  // [B,1]
-    auto probs = sigmoid(logits, store);
-    auto loss = nn::bce_with_logits_loss(logits, yb, store);
+    Tensor logits = model(Xb, store);
+    Tensor loss = nn::bce_with_logits_loss(logits, yb, store);
+    Tensor probs = sigmoid(logits, store);
 
     store.backward(loss);
-    nn::sgd_step(params, LR);
+    nn::sgd_step(params, lr);
     store.clear_tape();
 
-    if (epoch % 5 == 0 || epoch == EPOCHS - 1) {
-      float L = loss.data()[0];
-      // batch acc
-      int bcorrect = 0;
-      for (int i = 0; i < B; ++i) {
-        bcorrect += (probs.data()[i] > 0.5f) == (yb.data()[i] > 0.5f);
-      }
-      float bacc = static_cast<float>(bcorrect) / B;
-      // evaluate accuracy using probs
+    if (epoch % 5 == 0 || epoch == epochs - 1) {
+      const float batch_loss = loss.data()[0];
+      const float batch_acc = binary_accuracy(probs, yb);
+
       store.clear_tape();
-      int samples = 256;
-      Tensor Xv = store.tensor({samples, 2});
+      const int samples = 256;
+      Tensor Xv = store.tensor({samples, input_dim});
+      Tensor yv = store.tensor({samples, output_dim});
       for (int i = 0; i < samples; ++i) {
-        float a = rand01();
-        float b = rand01();
-        Xv.data()[i * 2 + 0] = a;
-        Xv.data()[i * 2 + 1] = b;
+        float a = rand01(rng);
+        float b = rand01(rng);
+        Xv.data()[i * input_dim + 0] = a;
+        Xv.data()[i * input_dim + 1] = b;
+        yv.data()[i] = xor_label(a, b);
       }
-      auto pv = sigmoid(forward(Xv), store);
-      int correct = 0;
-      for (int i = 0; i < samples; ++i) {
-        float a = Xv.data()[i * 2 + 0], b = Xv.data()[i * 2 + 1];
-        float ytrue = ((a > 0.5f) ^ (b > 0.5f)) ? 1.0f : 0.0f;
-        float ypred = pv.data()[i] > 0.5f ? 1.0f : 0.0f;
-        correct += (ypred == ytrue);
-      }
-      float acc = static_cast<float>(correct) / samples;
-      cout << "Epoch " << epoch << "\tLoss: " << L << "\tBatchAcc: " << bacc
-           << "\tAcc: " << acc << std::endl;
+      Tensor pv = sigmoid(model(Xv, store), store);
+      const float acc = binary_accuracy(pv, yv);
+
+      cout << "Epoch " << epoch << "\tLoss: " << batch_loss
+           << "\tBatchAcc: " << batch_acc << "\tAcc: " << acc << endl;
     }
   }
 
-  // Final accuracy
   store.clear_tape();
-  int samples = 512;
-  Tensor Xv = store.tensor({samples, 2});
+  const int samples = 512;
+  Tensor Xv = store.tensor({samples, input_dim});
+  Tensor yv = store.tensor({samples, output_dim});
   for (int i = 0; i < samples; ++i) {
-    float a = rand01();
-    float b = rand01();
-    Xv.data()[i * 2] = a;
-    Xv.data()[i * 2 + 1] = b;
+    float a = rand01(rng);
+    float b = rand01(rng);
+    Xv.data()[i * input_dim + 0] = a;
+    Xv.data()[i * input_dim + 1] = b;
+    yv.data()[i] = xor_label(a, b);
   }
-  auto pv = sigmoid(forward(Xv), store);
-  int correct = 0;
-  for (int i = 0; i < samples; ++i) {
-    float a = Xv.data()[i * 2], b = Xv.data()[i * 2 + 1];
-    float ytrue = ((a > 0.5f) ^ (b > 0.5f)) ? 1.0f : 0.0f;
-    float ypred = pv.data()[i] > 0.5f ? 1.0f : 0.0f;
-    correct += (ypred == ytrue);
-  }
-  cout << "Final accuracy: " << static_cast<float>(correct) / samples << endl;
+  Tensor pv = sigmoid(model(Xv, store), store);
+  cout << "Final accuracy: " << binary_accuracy(pv, yv) << endl;
 }
