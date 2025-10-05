@@ -7,9 +7,25 @@
 #include <limits>
 #include <stdexcept>
 
+#if defined(__clang__) || defined(__GNUC__)
+#define TF_RESTRICT __restrict__
+#else
+#define TF_RESTRICT
+#endif
+
+#if defined(__clang__)
+#define TF_PRAGMA(x) _Pragma(#x)
+#define TF_VECTORIZE_LOOP TF_PRAGMA(clang loop vectorize(enable)) TF_PRAGMA(clang loop interleave(enable))
+#define TF_VECTORIZE_REDUCTION(var) TF_VECTORIZE_LOOP
+#else
+#define TF_VECTORIZE_LOOP
+#define TF_VECTORIZE_REDUCTION(var)
+#endif
+
 namespace {
 size_t compute_numel(const std::vector<int> &shape) {
   size_t n = 1;
+  TF_VECTORIZE_LOOP
   for (int d : shape) {
     if (d <= 0) throw std::invalid_argument("Tensor shape must be positive");
     n *= static_cast<size_t>(d);
@@ -244,18 +260,20 @@ void ParameterStore::backward(const Tensor &loss) {
         break;
       }
       case OpType::Relu: {
-        const float *g_out = op.out.grad();
-        const float *x = op.a.data();
-        float *gx = op.a.grad();
+        const float *TF_RESTRICT g_out = op.out.grad();
+        const float *TF_RESTRICT x = op.a.data();
+        float *TF_RESTRICT gx = op.a.grad();
+        TF_VECTORIZE_LOOP
         for (size_t i = 0; i < op.out.numel; ++i) {
           gx[i] += g_out[i] * (x[i] > 0.0f ? 1.0f : 0.0f);
         }
         break;
       }
       case OpType::Tanh: {
-        const float *g_out = op.out.grad();
-        const float *y = op.out.data();
-        float *gx = op.a.grad();
+        const float *TF_RESTRICT g_out = op.out.grad();
+        const float *TF_RESTRICT y = op.out.data();
+        float *TF_RESTRICT gx = op.a.grad();
+        TF_VECTORIZE_LOOP
         for (size_t i = 0; i < op.out.numel; ++i) {
           gx[i] += g_out[i] * (1.0f - y[i] * y[i]);
         }
@@ -263,9 +281,10 @@ void ParameterStore::backward(const Tensor &loss) {
       }
       case OpType::Sigmoid: {
         // y = sigmoid(x) stored in out; dy/dx = y*(1-y)
-        const float *g_out = op.out.grad();
-        const float *y = op.out.data();
-        float *gx = op.a.grad();
+        const float *TF_RESTRICT g_out = op.out.grad();
+        const float *TF_RESTRICT y = op.out.data();
+        float *TF_RESTRICT gx = op.a.grad();
+        TF_VECTORIZE_LOOP
         for (size_t i = 0; i < op.out.numel; ++i) {
           gx[i] += g_out[i] * y[i] * (1.0f - y[i]);
         }
@@ -273,16 +292,18 @@ void ParameterStore::backward(const Tensor &loss) {
       }
       case OpType::Log: {
         // y = log(x); dy/dx = 1/x
-        const float *g_out = op.out.grad();
-        const float *x = op.a.data();
-        float *gx = op.a.grad();
+        const float *TF_RESTRICT g_out = op.out.grad();
+        const float *TF_RESTRICT x = op.a.data();
+        float *TF_RESTRICT gx = op.a.grad();
+        TF_VECTORIZE_LOOP
         for (size_t i = 0; i < op.out.numel; ++i) gx[i] += g_out[i] / x[i];
         break;
       }
       case OpType::Sum: {
         // out is scalar; upstream grad is shared across all elems
         const float g_out = op.out.grad()[0];
-        float *gx = op.a.grad();
+        float *TF_RESTRICT gx = op.a.grad();
+        TF_VECTORIZE_LOOP
         for (size_t i = 0; i < op.a.numel; ++i) gx[i] += g_out;
         break;
       }
@@ -291,15 +312,16 @@ void ParameterStore::backward(const Tensor &loss) {
         int M = op.a.shape[0];
         int K = op.a.shape[1];
         int N = op.b.shape[1];
-        const float *A = op.a.data();
-        const float *B = op.b.data();
-        const float *gY = op.out.grad();
-        float *gA = op.a.grad();
-        float *gB = op.b.grad();
+        const float *TF_RESTRICT A = op.a.data();
+        const float *TF_RESTRICT B = op.b.data();
+        const float *TF_RESTRICT gY = op.out.grad();
+        float *TF_RESTRICT gA = op.a.grad();
+        float *TF_RESTRICT gB = op.b.grad();
         // dA = gY x B^T
         for (int m = 0; m < M; ++m) {
           for (int k = 0; k < K; ++k) {
             float acc = 0.0f;
+            TF_VECTORIZE_REDUCTION(acc)
             for (int n = 0; n < N; ++n) {
               acc += gY[m * N + n] * B[k * N + n];
             }
@@ -310,6 +332,7 @@ void ParameterStore::backward(const Tensor &loss) {
         for (int k = 0; k < K; ++k) {
           for (int n = 0; n < N; ++n) {
             float acc = 0.0f;
+            TF_VECTORIZE_REDUCTION(acc)
             for (int m = 0; m < M; ++m) {
               acc += A[m * K + k] * gY[m * N + n];
             }
@@ -323,13 +346,15 @@ void ParameterStore::backward(const Tensor &loss) {
         int N = op.a.shape[0];
         int H = op.a.shape[1];
         const float *g_out = op.out.grad();
-        float *gX = op.a.grad();
-        float *gb = op.b.grad();
+        float *TF_RESTRICT gX = op.a.grad();
+        float *TF_RESTRICT gb = op.b.grad();
         // dX = g_out
+        TF_VECTORIZE_LOOP
         for (int i = 0; i < N * H; ++i) gX[i] += g_out[i];
         // db[h] = sum_i g_out[i,h]
         for (int h = 0; h < H; ++h) {
           float acc = 0.0f;
+          TF_VECTORIZE_REDUCTION(acc)
           for (int n = 0; n < N; ++n) acc += g_out[n * H + h];
           gb[h] += acc;
         }
@@ -351,9 +376,10 @@ static void assert_same_shape(const Tensor &a, const Tensor &b) {
 Tensor add(const Tensor &a, const Tensor &b, ParameterStore &store) {
   assert_same_shape(a, b);
   Tensor out = store.tensor(a.shape);
-  const float *ap = a.data();
-  const float *bp = b.data();
-  float *op = out.data();
+  const float *TF_RESTRICT ap = a.data();
+  const float *TF_RESTRICT bp = b.data();
+  float *TF_RESTRICT op = out.data();
+  TF_VECTORIZE_LOOP
   for (size_t i = 0; i < a.numel; ++i) op[i] = ap[i] + bp[i];
   store.tape.push_back(TapeOp{OpType::Add, out, a, b});
   return out;
@@ -362,9 +388,10 @@ Tensor add(const Tensor &a, const Tensor &b, ParameterStore &store) {
 Tensor sub(const Tensor &a, const Tensor &b, ParameterStore &store) {
   assert_same_shape(a, b);
   Tensor out = store.tensor(a.shape);
-  const float *ap = a.data();
-  const float *bp = b.data();
-  float *op = out.data();
+  const float *TF_RESTRICT ap = a.data();
+  const float *TF_RESTRICT bp = b.data();
+  float *TF_RESTRICT op = out.data();
+  TF_VECTORIZE_LOOP
   for (size_t i = 0; i < a.numel; ++i) op[i] = ap[i] - bp[i];
   store.tape.push_back(TapeOp{OpType::Sub, out, a, b});
   return out;
@@ -373,9 +400,10 @@ Tensor sub(const Tensor &a, const Tensor &b, ParameterStore &store) {
 Tensor mul(const Tensor &a, const Tensor &b, ParameterStore &store) {
   assert_same_shape(a, b);
   Tensor out = store.tensor(a.shape);
-  const float *ap = a.data();
-  const float *bp = b.data();
-  float *op = out.data();
+  const float *TF_RESTRICT ap = a.data();
+  const float *TF_RESTRICT bp = b.data();
+  float *TF_RESTRICT op = out.data();
+  TF_VECTORIZE_LOOP
   for (size_t i = 0; i < a.numel; ++i) op[i] = ap[i] * bp[i];
   store.tape.push_back(TapeOp{OpType::Mul, out, a, b});
   return out;
@@ -383,8 +411,9 @@ Tensor mul(const Tensor &a, const Tensor &b, ParameterStore &store) {
 
 Tensor relu(const Tensor &x, ParameterStore &store) {
   Tensor out = store.tensor(x.shape);
-  const float *xp = x.data();
-  float *op = out.data();
+  const float *TF_RESTRICT xp = x.data();
+  float *TF_RESTRICT op = out.data();
+  TF_VECTORIZE_LOOP
   for (size_t i = 0; i < x.numel; ++i) op[i] = xp[i] > 0.0f ? xp[i] : 0.0f;
   store.tape.push_back(TapeOp{OpType::Relu, out, x, Tensor{}});
   return out;
@@ -392,8 +421,9 @@ Tensor relu(const Tensor &x, ParameterStore &store) {
 
 Tensor vtanh(const Tensor &x, ParameterStore &store) {
   Tensor out = store.tensor(x.shape);
-  const float *xp = x.data();
-  float *op = out.data();
+  const float *TF_RESTRICT xp = x.data();
+  float *TF_RESTRICT op = out.data();
+  TF_VECTORIZE_LOOP
   for (size_t i = 0; i < x.numel; ++i) op[i] = std::tanh(xp[i]);
   store.tape.push_back(TapeOp{OpType::Tanh, out, x, Tensor{}});
   return out;
@@ -401,8 +431,9 @@ Tensor vtanh(const Tensor &x, ParameterStore &store) {
 
 Tensor sigmoid(const Tensor &x, ParameterStore &store) {
   Tensor out = store.tensor(x.shape);
-  const float *xp = x.data();
-  float *op = out.data();
+  const float *TF_RESTRICT xp = x.data();
+  float *TF_RESTRICT op = out.data();
+  TF_VECTORIZE_LOOP
   for (size_t i = 0; i < x.numel; ++i) op[i] = 1.0f / (1.0f + std::exp(-xp[i]));
   store.tape.push_back(TapeOp{OpType::Sigmoid, out, x, Tensor{}});
   return out;
@@ -410,8 +441,9 @@ Tensor sigmoid(const Tensor &x, ParameterStore &store) {
 
 Tensor vlog(const Tensor &x, ParameterStore &store) {
   Tensor out = store.tensor(x.shape);
-  const float *xp = x.data();
-  float *op = out.data();
+  const float *TF_RESTRICT xp = x.data();
+  float *TF_RESTRICT op = out.data();
+  TF_VECTORIZE_LOOP
   for (size_t i = 0; i < x.numel; ++i) op[i] = std::log(xp[i]);
   store.tape.push_back(TapeOp{OpType::Log, out, x, Tensor{}});
   return out;
@@ -420,7 +452,8 @@ Tensor vlog(const Tensor &x, ParameterStore &store) {
 Tensor sum(const Tensor &x, ParameterStore &store) {
   Tensor out = store.tensor({1});
   float acc = 0.0f;
-  const float *xp = x.data();
+  const float *TF_RESTRICT xp = x.data();
+  TF_VECTORIZE_REDUCTION(acc)
   for (size_t i = 0; i < x.numel; ++i) acc += xp[i];
   out.data()[0] = acc;
   store.tape.push_back(TapeOp{OpType::Sum, out, x, Tensor{}});
@@ -437,17 +470,22 @@ Tensor matmul(const Tensor &a, const Tensor &b, ParameterStore &store) {
   if (K != K2) throw std::invalid_argument("matmul inner dim mismatch");
   Tensor out = store.tensor({M, N});
 
-  const float *A = a.data();
-  const float *B = b.data();
-  float *C = out.data();
-  // naive triple loop (row-major contiguous)
+  const float *TF_RESTRICT A = a.data();
+  const float *TF_RESTRICT B = b.data();
+  float *TF_RESTRICT C = out.data();
+
+  zero_buffer(C, static_cast<size_t>(M) * static_cast<size_t>(N));
+
   for (int m = 0; m < M; ++m) {
-    for (int n = 0; n < N; ++n) {
-      float acc = 0.0f;
-      for (int k = 0; k < K; ++k) {
-        acc += A[m * K + k] * B[k * N + n];
+    const float *TF_RESTRICT Arow = A + m * K;
+    float *TF_RESTRICT Crow = C + m * N;
+    for (int k = 0; k < K; ++k) {
+      const float a_val = Arow[k];
+      const float *TF_RESTRICT Brow = B + k * N;
+      TF_VECTORIZE_LOOP
+      for (int n = 0; n < N; ++n) {
+        Crow[n] += a_val * Brow[n];
       }
-      C[m * N + n] = acc;
     }
   }
   store.tape.push_back(TapeOp{OpType::Matmul, out, a, b});
@@ -461,12 +499,15 @@ Tensor add_rowwise(const Tensor &X, const Tensor &b, ParameterStore &store) {
   int H = X.shape[1];
   if (b.shape[0] != H) throw std::invalid_argument("add_rowwise dim mismatch");
   Tensor out = store.tensor({N, H});
-  const float *xp = X.data();
-  const float *bp = b.data();
-  float *op = out.data();
+  const float *TF_RESTRICT xp = X.data();
+  const float *TF_RESTRICT bp = b.data();
+  float *TF_RESTRICT op = out.data();
   for (int n = 0; n < N; ++n) {
+    const float *TF_RESTRICT xrow = xp + n * H;
+    float *TF_RESTRICT orow = op + n * H;
+    TF_VECTORIZE_LOOP
     for (int h = 0; h < H; ++h) {
-      op[n * H + h] = xp[n * H + h] + bp[h];
+      orow[h] = xrow[h] + bp[h];
     }
   }
   store.tape.push_back(TapeOp{OpType::AddRowwise, out, X, b});
