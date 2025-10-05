@@ -73,6 +73,7 @@ void XORWithTensors() {
   srand(42);
 
   ParameterStore store;
+  store.enable_stats(true);
   constexpr int input_dim = 2;
   constexpr int hidden_dim1 = 10;
   constexpr int hidden_dim2 = 5;
@@ -207,4 +208,33 @@ void XORWithTensors() {
   if (!losses.empty()) {
     cout << "Loss in the end: " << losses.back() << endl;
   }
+
+  const auto &stats = store.get_stats();
+  const double tensor_avg_ms =
+      stats.tensor_zero_calls
+          ? stats.tensor_zero_ms / static_cast<double>(stats.tensor_zero_calls)
+          : 0.0;
+  const double zero_grad_avg_ms =
+      stats.zero_grad_calls
+          ? stats.zero_grad_ms / static_cast<double>(stats.zero_grad_calls)
+          : 0.0;
+  const double tensor_bytes =
+      static_cast<double>(stats.tensor_zero_elems) * sizeof(float);
+  const double zero_grad_bytes =
+      static_cast<double>(stats.zero_grad_elems) * sizeof(float);
+  const double tensor_mb = tensor_bytes / (1024.0 * 1024.0);
+  const double zero_grad_mb = zero_grad_bytes / (1024.0 * 1024.0);
+
+  cout << "ParameterStore zeroing stats:" << endl;
+  cout << "  tensor() zero fills: " << stats.tensor_zero_calls
+       << " calls, elements zeroed: " << stats.tensor_zero_elems
+       << ", bytes zeroed: " << tensor_bytes << " (" << tensor_mb << " MB)"
+       << ", total ms: " << stats.tensor_zero_ms
+       << ", avg ms/call: " << tensor_avg_ms << endl;
+  cout << "  zero_grad(): " << stats.zero_grad_calls
+       << " calls, elements zeroed: " << stats.zero_grad_elems
+       << ", bytes zeroed: " << zero_grad_bytes << " (" << zero_grad_mb
+       << " MB)"
+       << ", total ms: " << stats.zero_grad_ms
+       << ", avg ms/call: " << zero_grad_avg_ms << endl;
 }

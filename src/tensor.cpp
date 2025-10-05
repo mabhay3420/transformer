@@ -1,6 +1,7 @@
 #include "tensor.hpp"
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <limits>
 #include <stdexcept>
@@ -51,12 +52,25 @@ size_t ParameterStore::allocate(size_t count) {
 }
 
 Tensor ParameterStore::tensor(const std::vector<int> &shape) {
-  auto n = compute_numel(shape);
-  auto off = allocate(n);
-  // default-init to zeros for sanity
-  std::fill(data_buf.begin() + off, data_buf.begin() + off + n, 0.0f);
-  std::fill(grad_buf.begin() + off, grad_buf.begin() + off + n, 0.0f);
-  return Tensor{this, off, shape, n};
+  if (stats_enabled) {
+    auto start = std::chrono::steady_clock::now();
+    auto n = compute_numel(shape);
+    auto off = allocate(n);
+    std::fill(data_buf.begin() + off, data_buf.begin() + off + n, 0.0f);
+    std::fill(grad_buf.begin() + off, grad_buf.begin() + off + n, 0.0f);
+    auto end = std::chrono::steady_clock::now();
+    stats.tensor_zero_calls += 1;
+    stats.tensor_zero_elems += n * 2;
+    stats.tensor_zero_ms +=
+        std::chrono::duration<double, std::milli>(end - start).count();
+    return Tensor{this, off, shape, n};
+  } else {
+    auto n = compute_numel(shape);
+    auto off = allocate(n);
+    std::fill(data_buf.begin() + off, data_buf.begin() + off + n, 0.0f);
+    std::fill(grad_buf.begin() + off, grad_buf.begin() + off + n, 0.0f);
+    return Tensor{this, off, shape, n};
+  }
 }
 
 Tensor ParameterStore::parameter(const std::vector<int> &shape, float scale,
@@ -69,8 +83,27 @@ Tensor ParameterStore::parameter(const std::vector<int> &shape, float scale,
   return t;
 }
 
+void ParameterStore::enable_stats(bool enabled) {
+  stats_enabled = enabled;
+  reset_stats();
+}
+
+void ParameterStore::reset_stats() { stats = ParameterStoreStats{}; }
+
+const ParameterStoreStats &ParameterStore::get_stats() const { return stats; }
+
 void ParameterStore::zero_grad() {
-  std::fill(grad_buf.begin(), grad_buf.end(), 0.0f);
+  if (stats_enabled) {
+    auto start = std::chrono::steady_clock::now();
+    std::fill(grad_buf.begin(), grad_buf.end(), 0.0f);
+    auto end = std::chrono::steady_clock::now();
+    stats.zero_grad_calls += 1;
+    stats.zero_grad_elems += grad_buf.size();
+    stats.zero_grad_ms +=
+        std::chrono::duration<double, std::milli>(end - start).count();
+  } else {
+    std::fill(grad_buf.begin(), grad_buf.end(), 0.0f);
+  }
 }
 
 void ParameterStore::clear_tape() { tape.clear(); }

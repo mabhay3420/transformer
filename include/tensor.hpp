@@ -12,6 +12,15 @@
 
 struct ParameterStore;
 
+struct ParameterStoreStats {
+  size_t tensor_zero_calls = 0;
+  size_t tensor_zero_elems = 0;
+  double tensor_zero_ms = 0.0;
+  size_t zero_grad_calls = 0;
+  size_t zero_grad_elems = 0;
+  double zero_grad_ms = 0.0;
+};
+
 enum class OpType {
   Add,
   Sub,
@@ -56,6 +65,8 @@ struct ParameterStore {
   std::vector<float> data_buf;
   std::vector<float> grad_buf;
   std::vector<TapeOp> tape;
+  ParameterStoreStats stats;
+  bool stats_enabled = false;
 
   // Reserve space for a tensor; returns starting offset.
   size_t allocate(size_t count);
@@ -64,6 +75,12 @@ struct ParameterStore {
   Tensor tensor(const std::vector<int> &shape);
   Tensor parameter(const std::vector<int> &shape, float scale = 0.01f,
                    unsigned seed = 0);
+
+  // Stats controls
+  void enable_stats(bool enabled = true);
+  void reset_stats();
+  const ParameterStoreStats &get_stats() const;
+  bool stats_active() const { return stats_enabled; }
 
   // Bulk zero grads (optional convenience)
   void zero_grad();
