@@ -227,25 +227,25 @@ void XORWithTensors() {
   cout << "Time take per epoch per batch: "
        << static_cast<float>(end_ms) / (epochs * batch_size) << " ms" << endl;
 
-  json losses_json = losses;
-  dumpJson(losses_json, "data/losses.json");
+  // json losses_json = losses;
+  // dumpJson(losses_json, "data/losses.json");
 
-  std::vector<float> param_values;
-  for (const auto &param : params) {
-    const float *p = param.data();
-    param_values.insert(param_values.end(), p, p + param.numel);
-  }
-  json params_json = param_values;
-  dumpJson(params_json, "data/params.json");
+  // std::vector<float> param_values;
+  // for (const auto &param : params) {
+  //   const float *p = param.data();
+  //   param_values.insert(param_values.end(), p, p + param.numel);
+  // }
+  // json params_json = param_values;
+  // dumpJson(params_json, "data/params.json");
 
-  std::vector<std::vector<float>> x_val_float;
-  x_val_float.reserve(x_val.size());
-  for (const auto &x : x_val) {
-    x_val_float.push_back({x[0], x[1]});
-  }
-  json val_json = json{{"x", x_val_float},
-                       {"y_across_epochs", y_val_epoch}};
-  dumpJson(val_json, "data/xor_val.json");
+  // std::vector<std::vector<float>> x_val_float;
+  // x_val_float.reserve(x_val.size());
+  // for (const auto &x : x_val) {
+  //   x_val_float.push_back({x[0], x[1]});
+  // }
+  // json val_json = json{{"x", x_val_float},
+  //                      {"y_across_epochs", y_val_epoch}};
+  // dumpJson(val_json, "data/xor_val.json");
 
   if (!val_accuracy.empty()) {
     cout << "Val accuracy in the end: " << val_accuracy.back() << endl;

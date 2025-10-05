@@ -46,19 +46,33 @@ void Tensor::fill(float v) {
 // ParameterStore
 size_t ParameterStore::allocate(size_t count) {
   size_t off = data_buf.size();
-  if (stats_enabled) {
-    size_t prev_data_cap = data_buf.capacity();
-    size_t prev_grad_cap = grad_buf.capacity();
-    data_buf.resize(off + count);
-    grad_buf.resize(off + count);
-    if (data_buf.capacity() != prev_data_cap ||
-        grad_buf.capacity() != prev_grad_cap) {
-      stats.capacity_grow_events += 1;
+  if (count == 0) {
+    if (stats_enabled) {
+      stats.peak_elements = std::max(stats.peak_elements, off);
     }
-    stats.peak_elements = std::max(stats.peak_elements, data_buf.size());
+    return off;
+  }
+
+  const size_t new_size = off + count;
+  if (stats_enabled) {
+    size_t grow_events = 0;
+    if (data_buf.capacity() < new_size) {
+      data_buf.reserve(new_size);
+      grow_events += 1;
+    }
+    if (grad_buf.capacity() < new_size) {
+      grad_buf.reserve(new_size);
+      grow_events += 1;
+    }
+    if (grow_events > 0) stats.capacity_grow_events += grow_events;
+    data_buf.resize(new_size);
+    grad_buf.resize(new_size);
+    stats.peak_elements = std::max(stats.peak_elements, new_size);
   } else {
-    data_buf.resize(off + count);
-    grad_buf.resize(off + count);
+    if (data_buf.capacity() < new_size) data_buf.reserve(new_size);
+    if (grad_buf.capacity() < new_size) grad_buf.reserve(new_size);
+    data_buf.resize(new_size);
+    grad_buf.resize(new_size);
   }
   return off;
 }
@@ -73,26 +87,32 @@ void ParameterStore::reserve(size_t total_elements) {
   }
 }
 
-Tensor ParameterStore::tensor(const std::vector<int> &shape) {
+Tensor ParameterStore::tensor(const std::vector<int> &shape, TensorInit init) {
+  const bool zero_data = (init == TensorInit::ZeroData);
+  const size_t n = compute_numel(shape);
+  const size_t off = allocate(n);
+
+  if (n == 0) return Tensor{this, off, shape, n};
+
   if (stats_enabled) {
     auto start = std::chrono::steady_clock::now();
-    auto n = compute_numel(shape);
-    auto off = allocate(n);
-    std::fill(data_buf.begin() + off, data_buf.begin() + off + n, 0.0f);
+    if (zero_data) {
+      std::fill(data_buf.begin() + off, data_buf.begin() + off + n, 0.0f);
+    }
     std::fill(grad_buf.begin() + off, grad_buf.begin() + off + n, 0.0f);
     auto end = std::chrono::steady_clock::now();
     stats.tensor_zero_calls += 1;
-    stats.tensor_zero_elems += n * 2;
+    stats.tensor_zero_elems += n + (zero_data ? n : 0);
     stats.tensor_zero_ms +=
         std::chrono::duration<double, std::milli>(end - start).count();
-    return Tensor{this, off, shape, n};
   } else {
-    auto n = compute_numel(shape);
-    auto off = allocate(n);
-    std::fill(data_buf.begin() + off, data_buf.begin() + off + n, 0.0f);
+    if (zero_data) {
+      std::fill(data_buf.begin() + off, data_buf.begin() + off + n, 0.0f);
+    }
     std::fill(grad_buf.begin() + off, grad_buf.begin() + off + n, 0.0f);
-    return Tensor{this, off, shape, n};
   }
+
+  return Tensor{this, off, shape, n};
 }
 
 Tensor ParameterStore::parameter(const std::vector<int> &shape, float scale,

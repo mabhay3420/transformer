@@ -25,6 +25,11 @@ struct ParameterStoreStats {
   size_t peak_elements = 0;
 };
 
+enum class TensorInit {
+  ZeroData,
+  UninitializedData,
+};
+
 enum class OpType {
   Add,
   Sub,
@@ -79,7 +84,8 @@ struct ParameterStore {
   void reserve(size_t total_elements);
 
   // Factory helpers
-  Tensor tensor(const std::vector<int> &shape);
+  Tensor tensor(const std::vector<int> &shape,
+                TensorInit init = TensorInit::UninitializedData);
   Tensor parameter(const std::vector<int> &shape, float scale = 0.01f,
                    unsigned seed = 0);
 
