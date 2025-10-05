@@ -1,5 +1,6 @@
 #include "xormodel_tensors.hpp"
 
+#include <algorithm>
 #include <array>
 #include <iostream>
 #include <random>
@@ -59,8 +60,8 @@ Batch sample_batch(const std::vector<std::array<float, 2>> &x,
 
 float binary_accuracy(const Tensor &probabilities, const Tensor &targets) {
   int correct = 0;
-  auto *p = probabilities.data();
-  auto *t = targets.data();
+  const float *p = probabilities.data();
+  const float *t = targets.data();
   for (size_t i = 0; i < probabilities.numel; ++i) {
     correct += (p[i] > 0.5f) == (t[i] > 0.5f);
   }
@@ -79,10 +80,12 @@ void XORWithTensors() {
   constexpr int input_dim = 2;
   constexpr int hidden_dim = 16;
   constexpr int output_dim = 1;
-  constexpr int dataset_size = 1024;
+  constexpr int dataset_size = 100'000;
   constexpr int batch_size = 64;
-  constexpr int epochs = 80;
-  constexpr float lr = 0.3f;
+  constexpr int epochs = 20;
+  constexpr float lr = 0.01f;
+  const int steps_per_epoch =
+      std::max(1, (dataset_size + batch_size - 1) / batch_size);
 
   nn::Sequential model;
   model.emplace_back<nn::Linear>(input_dim, hidden_dim, store);
@@ -102,27 +105,32 @@ void XORWithTensors() {
 
   cout << "Training XOR with Tensor autograd (PyTorch-style nn)..." << endl;
   for (int epoch = 0; epoch < epochs; ++epoch) {
-    store.zero_grad();
-    store.clear_tape();
+    float last_loss = 0.0f;
+    float last_acc = 0.0f;
 
-    Batch batch = sample_batch(features, targets, batch_size, rng);
-    Tensor Xb = store.tensor({batch_size, input_dim});
-    Tensor yb = store.tensor({batch_size, output_dim});
-    fill_tensor(Xb, batch.x);
-    fill_tensor(yb, batch.y);
+    for (int step = 0; step < steps_per_epoch; ++step) {
+      store.zero_grad();
+      store.clear_tape();
 
-    Tensor logits = model(Xb, store);
-    Tensor loss = nn::bce_with_logits_loss(logits, yb, store);
-    Tensor probs = sigmoid(logits, store);
+      Batch batch = sample_batch(features, targets, batch_size, rng);
+      Tensor Xb = store.tensor({batch_size, input_dim});
+      Tensor yb = store.tensor({batch_size, output_dim});
+      fill_tensor(Xb, batch.x);
+      fill_tensor(yb, batch.y);
 
-    store.backward(loss);
-    nn::sgd_step(params, lr);
-    store.clear_tape();
+      Tensor logits = model(Xb, store);
+      Tensor loss = nn::bce_with_logits_loss(logits, yb, store);
+      Tensor probs = sigmoid(logits, store);
+
+      store.backward(loss);
+      nn::sgd_step(params, lr);
+      store.clear_tape();
+
+      last_loss = loss.data()[0];
+      last_acc = binary_accuracy(probs, yb);
+    }
 
     if (epoch % 5 == 0 || epoch == epochs - 1) {
-      const float batch_loss = loss.data()[0];
-      const float batch_acc = binary_accuracy(probs, yb);
-
       store.clear_tape();
       const int samples = 256;
       Tensor Xv = store.tensor({samples, input_dim});
@@ -137,8 +145,8 @@ void XORWithTensors() {
       Tensor pv = sigmoid(model(Xv, store), store);
       const float acc = binary_accuracy(pv, yv);
 
-      cout << "Epoch " << epoch << "\tLoss: " << batch_loss
-           << "\tBatchAcc: " << batch_acc << "\tAcc: " << acc << endl;
+      cout << "Epoch " << epoch << "\tLoss: " << last_loss
+           << "\tBatchAcc: " << last_acc << "\tAcc: " << acc << endl;
     }
   }
 

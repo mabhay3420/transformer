@@ -20,7 +20,7 @@ void XORLinearRegression() {
   auto last_param_end = mem_pool->size();
   std::cout << "Total params: " << params.size() << std::endl;
 
-  auto TOTAL_SIZE = 100000;
+  auto TOTAL_SIZE = 100'000;
   auto BATCH_SIZE = 64;
   auto TOTAL_EPOCH = 10;
   auto TRACE_EVERY = TOTAL_EPOCH / TOTAL_EPOCH;

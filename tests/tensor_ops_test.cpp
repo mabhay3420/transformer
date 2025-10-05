@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "tensor.hpp"
+#include "nn.hpp"
 
 static void fill_vec(float *p, const std::vector<float> &vals) {
   std::copy(vals.begin(), vals.end(), p);
@@ -144,4 +145,24 @@ TEST(TensorOps, LogGrad) {
   EXPECT_FLOAT_EQ(x.grad()[0], 1.0f / 0.5f);
   EXPECT_FLOAT_EQ(x.grad()[1], 1.0f / 2.0f);
   EXPECT_FLOAT_EQ(x.grad()[2], 1.0f / 4.0f);
+}
+
+TEST(NN, BCEWithLogitsGradMatchesAnalytic) {
+  ParameterStore ps;
+  ps.clear_tape();
+  auto logits = ps.tensor({2, 1});
+  fill_vec(logits.data(), {0.2f, -0.7f});
+  auto targets = ps.tensor({2, 1});
+  fill_vec(targets.data(), {1.0f, 0.0f});
+
+  auto loss = nn::bce_with_logits_loss(logits, targets, ps);
+  ps.zero_grad();
+  ps.backward(loss);
+
+  const float invN = 1.0f / static_cast<float>(targets.shape[0]);
+  for (int i = 0; i < logits.shape[0]; ++i) {
+    const float sig = 1.0f / (1.0f + std::exp(-logits.data()[i]));
+    const float expected = (sig - targets.data()[i]) * invN;
+    EXPECT_NEAR(logits.grad()[i], expected, 1e-5f);
+  }
 }

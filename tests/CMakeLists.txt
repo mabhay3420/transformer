@@ -19,6 +19,7 @@ endif()
 add_executable(tensor_ops_test
   tensor_ops_test.cpp
   ${CMAKE_SOURCE_DIR}/src/tensor.cpp
+  ${CMAKE_SOURCE_DIR}/src/nn.cpp
 )
 
 target_include_directories(tensor_ops_test PRIVATE
