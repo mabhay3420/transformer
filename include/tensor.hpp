@@ -19,6 +19,10 @@ struct ParameterStoreStats {
   size_t zero_grad_calls = 0;
   size_t zero_grad_elems = 0;
   double zero_grad_ms = 0.0;
+  size_t reserve_calls = 0;
+  size_t reserve_elements = 0;
+  size_t capacity_grow_events = 0;
+  size_t peak_elements = 0;
 };
 
 enum class OpType {
@@ -70,6 +74,9 @@ struct ParameterStore {
 
   // Reserve space for a tensor; returns starting offset.
   size_t allocate(size_t count);
+
+  // Pre-allocate capacity for upcoming tensors (in elements).
+  void reserve(size_t total_elements);
 
   // Factory helpers
   Tensor tensor(const std::vector<int> &shape);

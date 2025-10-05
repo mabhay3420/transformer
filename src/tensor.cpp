@@ -46,9 +46,31 @@ void Tensor::fill(float v) {
 // ParameterStore
 size_t ParameterStore::allocate(size_t count) {
   size_t off = data_buf.size();
-  data_buf.resize(off + count);
-  grad_buf.resize(off + count);
+  if (stats_enabled) {
+    size_t prev_data_cap = data_buf.capacity();
+    size_t prev_grad_cap = grad_buf.capacity();
+    data_buf.resize(off + count);
+    grad_buf.resize(off + count);
+    if (data_buf.capacity() != prev_data_cap ||
+        grad_buf.capacity() != prev_grad_cap) {
+      stats.capacity_grow_events += 1;
+    }
+    stats.peak_elements = std::max(stats.peak_elements, data_buf.size());
+  } else {
+    data_buf.resize(off + count);
+    grad_buf.resize(off + count);
+  }
   return off;
+}
+
+void ParameterStore::reserve(size_t total_elements) {
+  data_buf.reserve(total_elements);
+  grad_buf.reserve(total_elements);
+  if (stats_enabled) {
+    stats.reserve_calls += 1;
+    stats.reserve_elements =
+        std::max(stats.reserve_elements, total_elements);
+  }
 }
 
 Tensor ParameterStore::tensor(const std::vector<int> &shape) {

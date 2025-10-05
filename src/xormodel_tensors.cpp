@@ -84,19 +84,6 @@ void XORWithTensors() {
   constexpr int trace_every = 1;
   constexpr float lr = 0.01f;
 
-  nn::Sequential model;
-  model.emplace_back<nn::Linear>(input_dim, hidden_dim1, store);
-  model.emplace_back<nn::Relu>();
-  model.emplace_back<nn::Linear>(hidden_dim1, hidden_dim2, store);
-  model.emplace_back<nn::Relu>();
-  model.emplace_back<nn::Linear>(hidden_dim2, output_dim, store);
-  model.emplace_back<nn::Relu>();
-  auto params = model.params();
-
-  size_t total_param_count = 0;
-  for (const auto &p : params) total_param_count += p.numel;
-  cout << "Total params: " << total_param_count << endl;
-
   std::vector<std::array<float, 2>> x_all;
   x_all.reserve(dataset_size);
   std::vector<float> y_all;
@@ -116,10 +103,68 @@ void XORWithTensors() {
   std::vector<float> y_train(y_all.begin(), y_all.begin() + train_size);
   std::vector<std::array<float, 2>> x_val(x_all.begin() + train_size,
                                           x_all.end());
+  const size_t val_size = x_val.size();
 
   cout << "Total dataset size: " << dataset_size << endl;
   cout << "Batch size: " << batch_size << endl;
   cout << "Total epochs: " << epochs << endl;
+
+  const auto activation_block = [](size_t batch, int out_dim) {
+    return batch * static_cast<size_t>(out_dim) * 3ULL;
+  };
+  const size_t batch_elems = static_cast<size_t>(batch_size);
+  const size_t param_hint = static_cast<size_t>(input_dim) * hidden_dim1 +
+                            static_cast<size_t>(hidden_dim1) * hidden_dim2 +
+                            static_cast<size_t>(hidden_dim2) * output_dim +
+                            static_cast<size_t>(hidden_dim1 + hidden_dim2 +
+                                                output_dim);
+  const size_t static_buffers = param_hint +
+                                batch_elems *
+                                    static_cast<size_t>(input_dim + output_dim);
+  const size_t train_forward = activation_block(batch_elems, hidden_dim1) +
+                               activation_block(batch_elems, hidden_dim2) +
+                               activation_block(batch_elems, output_dim);
+  const size_t loss_buffers = batch_elems *
+                                  static_cast<size_t>(output_dim) * 2ULL +
+                              3ULL;
+  const size_t train_hint = (train_forward + loss_buffers) *
+                            static_cast<size_t>(epochs);
+
+  size_t val_hint = 0;
+  if (val_size > 0) {
+    const size_t val_runs =
+        trace_every > 0
+            ? static_cast<size_t>((epochs + trace_every - 1) / trace_every)
+            : 0;
+    const size_t val_batch = val_size;
+    const size_t per_val =
+        val_batch * static_cast<size_t>(input_dim) +
+        activation_block(val_batch, hidden_dim1) +
+        activation_block(val_batch, hidden_dim2) +
+        activation_block(val_batch, output_dim);
+    val_hint = per_val * val_runs;
+  }
+
+  size_t approx_hint = static_buffers + train_hint + val_hint;
+  approx_hint += approx_hint / 10ULL + 1024ULL;  // margin for dynamics
+  store.reserve(approx_hint);
+
+  nn::Sequential model;
+  model.emplace_back<nn::Linear>(input_dim, hidden_dim1, store);
+  model.emplace_back<nn::Relu>();
+  model.emplace_back<nn::Linear>(hidden_dim1, hidden_dim2, store);
+  model.emplace_back<nn::Relu>();
+  model.emplace_back<nn::Linear>(hidden_dim2, output_dim, store);
+  model.emplace_back<nn::Relu>();
+  auto params = model.params();
+
+  size_t total_param_count = 0;
+  for (const auto &p : params) total_param_count += p.numel;
+  cout << "Total params: " << total_param_count << endl;
+  if (total_param_count != param_hint) {
+    cout << "(parameter hint mismatch: expected " << param_hint << ")"
+         << endl;
+  }
 
   Tensor batch_X = store.tensor({batch_size, input_dim});
   Tensor batch_y = store.tensor({batch_size, output_dim});
@@ -237,4 +282,8 @@ void XORWithTensors() {
        << " MB)"
        << ", total ms: " << stats.zero_grad_ms
        << ", avg ms/call: " << zero_grad_avg_ms << endl;
+  cout << "  reserve(): " << stats.reserve_calls
+       << " calls, max hinted elements: " << stats.reserve_elements << endl;
+  cout << "  capacity growth events: " << stats.capacity_grow_events
+       << " (peak elements: " << stats.peak_elements << ")" << endl;
 }

@@ -11,6 +11,36 @@ static void fill_vec(float *p, const std::vector<float> &vals) {
   std::copy(vals.begin(), vals.end(), p);
 }
 
+TEST(ParameterStore, ReserveHint) {
+  ParameterStore ps;
+  EXPECT_EQ(ps.data_buf.size(), 0u);
+  EXPECT_EQ(ps.grad_buf.size(), 0u);
+
+  ps.reserve(128);
+  EXPECT_GE(ps.data_buf.capacity(), 128u);
+  EXPECT_GE(ps.grad_buf.capacity(), 128u);
+  EXPECT_EQ(ps.data_buf.size(), 0u);
+  EXPECT_EQ(ps.grad_buf.size(), 0u);
+
+  auto t = ps.tensor({16});
+  EXPECT_EQ(t.numel, 16u);
+  EXPECT_EQ(ps.data_buf.size(), 16u);
+  EXPECT_EQ(ps.grad_buf.size(), 16u);
+  EXPECT_GE(ps.data_buf.capacity(), 128u);
+  EXPECT_GE(ps.grad_buf.capacity(), 128u);
+
+  const size_t prev_capacity = ps.data_buf.capacity();
+  ps.reserve(ps.data_buf.size() + 256u);
+  EXPECT_EQ(ps.data_buf.size(), 16u);
+  EXPECT_EQ(ps.grad_buf.size(), 16u);
+  EXPECT_GE(ps.data_buf.capacity(), ps.data_buf.size() + 256u);
+  EXPECT_GE(ps.grad_buf.capacity(), ps.grad_buf.size() + 256u);
+
+  ps.reserve(8u);
+  EXPECT_GE(ps.data_buf.capacity(), prev_capacity);
+  EXPECT_GE(ps.grad_buf.capacity(), prev_capacity);
+}
+
 TEST(TensorOps, AddBackward) {
   ParameterStore ps;
   ps.clear_tape();
