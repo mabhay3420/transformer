@@ -6,9 +6,9 @@
 # Guidelines
 where possible:
     - use std library
-    - use auto 
+    - use auto
 
 # Running
 
 - `./run.sh` builds the project and executes the default `xor-pt` command, which trains the XOR task using the PyTorch-style `nn` modules and tensor autograd.
-- `./build/release/tformer --list` shows all available entrypoints. Use `./build/release/tformer <command>` to run an alternative experiment (e.g. `bigram`, `mnist`).
+- `./build/release/tformer --list` shows all available entrypoints. Use `./build/release/tformer <command>` or `./run.sh <command>` to run an alternative experiment (e.g. `bigram`, `mnist`).
