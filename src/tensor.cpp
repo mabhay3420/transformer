@@ -8,7 +8,14 @@
 #include <limits>
 #include <stdexcept>
 
+#include "matmul_cost_model.hpp"
+
 namespace {
+#if defined(__clang__) || defined(__GNUC__)
+#define UNROLL4 _Pragma("unroll 4")
+#else
+#define UNROLL4
+#endif
 size_t compute_numel(const std::vector<int> &shape) {
   size_t n = 1;
   for (int d : shape) {
@@ -320,7 +327,6 @@ void ParameterStore::backward(const Tensor &loss) {
         break;
       }
       case OpType::Matmul: {
-        // Y = A[M,K] x B[K,N]
         int M = op.a.shape[0];
         int K = op.a.shape[1];
         int N = op.b.shape[1];
@@ -329,24 +335,121 @@ void ParameterStore::backward(const Tensor &loss) {
         const float *gY = op.out.grad();
         float *gA = op.a.grad();
         float *gB = op.b.grad();
-        // dA = gY x B^T
-        for (int m = 0; m < M; ++m) {
-          for (int k = 0; k < K; ++k) {
-            float acc = 0.0f;
-            for (int n = 0; n < N; ++n) {
-              acc += gY[m * N + n] * B[k * N + n];
-            }
-            gA[m * K + k] += acc;
-          }
-        }
-        // dB = A^T x gY
-        for (int k = 0; k < K; ++k) {
-          for (int n = 0; n < N; ++n) {
-            float acc = 0.0f;
+        constexpr int TILE = 32;
+        MatmulKernel kernel = predict_matmul_kernel(M, K, N);
+        if (kernel == MatmulKernel::Skinny && K != 2) kernel = MatmulKernel::Naive;
+
+        switch (kernel) {
+          case MatmulKernel::Skinny: {
+            const float *b0 = B;
+            const float *b1 = B + N;
             for (int m = 0; m < M; ++m) {
-              acc += A[m * K + k] * gY[m * N + n];
+              const float *gY_row = gY + m * N;
+              float acc0 = 0.0f;
+              float acc1 = 0.0f;
+              UNROLL4
+              for (int n = 0; n < N; ++n) {
+                float gy_val = gY_row[n];
+                acc0 += gy_val * b0[n];
+                acc1 += gy_val * b1[n];
+              }
+              float *gA_row = gA + m * K;
+              gA_row[0] += acc0;
+              gA_row[1] += acc1;
             }
-            gB[k * N + n] += acc;
+            for (int n = 0; n < N; ++n) {
+              float acc0 = 0.0f;
+              float acc1 = 0.0f;
+              UNROLL4
+              for (int m = 0; m < M; ++m) {
+                const float *a_row = A + m * K;
+                float gy_val = gY[m * N + n];
+                acc0 += a_row[0] * gy_val;
+                acc1 += a_row[1] * gy_val;
+              }
+              gB[n] += acc0;
+              gB[N + n] += acc1;
+            }
+            break;
+          }
+          case MatmulKernel::Naive: {
+            for (int m = 0; m < M; ++m) {
+              const float *gY_row = gY + m * N;
+              for (int k = 0; k < K; ++k) {
+                float acc = 0.0f;
+                UNROLL4
+                for (int n = 0; n < N; ++n) {
+                  acc += gY_row[n] * B[k * N + n];
+                }
+                gA[m * K + k] += acc;
+              }
+            }
+            for (int k = 0; k < K; ++k) {
+              float *gB_row = gB + k * N;
+              for (int n = 0; n < N; ++n) {
+                float acc = 0.0f;
+                UNROLL4
+                for (int m = 0; m < M; ++m) {
+                  acc += A[m * K + k] * gY[m * N + n];
+                }
+                gB_row[n] += acc;
+              }
+            }
+            break;
+          }
+          case MatmulKernel::Tiled: {
+            for (int m0 = 0; m0 < M; m0 += TILE) {
+              int m_max = std::min(m0 + TILE, M);
+              for (int k0 = 0; k0 < K; k0 += TILE) {
+                int k_block = std::min(k0 + TILE, K) - k0;
+                for (int m = m0; m < m_max; ++m) {
+                  float accum[TILE];
+                  zero_buffer(accum, static_cast<size_t>(k_block));
+                  for (int n0 = 0; n0 < N; n0 += TILE) {
+                    int n_max = std::min(n0 + TILE, N);
+                    int n_block = n_max - n0;
+                    const float *gY_ptr = gY + m * N + n0;
+                    for (int ni = 0; ni < n_block; ++ni) {
+                      float gy_val = gY_ptr[ni];
+                      const float *b_ptr = B + k0 * N + (n0 + ni);
+                      for (int ki = 0; ki < k_block; ++ki) {
+                        accum[ki] += gy_val * b_ptr[ki * N];
+                      }
+                    }
+                  }
+                  float *gA_row = gA + m * K + k0;
+                  for (int ki = 0; ki < k_block; ++ki) {
+                    gA_row[ki] += accum[ki];
+                  }
+                }
+              }
+            }
+            for (int k0 = 0; k0 < K; k0 += TILE) {
+              int k_block = std::min(k0 + TILE, K) - k0;
+              for (int n0 = 0; n0 < N; n0 += TILE) {
+                int n_max = std::min(n0 + TILE, N);
+                int n_block = n_max - n0;
+                for (int k = 0; k < k_block; ++k) {
+                  float accum[TILE];
+                  zero_buffer(accum, static_cast<size_t>(n_block));
+                  for (int m0 = 0; m0 < M; m0 += TILE) {
+                    int m_max = std::min(m0 + TILE, M);
+                    for (int m = m0; m < m_max; ++m) {
+                      float a_val = A[m * K + (k0 + k)];
+                      const float *gY_ptr = gY + m * N + n0;
+                      for (int ni = 0; ni < n_block; ++ni) {
+                        accum[ni] += a_val * gY_ptr[ni];
+                      }
+                    }
+                  }
+                  float *gB_row = gB + (k0 + k) * N + n0;
+                  for (int ni = 0; ni < n_block; ++ni) {
+                    gB_row[ni] += accum[ni];
+                  }
+                }
+              }
+            }
+            break;
           }
         }
         break;
@@ -473,14 +576,66 @@ Tensor matmul(const Tensor &a, const Tensor &b, ParameterStore &store) {
   const float *A = a.data();
   const float *B = b.data();
   float *C = out.data();
-  // naive triple loop (row-major contiguous)
-  for (int m = 0; m < M; ++m) {
-    for (int n = 0; n < N; ++n) {
-      float acc = 0.0f;
-      for (int k = 0; k < K; ++k) {
-        acc += A[m * K + k] * B[k * N + n];
+  constexpr int TILE = 32;
+  MatmulKernel kernel = predict_matmul_kernel(M, K, N);
+  if (kernel == MatmulKernel::Skinny && K != 2) kernel = MatmulKernel::Naive;
+
+  switch (kernel) {
+    case MatmulKernel::Skinny: {
+      const float *b0 = B;
+      const float *b1 = B + N;
+      for (int m = 0; m < M; ++m) {
+        const float *a_row = A + m * K;
+        float a0 = a_row[0];
+        float a1 = a_row[1];
+        float *c_row = C + m * N;
+        UNROLL4
+        for (int n = 0; n < N; ++n) {
+          c_row[n] = a0 * b0[n] + a1 * b1[n];
+        }
       }
-      C[m * N + n] = acc;
+      break;
+    }
+    case MatmulKernel::Naive: {
+      for (int m = 0; m < M; ++m) {
+        for (int n = 0; n < N; ++n) {
+          float acc = 0.0f;
+          UNROLL4
+          for (int k = 0; k < K; ++k) {
+            acc += A[m * K + k] * B[k * N + n];
+          }
+          C[m * N + n] = acc;
+        }
+      }
+      break;
+    }
+    case MatmulKernel::Tiled: {
+      for (int m0 = 0; m0 < M; m0 += TILE) {
+        int m_max = std::min(m0 + TILE, M);
+        for (int n0 = 0; n0 < N; n0 += TILE) {
+          int n_max = std::min(n0 + TILE, N);
+          int n_block = n_max - n0;
+          for (int m = m0; m < m_max; ++m) {
+            float accum[TILE];
+            zero_buffer(accum, static_cast<size_t>(n_block));
+            for (int k0 = 0; k0 < K; k0 += TILE) {
+              int k_max = std::min(k0 + TILE, K);
+              for (int k = k0; k < k_max; ++k) {
+                const float a_val = A[m * K + k];
+                const float *b_ptr = B + k * N + n0;
+                for (int ni = 0; ni < n_block; ++ni) {
+                  accum[ni] += a_val * b_ptr[ni];
+                }
+              }
+            }
+            float *c_row = C + m * N + n0;
+            for (int ni = 0; ni < n_block; ++ni) {
+              c_row[ni] = accum[ni];
+            }
+          }
+        }
+      }
+      break;
     }
   }
   store.tape.push_back(TapeOp{OpType::Matmul, out, a, b});
@@ -505,3 +660,5 @@ Tensor add_rowwise(const Tensor &X, const Tensor &b, ParameterStore &store) {
   store.tape.push_back(TapeOp{OpType::AddRowwise, out, X, b});
   return out;
 }
+
+#undef UNROLL4
