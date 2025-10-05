@@ -30,6 +30,10 @@ Tensor Tanh::forward(const Tensor &x, ParameterStore &store) {
   return vtanh(x, store);
 }
 
+Tensor Relu::forward(const Tensor &x, ParameterStore &store) {
+  return relu(x, store);
+}
+
 Tensor Sigmoid::forward(const Tensor &x, ParameterStore &store) {
   return sigmoid(x, store);
 }

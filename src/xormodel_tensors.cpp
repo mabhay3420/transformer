@@ -2,8 +2,9 @@
 
 #include <algorithm>
 #include <array>
+#include <chrono>
+#include <cstdlib>
 #include <iostream>
-#include <random>
 #include <vector>
 
 #include "nn.hpp"
@@ -16,11 +17,6 @@ struct Batch {
   std::vector<std::array<float, 2>> x;
   std::vector<float> y;
 };
-
-float rand01(std::mt19937 &rng) {
-  static std::uniform_real_distribution<float> dist(0.f, 1.f);
-  return dist(rng);
-}
 
 void fill_tensor(Tensor &t, const std::vector<std::array<float, 2>> &rows) {
   float *p = t.data();
@@ -35,8 +31,7 @@ void fill_tensor(Tensor &t, const std::vector<std::array<float, 2>> &rows) {
 
 void fill_tensor(Tensor &t, const std::vector<float> &vals) {
   float *p = t.data();
-  int N = t.shape[0];
-  for (int i = 0; i < N; ++i) p[i] = vals[i];
+  for (size_t i = 0; i < t.numel; ++i) p[i] = vals[i];
 }
 
 float xor_label(float a, float b) {
@@ -44,28 +39,26 @@ float xor_label(float a, float b) {
 }
 
 Batch sample_batch(const std::vector<std::array<float, 2>> &x,
-                   const std::vector<float> &y, int batch_size,
-                   std::mt19937 &rng) {
+                   const std::vector<float> &y, int batch_size) {
   Batch batch;
   batch.x.reserve(batch_size);
   batch.y.reserve(batch_size);
-  std::uniform_int_distribution<int> dist(0, static_cast<int>(x.size()) - 1);
   for (int i = 0; i < batch_size; ++i) {
-    int idx = dist(rng);
+    int idx = rand() % x.size();
     batch.x.push_back(x[idx]);
     batch.y.push_back(y[idx]);
   }
   return batch;
 }
 
-float binary_accuracy(const Tensor &probabilities, const Tensor &targets) {
-  int correct = 0;
-  const float *p = probabilities.data();
-  const float *t = targets.data();
-  for (size_t i = 0; i < probabilities.numel; ++i) {
-    correct += (p[i] > 0.5f) == (t[i] > 0.5f);
-  }
-  return static_cast<float>(correct) / probabilities.numel;
+Tensor mse_loss(const Tensor &predicted, const Tensor &expected,
+                ParameterStore &store) {
+  auto diff = sub(predicted, expected, store);
+  auto diff_sq = mul(diff, diff, store);
+  auto total = sum(diff_sq, store);
+  Tensor scale = store.tensor({1});
+  scale.data()[0] = 1.0f / static_cast<float>(predicted.numel);
+  return mul(total, scale, store);
 }
 
 }  // namespace
@@ -74,93 +67,144 @@ float binary_accuracy(const Tensor &probabilities, const Tensor &targets) {
 void XORWithTensors() {
   using std::cout;
   using std::endl;
-  std::mt19937 rng(42);
+
+  auto start = std::chrono::high_resolution_clock::now();
+
+  srand(42);
 
   ParameterStore store;
   constexpr int input_dim = 2;
-  constexpr int hidden_dim = 16;
+  constexpr int hidden_dim1 = 10;
+  constexpr int hidden_dim2 = 5;
   constexpr int output_dim = 1;
   constexpr int dataset_size = 100'000;
   constexpr int batch_size = 64;
-  constexpr int epochs = 20;
+  constexpr int epochs = 10;
+  constexpr int trace_every = 1;
   constexpr float lr = 0.01f;
-  const int steps_per_epoch =
-      std::max(1, (dataset_size + batch_size - 1) / batch_size);
 
   nn::Sequential model;
-  model.emplace_back<nn::Linear>(input_dim, hidden_dim, store);
-  model.emplace_back<nn::Tanh>();
-  model.emplace_back<nn::Linear>(hidden_dim, output_dim, store);
+  model.emplace_back<nn::Linear>(input_dim, hidden_dim1, store);
+  model.emplace_back<nn::Relu>();
+  model.emplace_back<nn::Linear>(hidden_dim1, hidden_dim2, store);
+  model.emplace_back<nn::Relu>();
+  model.emplace_back<nn::Linear>(hidden_dim2, output_dim, store);
+  model.emplace_back<nn::Relu>();
   auto params = model.params();
 
-  std::vector<std::array<float, 2>> features(dataset_size);
-  std::vector<float> targets(dataset_size);
-  const std::array<std::array<float, 2>, 4> corners{
-      {{0.f, 0.f}, {0.f, 1.f}, {1.f, 0.f}, {1.f, 1.f}}};
-  const std::array<float, 4> labels{{0.f, 1.f, 1.f, 0.f}};
+  size_t total_param_count = 0;
+  for (const auto &p : params) total_param_count += p.numel;
+  cout << "Total params: " << total_param_count << endl;
+
+  std::vector<std::array<float, 2>> x_all;
+  x_all.reserve(dataset_size);
+  std::vector<float> y_all;
+  y_all.reserve(dataset_size);
   for (int i = 0; i < dataset_size; ++i) {
-    features[i] = corners[i % 4];
-    targets[i] = labels[i % 4];
+    std::array<float, 2> sample;
+    sample[0] = get_random_float(0.0f, 1.0f);
+    sample[1] = get_random_float(0.0f, 1.0f);
+    x_all.push_back(sample);
+    y_all.push_back(xor_label(sample[0], sample[1]));
   }
 
-  cout << "Training XOR with Tensor autograd (PyTorch-style nn)..." << endl;
+  constexpr float train_fraction = 0.8f;
+  int train_size = static_cast<int>(train_fraction * dataset_size);
+  std::vector<std::array<float, 2>> x_train(x_all.begin(),
+                                            x_all.begin() + train_size);
+  std::vector<float> y_train(y_all.begin(), y_all.begin() + train_size);
+  std::vector<std::array<float, 2>> x_val(x_all.begin() + train_size,
+                                          x_all.end());
+
+  cout << "Total dataset size: " << dataset_size << endl;
+  cout << "Batch size: " << batch_size << endl;
+  cout << "Total epochs: " << epochs << endl;
+
+  Tensor batch_X = store.tensor({batch_size, input_dim});
+  Tensor batch_y = store.tensor({batch_size, output_dim});
+
+  std::vector<float> losses;
+  std::vector<std::vector<float>> y_val_epoch;
+  std::vector<float> val_accuracy;
+
   for (int epoch = 0; epoch < epochs; ++epoch) {
-    float last_loss = 0.0f;
-    float last_acc = 0.0f;
+    store.zero_grad();
+    store.clear_tape();
 
-    for (int step = 0; step < steps_per_epoch; ++step) {
-      store.zero_grad();
-      store.clear_tape();
+    Batch batch = sample_batch(x_train, y_train, batch_size);
+    fill_tensor(batch_X, batch.x);
+    fill_tensor(batch_y, batch.y);
 
-      Batch batch = sample_batch(features, targets, batch_size, rng);
-      Tensor Xb = store.tensor({batch_size, input_dim});
-      Tensor yb = store.tensor({batch_size, output_dim});
-      fill_tensor(Xb, batch.x);
-      fill_tensor(yb, batch.y);
+    Tensor preds = model(batch_X, store);
+    Tensor loss = mse_loss(preds, batch_y, store);
+    float loss_value = loss.data()[0];
+    losses.push_back(loss_value);
 
-      Tensor logits = model(Xb, store);
-      Tensor loss = nn::bce_with_logits_loss(logits, yb, store);
-      Tensor probs = sigmoid(logits, store);
+    store.backward(loss);
+    nn::sgd_step(params, lr);
+    store.clear_tape();
 
-      store.backward(loss);
-      nn::sgd_step(params, lr);
-      store.clear_tape();
+    if (epoch % trace_every == 0) {
+      int val_size = static_cast<int>(x_val.size());
+      Tensor Xv = store.tensor({val_size, input_dim});
+      fill_tensor(Xv, x_val);
+      Tensor logits_val = model(Xv, store);
+      const float *logits_ptr = logits_val.data();
 
-      last_loss = loss.data()[0];
-      last_acc = binary_accuracy(probs, yb);
-    }
-
-    if (epoch % 5 == 0 || epoch == epochs - 1) {
-      store.clear_tape();
-      const int samples = 256;
-      Tensor Xv = store.tensor({samples, input_dim});
-      Tensor yv = store.tensor({samples, output_dim});
-      for (int i = 0; i < samples; ++i) {
-        float a = rand01(rng);
-        float b = rand01(rng);
-        Xv.data()[i * input_dim + 0] = a;
-        Xv.data()[i * input_dim + 1] = b;
-        yv.data()[i] = xor_label(a, b);
+      int correct = 0;
+      std::vector<float> y_val;
+      y_val.reserve(val_size);
+      for (int i = 0; i < val_size; ++i) {
+        float out = logits_ptr[i];
+        float out_thresh = out > 0.5f ? 1.0f : 0.0f;
+        y_val.push_back(out_thresh);
+        float label = xor_label(x_val[i][0], x_val[i][1]);
+        if (out_thresh == label) {
+          correct++;
+        }
       }
-      Tensor pv = sigmoid(model(Xv, store), store);
-      const float acc = binary_accuracy(pv, yv);
-
-      cout << "Epoch " << epoch << "\tLoss: " << last_loss
-           << "\tBatchAcc: " << last_acc << "\tAcc: " << acc << endl;
+      float accuracy = val_size > 0 ? static_cast<float>(correct) / val_size
+                                    : 0.0f;
+      cout << "Epoch: " << epoch << " Loss: " << loss_value
+           << " Accuracy: " << accuracy << endl;
+      val_accuracy.push_back(accuracy);
+      y_val_epoch.push_back(std::move(y_val));
+      store.clear_tape();
     }
   }
 
-  store.clear_tape();
-  const int samples = 512;
-  Tensor Xv = store.tensor({samples, input_dim});
-  Tensor yv = store.tensor({samples, output_dim});
-  for (int i = 0; i < samples; ++i) {
-    float a = rand01(rng);
-    float b = rand01(rng);
-    Xv.data()[i * input_dim + 0] = a;
-    Xv.data()[i * input_dim + 1] = b;
-    yv.data()[i] = xor_label(a, b);
+  auto end = std::chrono::high_resolution_clock::now();
+  auto end_ms =
+      std::chrono::duration_cast<std::chrono::milliseconds>(end - start)
+          .count();
+  cout << "Time taken: " << end_ms << " ms" << endl;
+  cout << "Time take per epoch per batch: "
+       << static_cast<float>(end_ms) / (epochs * batch_size) << " ms" << endl;
+
+  json losses_json = losses;
+  dumpJson(losses_json, "data/losses.json");
+
+  std::vector<float> param_values;
+  for (const auto &param : params) {
+    const float *p = param.data();
+    param_values.insert(param_values.end(), p, p + param.numel);
   }
-  Tensor pv = sigmoid(model(Xv, store), store);
-  cout << "Final accuracy: " << binary_accuracy(pv, yv) << endl;
+  json params_json = param_values;
+  dumpJson(params_json, "data/params.json");
+
+  std::vector<std::vector<float>> x_val_float;
+  x_val_float.reserve(x_val.size());
+  for (const auto &x : x_val) {
+    x_val_float.push_back({x[0], x[1]});
+  }
+  json val_json = json{{"x", x_val_float},
+                       {"y_across_epochs", y_val_epoch}};
+  dumpJson(val_json, "data/xor_val.json");
+
+  if (!val_accuracy.empty()) {
+    cout << "Val accuracy in the end: " << val_accuracy.back() << endl;
+  }
+  if (!losses.empty()) {
+    cout << "Loss in the end: " << losses.back() << endl;
+  }
 }

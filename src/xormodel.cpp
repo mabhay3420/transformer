@@ -1,5 +1,6 @@
 #include "xormodel.hpp"
 
+#include <cstdlib>
 #include <iostream>
 #include <vector>
 
@@ -14,6 +15,8 @@
 void XORLinearRegression() {
   // start time
   auto start = std::chrono::high_resolution_clock::now();
+
+  srand(42);
   auto mem_pool = new MemPool<Value>();
   auto n = MLP(2, {10, 5, 1}, mem_pool);
   auto params = n.params();

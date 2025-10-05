@@ -1,21 +1,39 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [ "${1:-}" == "t" ]; then
-    ./test.sh
-    exit $?
-fi
+target="xor-pt"
+vis_mode=""
+
+for arg in "$@"; do
+  case "$arg" in
+    t)
+      ./test.sh
+      exit $?
+      ;;
+    v|v2|v3)
+      vis_mode="$arg"
+      ;;
+    *)
+      target="$arg"
+      ;;
+  esac
+done
 
 ./build.sh
-time ./build/release/tformer
+time ./build/release/tformer "$target"
 if [ -d .venv ]; then
   # optional: activate python venv for vis scripts
   source .venv/bin/activate || true
 fi
-if [ "${1:-}" == "v" ]; then
+
+case "$vis_mode" in
+  v)
     python vis_loss.py
-elif [ "${1:-}" == "v2" ]; then
+    ;;
+  v2)
     python vis_loss_v2.py
-elif [ "${1:-}" == "v3" ]; then
+    ;;
+  v3)
     python vis_loss_v3.py
-fi
+    ;;
+esac

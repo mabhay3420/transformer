@@ -35,6 +35,10 @@ struct Tanh : public Module {
   Tensor forward(const Tensor &x, ParameterStore &store) override;
 };
 
+struct Relu : public Module {
+  Tensor forward(const Tensor &x, ParameterStore &store) override;
+};
+
 struct Sigmoid : public Module {
   Tensor forward(const Tensor &x, ParameterStore &store) override;
 };
