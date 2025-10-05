@@ -31,6 +31,232 @@ inline void zero_buffer(float *ptr, size_t count) {
 }
 }  // namespace
 
+namespace {
+
+void backward_add(TapeOp &op) {
+  const float *g_out = op.out.grad();
+  float *ga = op.a.grad();
+  float *gb = op.b.grad();
+  for (size_t i = 0; i < op.out.numel; ++i) {
+    ga[i] += g_out[i];
+    gb[i] += g_out[i];
+  }
+}
+
+void backward_sub(TapeOp &op) {
+  const float *g_out = op.out.grad();
+  float *ga = op.a.grad();
+  float *gb = op.b.grad();
+  for (size_t i = 0; i < op.out.numel; ++i) {
+    ga[i] += g_out[i];
+    gb[i] -= g_out[i];
+  }
+}
+
+void backward_mul(TapeOp &op) {
+  const float *g_out = op.out.grad();
+  const float *a_data = op.a.data();
+  const float *b_data = op.b.data();
+  float *ga = op.a.grad();
+  float *gb = op.b.grad();
+  for (size_t i = 0; i < op.out.numel; ++i) {
+    ga[i] += g_out[i] * b_data[i];
+    gb[i] += g_out[i] * a_data[i];
+  }
+}
+
+void backward_relu(TapeOp &op) {
+  const float *g_out = op.out.grad();
+  const float *x = op.a.data();
+  float *gx = op.a.grad();
+  for (size_t i = 0; i < op.out.numel; ++i) {
+    gx[i] += g_out[i] * (x[i] > 0.0f ? 1.0f : 0.0f);
+  }
+}
+
+void backward_tanh(TapeOp &op) {
+  const float *g_out = op.out.grad();
+  const float *y = op.out.data();
+  float *gx = op.a.grad();
+  for (size_t i = 0; i < op.out.numel; ++i) {
+    gx[i] += g_out[i] * (1.0f - y[i] * y[i]);
+  }
+}
+
+void backward_sigmoid(TapeOp &op) {
+  const float *g_out = op.out.grad();
+  const float *y = op.out.data();
+  float *gx = op.a.grad();
+  for (size_t i = 0; i < op.out.numel; ++i) {
+    gx[i] += g_out[i] * y[i] * (1.0f - y[i]);
+  }
+}
+
+void backward_log(TapeOp &op) {
+  const float *g_out = op.out.grad();
+  const float *x = op.a.data();
+  float *gx = op.a.grad();
+  for (size_t i = 0; i < op.out.numel; ++i) {
+    gx[i] += g_out[i] / x[i];
+  }
+}
+
+void backward_sum(TapeOp &op) {
+  const float g_out = op.out.grad()[0];
+  float *gx = op.a.grad();
+  for (size_t i = 0; i < op.a.numel; ++i) {
+    gx[i] += g_out;
+  }
+}
+
+void backward_matmul(TapeOp &op) {
+  int M = op.a.shape[0];
+  int K = op.a.shape[1];
+  int N = op.b.shape[1];
+  const float *A = op.a.data();
+  const float *B = op.b.data();
+  const float *gY = op.out.grad();
+  float *gA = op.a.grad();
+  float *gB = op.b.grad();
+  constexpr int TILE = 32;
+  MatmulKernel kernel = predict_matmul_kernel(M, K, N);
+  if (kernel == MatmulKernel::Skinny && K != 2) kernel = MatmulKernel::Naive;
+
+  switch (kernel) {
+    case MatmulKernel::Skinny: {
+      const float *b0 = B;
+      const float *b1 = B + N;
+      for (int m = 0; m < M; ++m) {
+        const float *gY_row = gY + m * N;
+        float acc0 = 0.0f;
+        float acc1 = 0.0f;
+        UNROLL4
+        for (int n = 0; n < N; ++n) {
+          float gy_val = gY_row[n];
+          acc0 += gy_val * b0[n];
+          acc1 += gy_val * b1[n];
+        }
+        float *gA_row = gA + m * K;
+        gA_row[0] += acc0;
+        gA_row[1] += acc1;
+      }
+      for (int n = 0; n < N; ++n) {
+        float acc0 = 0.0f;
+        float acc1 = 0.0f;
+        UNROLL4
+        for (int m = 0; m < M; ++m) {
+          const float *a_row = A + m * K;
+          float gy_val = gY[m * N + n];
+          acc0 += a_row[0] * gy_val;
+          acc1 += a_row[1] * gy_val;
+        }
+        gB[n] += acc0;
+        gB[N + n] += acc1;
+      }
+      break;
+    }
+    case MatmulKernel::Naive: {
+      for (int m = 0; m < M; ++m) {
+        const float *gY_row = gY + m * N;
+        for (int k = 0; k < K; ++k) {
+          float acc = 0.0f;
+          UNROLL4
+          for (int n = 0; n < N; ++n) {
+            acc += gY_row[n] * B[k * N + n];
+          }
+          gA[m * K + k] += acc;
+        }
+      }
+      for (int k = 0; k < K; ++k) {
+        float *gB_row = gB + k * N;
+        for (int n = 0; n < N; ++n) {
+          float acc = 0.0f;
+          UNROLL4
+          for (int m = 0; m < M; ++m) {
+            acc += A[m * K + k] * gY[m * N + n];
+          }
+          gB_row[n] += acc;
+        }
+      }
+      break;
+    }
+    case MatmulKernel::Tiled: {
+      for (int m0 = 0; m0 < M; m0 += TILE) {
+        int m_max = std::min(m0 + TILE, M);
+        for (int k0 = 0; k0 < K; k0 += TILE) {
+          int k_block = std::min(k0 + TILE, K) - k0;
+          for (int m = m0; m < m_max; ++m) {
+            float accum[TILE];
+            zero_buffer(accum, static_cast<size_t>(k_block));
+            for (int n0 = 0; n0 < N; n0 += TILE) {
+              int n_max = std::min(n0 + TILE, N);
+              int n_block = n_max - n0;
+              const float *gY_ptr = gY + m * N + n0;
+              for (int ni = 0; ni < n_block; ++ni) {
+                float gy_val = gY_ptr[ni];
+                const float *b_ptr = B + k0 * N + (n0 + ni);
+                for (int ki = 0; ki < k_block; ++ki) {
+                  accum[ki] += gy_val * b_ptr[ki * N];
+                }
+              }
+            }
+            float *gA_row = gA + m * K + k0;
+            for (int ki = 0; ki < k_block; ++ki) {
+              gA_row[ki] += accum[ki];
+            }
+          }
+        }
+      }
+      for (int k0 = 0; k0 < K; k0 += TILE) {
+        int k_block = std::min(k0 + TILE, K) - k0;
+        for (int n0 = 0; n0 < N; n0 += TILE) {
+          int n_max = std::min(n0 + TILE, N);
+          int n_block = n_max - n0;
+          for (int k = 0; k < k_block; ++k) {
+            float accum[TILE];
+            zero_buffer(accum, static_cast<size_t>(n_block));
+            for (int m0 = 0; m0 < M; m0 += TILE) {
+              int m_max = std::min(m0 + TILE, M);
+              for (int m = m0; m < m_max; ++m) {
+                float a_val = A[m * K + (k0 + k)];
+                const float *gY_ptr = gY + m * N + n0;
+                for (int ni = 0; ni < n_block; ++ni) {
+                  accum[ni] += a_val * gY_ptr[ni];
+                }
+              }
+            }
+            float *gB_row = gB + (k0 + k) * N + n0;
+            for (int ni = 0; ni < n_block; ++ni) {
+              gB_row[ni] += accum[ni];
+            }
+          }
+        }
+      }
+      break;
+    }
+  }
+}
+
+void backward_add_rowwise(TapeOp &op) {
+  int N = op.a.shape[0];
+  int H = op.a.shape[1];
+  const float *g_out = op.out.grad();
+  float *gX = op.a.grad();
+  float *gb = op.b.grad();
+  for (int i = 0; i < N * H; ++i) {
+    gX[i] += g_out[i];
+  }
+  for (int h = 0; h < H; ++h) {
+    float acc = 0.0f;
+    for (int n = 0; n < N; ++n) {
+      acc += g_out[n * H + h];
+    }
+    gb[h] += acc;
+  }
+}
+
+}  // namespace
+
 // Tensor methods
 float *Tensor::data() { return store ? store->data_ptr(offset) : nullptr; }
 float *Tensor::grad() { return store ? store->grad_ptr(offset) : nullptr; }
@@ -251,226 +477,36 @@ void ParameterStore::backward(const Tensor &loss) {
   for (auto it = tape.rbegin(); it != tape.rend(); ++it) {
     TapeOp &op = *it;
     switch (op.type) {
-      case OpType::Add: {
-        const float *g_out = op.out.grad();
-        float *ga = op.a.grad();
-        float *gb = op.b.grad();
-        for (size_t i = 0; i < op.out.numel; ++i) {
-          ga[i] += g_out[i];
-          gb[i] += g_out[i];
-        }
+      case OpType::Add:
+        backward_add(op);
         break;
-      }
-      case OpType::Sub: {
-        const float *g_out = op.out.grad();
-        float *ga = op.a.grad();
-        float *gb = op.b.grad();
-        for (size_t i = 0; i < op.out.numel; ++i) {
-          ga[i] += g_out[i];
-          gb[i] -= g_out[i];
-        }
+      case OpType::Sub:
+        backward_sub(op);
         break;
-      }
-      case OpType::Mul: {
-        const float *g_out = op.out.grad();
-        const float *a_data = op.a.data();
-        const float *b_data = op.b.data();
-        float *ga = op.a.grad();
-        float *gb = op.b.grad();
-        for (size_t i = 0; i < op.out.numel; ++i) {
-          ga[i] += g_out[i] * b_data[i];
-          gb[i] += g_out[i] * a_data[i];
-        }
+      case OpType::Mul:
+        backward_mul(op);
         break;
-      }
-      case OpType::Relu: {
-        const float *g_out = op.out.grad();
-        const float *x = op.a.data();
-        float *gx = op.a.grad();
-        for (size_t i = 0; i < op.out.numel; ++i) {
-          gx[i] += g_out[i] * (x[i] > 0.0f ? 1.0f : 0.0f);
-        }
+      case OpType::Relu:
+        backward_relu(op);
         break;
-      }
-      case OpType::Tanh: {
-        const float *g_out = op.out.grad();
-        const float *y = op.out.data();
-        float *gx = op.a.grad();
-        for (size_t i = 0; i < op.out.numel; ++i) {
-          gx[i] += g_out[i] * (1.0f - y[i] * y[i]);
-        }
+      case OpType::Tanh:
+        backward_tanh(op);
         break;
-      }
-      case OpType::Sigmoid: {
-        // y = sigmoid(x) stored in out; dy/dx = y*(1-y)
-        const float *g_out = op.out.grad();
-        const float *y = op.out.data();
-        float *gx = op.a.grad();
-        for (size_t i = 0; i < op.out.numel; ++i) {
-          gx[i] += g_out[i] * y[i] * (1.0f - y[i]);
-        }
+      case OpType::Sigmoid:
+        backward_sigmoid(op);
         break;
-      }
-      case OpType::Log: {
-        // y = log(x); dy/dx = 1/x
-        const float *g_out = op.out.grad();
-        const float *x = op.a.data();
-        float *gx = op.a.grad();
-        for (size_t i = 0; i < op.out.numel; ++i) gx[i] += g_out[i] / x[i];
+      case OpType::Log:
+        backward_log(op);
         break;
-      }
-      case OpType::Sum: {
-        // out is scalar; upstream grad is shared across all elems
-        const float g_out = op.out.grad()[0];
-        float *gx = op.a.grad();
-        for (size_t i = 0; i < op.a.numel; ++i) gx[i] += g_out;
+      case OpType::Sum:
+        backward_sum(op);
         break;
-      }
-      case OpType::Matmul: {
-        int M = op.a.shape[0];
-        int K = op.a.shape[1];
-        int N = op.b.shape[1];
-        const float *A = op.a.data();
-        const float *B = op.b.data();
-        const float *gY = op.out.grad();
-        float *gA = op.a.grad();
-        float *gB = op.b.grad();
-        constexpr int TILE = 32;
-        MatmulKernel kernel = predict_matmul_kernel(M, K, N);
-        if (kernel == MatmulKernel::Skinny && K != 2) kernel = MatmulKernel::Naive;
-
-        switch (kernel) {
-          case MatmulKernel::Skinny: {
-            const float *b0 = B;
-            const float *b1 = B + N;
-            for (int m = 0; m < M; ++m) {
-              const float *gY_row = gY + m * N;
-              float acc0 = 0.0f;
-              float acc1 = 0.0f;
-              UNROLL4
-              for (int n = 0; n < N; ++n) {
-                float gy_val = gY_row[n];
-                acc0 += gy_val * b0[n];
-                acc1 += gy_val * b1[n];
-              }
-              float *gA_row = gA + m * K;
-              gA_row[0] += acc0;
-              gA_row[1] += acc1;
-            }
-            for (int n = 0; n < N; ++n) {
-              float acc0 = 0.0f;
-              float acc1 = 0.0f;
-              UNROLL4
-              for (int m = 0; m < M; ++m) {
-                const float *a_row = A + m * K;
-                float gy_val = gY[m * N + n];
-                acc0 += a_row[0] * gy_val;
-                acc1 += a_row[1] * gy_val;
-              }
-              gB[n] += acc0;
-              gB[N + n] += acc1;
-            }
-            break;
-          }
-          case MatmulKernel::Naive: {
-            for (int m = 0; m < M; ++m) {
-              const float *gY_row = gY + m * N;
-              for (int k = 0; k < K; ++k) {
-                float acc = 0.0f;
-                UNROLL4
-                for (int n = 0; n < N; ++n) {
-                  acc += gY_row[n] * B[k * N + n];
-                }
-                gA[m * K + k] += acc;
-              }
-            }
-            for (int k = 0; k < K; ++k) {
-              float *gB_row = gB + k * N;
-              for (int n = 0; n < N; ++n) {
-                float acc = 0.0f;
-                UNROLL4
-                for (int m = 0; m < M; ++m) {
-                  acc += A[m * K + k] * gY[m * N + n];
-                }
-                gB_row[n] += acc;
-              }
-            }
-            break;
-          }
-          case MatmulKernel::Tiled: {
-            for (int m0 = 0; m0 < M; m0 += TILE) {
-              int m_max = std::min(m0 + TILE, M);
-              for (int k0 = 0; k0 < K; k0 += TILE) {
-                int k_block = std::min(k0 + TILE, K) - k0;
-                for (int m = m0; m < m_max; ++m) {
-                  float accum[TILE];
-                  zero_buffer(accum, static_cast<size_t>(k_block));
-                  for (int n0 = 0; n0 < N; n0 += TILE) {
-                    int n_max = std::min(n0 + TILE, N);
-                    int n_block = n_max - n0;
-                    const float *gY_ptr = gY + m * N + n0;
-                    for (int ni = 0; ni < n_block; ++ni) {
-                      float gy_val = gY_ptr[ni];
-                      const float *b_ptr = B + k0 * N + (n0 + ni);
-                      for (int ki = 0; ki < k_block; ++ki) {
-                        accum[ki] += gy_val * b_ptr[ki * N];
-                      }
-                    }
-                  }
-                  float *gA_row = gA + m * K + k0;
-                  for (int ki = 0; ki < k_block; ++ki) {
-                    gA_row[ki] += accum[ki];
-                  }
-                }
-              }
-            }
-            for (int k0 = 0; k0 < K; k0 += TILE) {
-              int k_block = std::min(k0 + TILE, K) - k0;
-              for (int n0 = 0; n0 < N; n0 += TILE) {
-                int n_max = std::min(n0 + TILE, N);
-                int n_block = n_max - n0;
-                for (int k = 0; k < k_block; ++k) {
-                  float accum[TILE];
-                  zero_buffer(accum, static_cast<size_t>(n_block));
-                  for (int m0 = 0; m0 < M; m0 += TILE) {
-                    int m_max = std::min(m0 + TILE, M);
-                    for (int m = m0; m < m_max; ++m) {
-                      float a_val = A[m * K + (k0 + k)];
-                      const float *gY_ptr = gY + m * N + n0;
-                      for (int ni = 0; ni < n_block; ++ni) {
-                        accum[ni] += a_val * gY_ptr[ni];
-                      }
-                    }
-                  }
-                  float *gB_row = gB + (k0 + k) * N + n0;
-                  for (int ni = 0; ni < n_block; ++ni) {
-                    gB_row[ni] += accum[ni];
-                  }
-                }
-              }
-            }
-            break;
-          }
-        }
+      case OpType::Matmul:
+        backward_matmul(op);
         break;
-      }
-      case OpType::AddRowwise: {
-        // X[N,H] + b[H]
-        int N = op.a.shape[0];
-        int H = op.a.shape[1];
-        const float *g_out = op.out.grad();
-        float *gX = op.a.grad();
-        float *gb = op.b.grad();
-        // dX = g_out
-        for (int i = 0; i < N * H; ++i) gX[i] += g_out[i];
-        // db[h] = sum_i g_out[i,h]
-        for (int h = 0; h < H; ++h) {
-          float acc = 0.0f;
-          for (int n = 0; n < N; ++n) acc += g_out[n * H + h];
-          gb[h] += acc;
-        }
+      case OpType::AddRowwise:
+        backward_add_rowwise(op);
         break;
-      }
     }
   }
 }
