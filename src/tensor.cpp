@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <cstring>
 #include <limits>
 #include <stdexcept>
 
@@ -14,6 +15,11 @@ size_t compute_numel(const std::vector<int> &shape) {
     n *= static_cast<size_t>(d);
   }
   return n;
+}
+
+inline void zero_buffer(float *ptr, size_t count) {
+  if (!ptr || count == 0) return;
+  std::memset(ptr, 0, count * sizeof(float));
 }
 }  // namespace
 
@@ -35,7 +41,7 @@ void Tensor::zero_grad() {
   if (!store) return;
   float *ptr = store->grad_ptr(offset);
   if (!ptr) return;
-  std::fill(ptr, ptr + numel, 0.0f);
+  zero_buffer(ptr, numel);
 }
 
 void Tensor::fill(float v) {
@@ -125,10 +131,10 @@ Tensor ParameterStore::tensor(const std::vector<int> &shape, TensorInit init) {
   if (stats_enabled) {
     auto start = std::chrono::steady_clock::now();
     if (zero_data && data) {
-      std::fill(data, data + n, 0.0f);
+      zero_buffer(data, n);
     }
     if (grad) {
-      std::fill(grad, grad + n, 0.0f);
+      zero_buffer(grad, n);
     }
     auto end = std::chrono::steady_clock::now();
     stats.tensor_zero_calls += 1;
@@ -137,10 +143,10 @@ Tensor ParameterStore::tensor(const std::vector<int> &shape, TensorInit init) {
         std::chrono::duration<double, std::milli>(end - start).count();
   } else {
     if (zero_data && data) {
-      std::fill(data, data + n, 0.0f);
+      zero_buffer(data, n);
     }
     if (grad) {
-      std::fill(grad, grad + n, 0.0f);
+      zero_buffer(grad, n);
     }
   }
 
@@ -178,14 +184,14 @@ void ParameterStore::zero_grad() {
 
   if (stats_enabled) {
     auto start = std::chrono::steady_clock::now();
-    std::fill(grad_base, grad_base + count, 0.0f);
+    zero_buffer(grad_base, count);
     auto end = std::chrono::steady_clock::now();
     stats.zero_grad_calls += 1;
     stats.zero_grad_elems += count;
     stats.zero_grad_ms +=
         std::chrono::duration<double, std::milli>(end - start).count();
   } else {
-    std::fill(grad_base, grad_base + count, 0.0f);
+    zero_buffer(grad_base, count);
   }
 }
 
