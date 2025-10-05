@@ -15,3 +15,20 @@ For debug and address sanitized versions:
 
 ## Tools Usage
 1. `ast-grep`: A tool for searching and replacing text in source code.
+
+## Benchmarks
+
+- Prefer adding or extending microbenchmarks under `microbenchmarks/` when
+  investigating performance. Use `./bench.sh <name> [NAME=value ...]` to build
+  and run them (e.g. `./bench.sh matmul M=256 K=256 N=256`).
+- Running `./bench.sh matmul` without extra arguments executes a default suite
+  (skinny/square, small/large) illustrating where each implementation wins.
+- Keep hot paths simple: prefer straightforward control flow (e.g. `if/else`
+  blocks) over lambdas or std::function captures inside tight loops unless
+  absolutely necessary for clarity.
+- When asked to create or run benchmarks without changing runtime behavior,
+  focus on instrumentation only: scaffold the benchmark, wire it into the
+  registry, and document usage. Do **not** introduce algorithmic optimizations
+  unless explicitly requested.
+- Capture sample benchmark output in the task results when relevant, especially
+  for multiple shapes or iteration counts.

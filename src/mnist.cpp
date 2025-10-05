@@ -158,14 +158,23 @@ void MnistDnnPT() {
 
   srand(42);
 
-  const int MAX_TRAIN_SAMPLES = 60000;
-  const int MAX_TEST_SAMPLES = 5000;
+  // const int MAX_TRAIN_SAMPLES = 60000;
+  const int MAX_TRAIN_SAMPLES = 6000;
+  // const int MAX_TEST_SAMPLES = 5000;
+  const int MAX_TEST_SAMPLES = 500;
+  const int hidden_dim1 = 256;
+  const int hidden_dim2 = 128;
+  const int num_classes = 10;
+  const int batch_size = 128;
+  const int eval_batch = 128;
+  // const int epochs = 15;
+  const int epochs = 5;
+  const float lr = 0.01f;
 
   MNIST mnist(MAX_TRAIN_SAMPLES);
   mnist.summary();
 
   int input_dim = static_cast<int>(mnist.data.train_data[0].size());
-  int num_classes = 10;
 
   int total_samples =
       std::min<int>(mnist.data.train_data.size(), MAX_TRAIN_SAMPLES);
@@ -174,23 +183,68 @@ void MnistDnnPT() {
       std::max<int>(1, static_cast<int>(total_samples * train_fraction));
   train_count = std::min(train_count, total_samples);
   int val_count = total_samples - train_count;
+  const int test_total =
+      std::min<int>(mnist.data.test_data.size(), MAX_TEST_SAMPLES);
+  const int steps_per_epoch = std::max(1, train_count / batch_size);
 
   ParameterStore store;
   store.enable_stats(true);
 
+  const size_t param_elements =
+      static_cast<size_t>(input_dim) * hidden_dim1 + hidden_dim1 +
+      static_cast<size_t>(hidden_dim1) * hidden_dim2 + hidden_dim2 +
+      static_cast<size_t>(hidden_dim2) * num_classes + num_classes;
+
+  const size_t batch_elems = static_cast<size_t>(batch_size);
+  size_t static_buffers = param_elements;
+  static_buffers += batch_elems * static_cast<size_t>(input_dim);
+  static_buffers += batch_elems * static_cast<size_t>(num_classes);
+  static_buffers +=
+      static_cast<size_t>(eval_batch) * static_cast<size_t>(input_dim);
+
+  const auto activation_block = [](size_t batch, int out_dim) {
+    return batch * static_cast<size_t>(out_dim) * 3ULL;
+  };
+
+  const size_t forward_train =
+      activation_block(batch_elems, hidden_dim1) +
+      activation_block(batch_elems, hidden_dim2) +
+      batch_elems * static_cast<size_t>(num_classes) * 2ULL;
+
+  const size_t loss_buffers =
+      batch_elems * static_cast<size_t>(num_classes) * 6ULL + 2048ULL;
+  const size_t train_steps =
+      static_cast<size_t>(epochs) * static_cast<size_t>(steps_per_epoch);
+  const size_t train_hint = (forward_train + loss_buffers) * train_steps;
+
+  const size_t eval_batch_sz = static_cast<size_t>(eval_batch);
+  const size_t forward_eval =
+    activation_block(eval_batch_sz, hidden_dim1) +
+    activation_block(eval_batch_sz, hidden_dim2) +
+    eval_batch_sz * static_cast<size_t>(num_classes) * 2ULL;
+
+  const size_t val_iters =
+      val_count > 0 ? static_cast<size_t>((val_count + eval_batch - 1) /
+                                          eval_batch)
+                    : 0ULL;
+  const size_t test_iters =
+      test_total > 0 ? static_cast<size_t>((test_total + eval_batch - 1) /
+                                           eval_batch)
+                     : 0ULL;
+  const size_t eval_hint = (val_iters + test_iters) * forward_eval;
+
+  size_t approx_hint = static_buffers + train_hint + eval_hint;
+  approx_hint += approx_hint / 4ULL + 16384ULL;
+  store.reserve(approx_hint);
+
   nn::Sequential model;
-  model.emplace_back<nn::Linear>(input_dim, 256, store);
+  model.emplace_back<nn::Linear>(input_dim, hidden_dim1, store);
   model.emplace_back<nn::Relu>();
-  model.emplace_back<nn::Linear>(256, 128, store);
+  model.emplace_back<nn::Linear>(hidden_dim1, hidden_dim2, store);
   model.emplace_back<nn::Relu>();
-  model.emplace_back<nn::Linear>(128, num_classes, store);
+  model.emplace_back<nn::Linear>(hidden_dim2, num_classes, store);
 
   auto params = model.params();
-
-  const int batch_size = 128;
-  const float lr = 0.01f;
-  const int epochs = 10;
-  const int steps_per_epoch = std::max(1, train_count / batch_size);
 
   Tensor batch_X = store.tensor({batch_size, input_dim});
   Tensor batch_y =
@@ -228,7 +282,6 @@ void MnistDnnPT() {
   cout << "Final training loss: "
        << (epoch_losses.empty() ? 0.0f : epoch_losses.back()) << endl;
 
-  const int eval_batch = 128;
   Tensor eval_X = store.tensor({eval_batch, input_dim});
 
   int correct = 0;
@@ -260,7 +313,6 @@ void MnistDnnPT() {
 
   const auto &test_data = mnist.data.test_data;
   const auto &test_labels = mnist.data.test_labels;
-  int test_total = std::min<int>(test_data.size(), MAX_TEST_SAMPLES);
   correct = 0;
   total = 0;
   for (int idx = 0; idx < test_total; idx += eval_batch) {
@@ -284,6 +336,5 @@ void MnistDnnPT() {
   float test_accuracy = total > 0 ? static_cast<float>(correct) / total : 0.0f;
   cout << "Test accuracy (" << total << " samples): " << test_accuracy << endl;
 
-  // Print storage stats
   store.print_stats();
 }

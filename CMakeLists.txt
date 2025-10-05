@@ -11,6 +11,8 @@ add_subdirectory(thirdparty)
 include_directories(include)
 include_directories(thirdparty/json/include)
 
+add_subdirectory(microbenchmarks)
+
 # Source files
 file(GLOB SOURCES src/*.cpp)
 
