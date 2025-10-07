@@ -2,3 +2,4 @@
 
 1. Vectorization: Implement vectoriazation in `vectorization` branch
 2. Tile Matrix Mult: Currently contributes up to 32% of runtime
+3. Explore using `mlx` c++ api selectively for matmul operations. first benchmark and then use in tensor operations.

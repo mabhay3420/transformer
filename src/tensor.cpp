@@ -8,6 +8,10 @@
 #include <limits>
 #include <stdexcept>
 
+#if defined(__ARM_NEON) || defined(__ARM_NEON__)
+#include <arm_neon.h>
+#endif
+
 #include "matmul_cost_model.hpp"
 
 namespace {
@@ -29,6 +33,14 @@ inline void zero_buffer(float *ptr, size_t count) {
   if (!ptr || count == 0) return;
   std::memset(ptr, 0, count * sizeof(float));
 }
+
+#if defined(__ARM_NEON) || defined(__ARM_NEON__)
+inline float horizontal_add(float32x4_t v) {
+  float32x2_t sum = vadd_f32(vget_low_f32(v), vget_high_f32(v));
+  sum = vpadd_f32(sum, sum);
+  return vget_lane_f32(sum, 0);
+}
+#endif
 }  // namespace
 
 namespace {
@@ -109,6 +121,7 @@ void backward_sum(TapeOp &op) {
   }
 }
 
+// TODO - First benchmark and then use M-Series `Accelerate` Matmul kernel
 void backward_matmul(TapeOp &op) {
   int M = op.a.shape[0];
   int K = op.a.shape[1];
@@ -126,6 +139,31 @@ void backward_matmul(TapeOp &op) {
     case MatmulKernel::Skinny: {
       const float *b0 = B;
       const float *b1 = B + N;
+#if defined(__ARM_NEON) || defined(__ARM_NEON__)
+      for (int m = 0; m < M; ++m) {
+        const float *gY_row = gY + m * N;
+        float32x4_t sum0 = vdupq_n_f32(0.0f);
+        float32x4_t sum1 = vdupq_n_f32(0.0f);
+        int n = 0;
+        for (; n + 4 <= N; n += 4) {
+          const float32x4_t gy_vec = vld1q_f32(gY_row + n);
+          const float32x4_t b0_vec = vld1q_f32(b0 + n);
+          const float32x4_t b1_vec = vld1q_f32(b1 + n);
+          sum0 = vmlaq_f32(sum0, gy_vec, b0_vec);
+          sum1 = vmlaq_f32(sum1, gy_vec, b1_vec);
+        }
+        float acc0 = horizontal_add(sum0);
+        float acc1 = horizontal_add(sum1);
+        for (; n < N; ++n) {
+          float gy_val = gY_row[n];
+          acc0 += gy_val * b0[n];
+          acc1 += gy_val * b1[n];
+        }
+        float *gA_row = gA + m * K;
+        gA_row[0] += acc0;
+        gA_row[1] += acc1;
+      }
+#else
       for (int m = 0; m < M; ++m) {
         const float *gY_row = gY + m * N;
         float acc0 = 0.0f;
@@ -140,6 +178,7 @@ void backward_matmul(TapeOp &op) {
         gA_row[0] += acc0;
         gA_row[1] += acc1;
       }
+#endif
       for (int n = 0; n < N; ++n) {
         float acc0 = 0.0f;
         float acc1 = 0.0f;
@@ -156,6 +195,25 @@ void backward_matmul(TapeOp &op) {
       break;
     }
     case MatmulKernel::Naive: {
+#if defined(__ARM_NEON) || defined(__ARM_NEON__)
+      for (int m = 0; m < M; ++m) {
+        const float *gY_row = gY + m * N;
+        for (int k = 0; k < K; ++k) {
+          float32x4_t sum = vdupq_n_f32(0.0f);
+          int n = 0;
+          for (; n + 4 <= N; n += 4) {
+            const float32x4_t gy_vec = vld1q_f32(gY_row + n);
+            const float32x4_t b_vec = vld1q_f32(B + k * N + n);
+            sum = vmlaq_f32(sum, gy_vec, b_vec);
+          }
+          float acc = horizontal_add(sum);
+          for (; n < N; ++n) {
+            acc += gY_row[n] * B[k * N + n];
+          }
+          gA[m * K + k] += acc;
+        }
+      }
+#else
       for (int m = 0; m < M; ++m) {
         const float *gY_row = gY + m * N;
         for (int k = 0; k < K; ++k) {
@@ -167,6 +225,7 @@ void backward_matmul(TapeOp &op) {
           gA[m * K + k] += acc;
         }
       }
+#endif
       for (int k = 0; k < K; ++k) {
         float *gB_row = gB + k * N;
         for (int n = 0; n < N; ++n) {
@@ -599,6 +658,7 @@ Tensor sum(const Tensor &x, ParameterStore &store) {
   return out;
 }
 
+// TODO - First benchmark and then use M-Series `Accelerate` Matmul kernel
 Tensor matmul(const Tensor &a, const Tensor &b, ParameterStore &store) {
   if (a.shape.size() != 2 || b.shape.size() != 2)
     throw std::invalid_argument("matmul expects 2D tensors");
@@ -620,6 +680,27 @@ Tensor matmul(const Tensor &a, const Tensor &b, ParameterStore &store) {
     case MatmulKernel::Skinny: {
       const float *b0 = B;
       const float *b1 = B + N;
+#if defined(__ARM_NEON) || defined(__ARM_NEON__)
+      for (int m = 0; m < M; ++m) {
+        const float *a_row = A + m * K;
+        const float a0 = a_row[0];
+        const float a1 = a_row[1];
+        float *c_row = C + m * N;
+        int n = 0;
+        const float32x4_t a0_vec = vdupq_n_f32(a0);
+        const float32x4_t a1_vec = vdupq_n_f32(a1);
+        for (; n + 4 <= N; n += 4) {
+          const float32x4_t b0_vec = vld1q_f32(b0 + n);
+          const float32x4_t b1_vec = vld1q_f32(b1 + n);
+          float32x4_t acc = vmulq_f32(a0_vec, b0_vec);
+          acc = vmlaq_f32(acc, a1_vec, b1_vec);
+          vst1q_f32(c_row + n, acc);
+        }
+        for (; n < N; ++n) {
+          c_row[n] = a0 * b0[n] + a1 * b1[n];
+        }
+      }
+#else
       for (int m = 0; m < M; ++m) {
         const float *a_row = A + m * K;
         float a0 = a_row[0];
@@ -630,9 +711,31 @@ Tensor matmul(const Tensor &a, const Tensor &b, ParameterStore &store) {
           c_row[n] = a0 * b0[n] + a1 * b1[n];
         }
       }
+#endif
       break;
     }
     case MatmulKernel::Naive: {
+#if defined(__ARM_NEON) || defined(__ARM_NEON__)
+      for (int m = 0; m < M; ++m) {
+        int n = 0;
+        for (; n + 4 <= N; n += 4) {
+          float32x4_t acc = vdupq_n_f32(0.0f);
+          for (int k = 0; k < K; ++k) {
+            const float32x4_t b_vec = vld1q_f32(B + k * N + n);
+            const float32x4_t a_val = vdupq_n_f32(A[m * K + k]);
+            acc = vmlaq_f32(acc, a_val, b_vec);
+          }
+          vst1q_f32(C + m * N + n, acc);
+        }
+        for (; n < N; ++n) {
+          float acc = 0.0f;
+          for (int k = 0; k < K; ++k) {
+            acc += A[m * K + k] * B[k * N + n];
+          }
+          C[m * N + n] = acc;
+        }
+      }
+#else
       for (int m = 0; m < M; ++m) {
         for (int n = 0; n < N; ++n) {
           float acc = 0.0f;
@@ -643,9 +746,66 @@ Tensor matmul(const Tensor &a, const Tensor &b, ParameterStore &store) {
           C[m * N + n] = acc;
         }
       }
+#endif
       break;
     }
     case MatmulKernel::Tiled: {
+#if defined(__ARM_NEON) || defined(__ARM_NEON__)
+      for (int m0 = 0; m0 < M; m0 += TILE) {
+        int m_max = std::min(m0 + TILE, M);
+        for (int n0 = 0; n0 < N; n0 += TILE) {
+          int n_max = std::min(n0 + TILE, N);
+          int n_block = n_max - n0;
+          int vecs = n_block / 4;
+          int rem = n_block - vecs * 4;
+          constexpr int MAX_VEC = TILE / 4;
+          if (vecs < 4) {
+            for (int m = m0; m < m_max; ++m) {
+              const float *a_row = A + m * K;
+              float *c_row = C + m * N + n0;
+              float32x4_t acc_vecs[MAX_VEC];
+              for (int vi = 0; vi < vecs; ++vi)
+                acc_vecs[vi] = vdupq_n_f32(0.0f);
+              float tail_acc[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+              const float *a_ptr = a_row;
+              const float *b_ptr = B + n0;
+              for (int k = 0; k < K; ++k, ++a_ptr, b_ptr += N) {
+                const float a_val = *a_ptr;
+                for (int vi = 0; vi < vecs; ++vi) {
+                  float32x4_t b_vec = vld1q_f32(b_ptr + vi * 4);
+                  acc_vecs[vi] = vmlaq_n_f32(acc_vecs[vi], b_vec, a_val);
+                }
+                if (rem) {
+                  const float *b_tail = b_ptr + vecs * 4;
+                  for (int r = 0; r < rem; ++r) tail_acc[r] += a_val * b_tail[r];
+                }
+              }
+              for (int vi = 0; vi < vecs; ++vi)
+                vst1q_f32(c_row + vi * 4, acc_vecs[vi]);
+              for (int r = 0; r < rem; ++r)
+                c_row[vecs * 4 + r] = tail_acc[r];
+            }
+            continue;
+          }
+          for (int m = m0; m < m_max; ++m) {
+            float accum[TILE];
+            zero_buffer(accum, static_cast<size_t>(n_block));
+            for (int k0 = 0; k0 < K; k0 += TILE) {
+              int k_max = std::min(k0 + TILE, K);
+              for (int k = k0; k < k_max; ++k) {
+                const float a_val = A[m * K + k];
+                const float *b_ptr = B + k * N + n0;
+                for (int ni = 0; ni < n_block; ++ni) {
+                  accum[ni] += a_val * b_ptr[ni];
+                }
+              }
+            }
+            float *c_row = C + m * N + n0;
+            for (int ni = 0; ni < n_block; ++ni) c_row[ni] = accum[ni];
+          }
+        }
+      }
+#else
       for (int m0 = 0; m0 < M; m0 += TILE) {
         int m_max = std::min(m0 + TILE, M);
         for (int n0 = 0; n0 < N; n0 += TILE) {
@@ -671,6 +831,7 @@ Tensor matmul(const Tensor &a, const Tensor &b, ParameterStore &store) {
           }
         }
       }
+#endif
       break;
     }
   }

@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <iomanip>
 #include <iostream>
 #include <limits>
 #include <random>
@@ -49,7 +50,10 @@ BenchmarkSummary collect_benchmark(const BenchmarkConfig& cfg) {
   summary.results.reserve(benches.size());
 
   for (const auto& bench : benches) {
-    if (bench.name == "skinny_specialized" && cfg.K != 2) continue;
+    if ((bench.name == "skinny_specialized" ||
+         bench.name == "skinny_specialized_neon") &&
+        cfg.K != 2)
+      continue;
     double ms = run_single(bench, cfg);
     summary.results.push_back({bench.name, ms});
   }
@@ -112,6 +116,43 @@ void run_benchmarks(const BenchmarkConfig& cfg, const std::string& label) {
     if (result.name == summary.predicted) std::cout << " [predicted]";
     if (result.name == summary.actual) std::cout << " [best]";
     std::cout << std::endl;
+  }
+
+  auto get_ms = [&](const std::string& name) {
+    for (const auto& result : summary.results) {
+      if (result.name == name) return result.milliseconds;
+    }
+    return 0.0;
+  };
+
+  struct Pair {
+    const char* scalar;
+    const char* neon;
+  };
+
+  constexpr Pair neon_pairs[] = {
+      {"naive", "naive_neon"},
+      {"tiled", "tiled_neon"},
+      {"skinny_specialized", "skinny_specialized_neon"},
+  };
+
+  bool printed_header = false;
+  for (const auto& pair : neon_pairs) {
+    const double scalar_ms = get_ms(pair.scalar);
+    const double neon_ms = get_ms(pair.neon);
+    if (scalar_ms <= 0.0 || neon_ms <= 0.0) continue;
+    if (!printed_header) {
+      std::cout << std::fixed << std::setprecision(3);
+      std::cout << "Neon speedups:" << std::endl;
+      printed_header = true;
+    }
+    double speedup = scalar_ms / neon_ms;
+    std::cout << "  " << pair.scalar << " → " << pair.neon << ": ×" << speedup
+              << std::endl;
+  }
+  if (printed_header) {
+    std::cout.unsetf(std::ios::floatfield);
+    std::cout.precision(6);
   }
 
   std::cout << "Predicted best: " << summary.predicted << std::endl;

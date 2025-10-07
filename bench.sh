@@ -16,6 +16,9 @@ case "$TARGET" in
   matmul)
     ./build/release/microbenchmarks/matmul/matmul_bench_main "$@"
     ;;
+  elementwise)
+    ./build/release/microbenchmarks/elementwise/elementwise_bench_main "$@"
+    ;;
   *)
     echo "Unknown benchmark: $TARGET"
     exit 1
