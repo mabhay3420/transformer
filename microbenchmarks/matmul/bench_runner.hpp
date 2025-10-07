@@ -26,6 +26,8 @@ struct BenchmarkConfig {
 struct BenchmarkResult {
   std::string name;
   double milliseconds;
+  double max_abs_error;
+  double max_rel_error;
 };
 
 struct BenchmarkSummary {
@@ -33,6 +35,7 @@ struct BenchmarkSummary {
   std::vector<BenchmarkResult> results;
   std::string predicted;
   std::string actual;
+  std::string reference;
 };
 
 BenchmarkSummary collect_benchmark(const BenchmarkConfig& cfg);
