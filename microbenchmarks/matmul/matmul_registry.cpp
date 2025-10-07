@@ -1,6 +1,6 @@
-#include "bench_runner.hpp"
-
 #include <algorithm>
+
+#include "bench_runner.hpp"
 
 #if defined(__ARM_NEON) || defined(__ARM_NEON__)
 #include <arm_neon.h>
@@ -8,7 +8,8 @@
 
 namespace {
 
-void matmul_naive(const float* A, const float* B, float* C, int M, int K, int N) {
+void matmul_naive(const float* A, const float* B, float* C, int M, int K,
+                  int N) {
   for (int m = 0; m < M; ++m) {
     for (int n = 0; n < N; ++n) {
       float acc = 0.0f;
@@ -20,10 +21,9 @@ void matmul_naive(const float* A, const float* B, float* C, int M, int K, int N)
   }
 }
 
-
-template<int TILE>
-void matmul_tiled(const float* A, const float* B, float* C, int M, int K, int N) {
-
+template <int TILE>
+void matmul_tiled(const float* A, const float* B, float* C, int M, int K,
+                  int N) {
   // [0, TILE, 2*TILE, ...]
   for (int m0 = 0; m0 < M; m0 += TILE) {
     int m_max = std::min(m0 + TILE, M);
@@ -55,40 +55,78 @@ void matmul_tiled(const float* A, const float* B, float* C, int M, int K, int N)
   }
 }
 
-template<int TILE>
-void matmul_tiled_v2(const float* A, const float* B, float* C, int M, int K, int N) {
+template <int TILE>
+void matmul_tiled_v2_core(const float* A, const float* B, float* C, int m_lim,
+                          int k_lim, int n_lim, int M, int K, int N) {
+  // float accum[TILE];
+  for (int m = 0; m < m_lim; ++m) {
+    for (int n = 0; n < n_lim; ++n) {
+      float result = 0.0f;
+      for (int k = 0; k < k_lim; ++k) {
+        result += A[m * K + k] * B[k * N + n];
+      }
+      C[m * N + n] += result;
+    }
+  }
+}
 
-  // [0, TILE, 2*TILE, ...]
-  for (int m0 = 0; m0 < M; m0 += TILE) {
-    int m_max = std::min(m0 + TILE, M);
-    // [0, TILE, 2*TILE, ...]
-    for (int n0 = 0; n0 < N; n0 += TILE) {
-      int n_max = std::min(n0 + TILE, N);
-
-      // size of block
-      int block_size = n_max - n0;
-
-      // actual computation on this tile
-      for (int m = m0; m < m_max; ++m) {
-        float accum[TILE];
-        for (int ni = 0; ni < block_size; ++ni) accum[ni] = 0.0f;
-        for (int k0 = 0; k0 < K; k0 += TILE) {
-          int k_max = std::min(k0 + TILE, K);
-          for (int k = k0; k < k_max; ++k) {
-            const float a_val = A[m * K + k];
-            const float* b_ptr = B + k * N + n0;
-            for (int ni = 0; ni < block_size; ++ni) {
-              accum[ni] += a_val * b_ptr[ni];
-            }
-          }
-        }
-        float* c_row = C + m * N + n0;
-        for (int ni = 0; ni < block_size; ++ni) c_row[ni] = accum[ni];
+template <int TILE>
+void matmul_tiled_v2(const float* A, const float* B, float* C, int M, int K,
+                     int N) {
+  for (int i = 0; i < M; ++i) {
+    for (int j = 0; j < N; ++j) {
+      C[i * N + j] = 0.0f;
+    }
+  }
+  for (int m = 0; m < M; m += TILE) {
+    int m_max = std::min(m + TILE, M);
+    for (int n = 0; n < N; n += TILE) {
+      int n_max = std::min(n + TILE, N);
+      for (int k = 0; k < K; k += TILE) {
+        int k_max = std::min(k + TILE, K);
+        matmul_tiled_v2_core<TILE>(A + m * K + k, B + k * N + n, C, m_max - m,
+                                   k_max - k, n_max - n, M, K, N);
       }
     }
   }
 }
-void matmul_skinny(const float* A, const float* B, float* C, int M, int K, int N) {
+
+void matmul_tiled_v3_core(const float* A, const float* B, float* C, int m_lim,
+                          int k_lim, int n_lim, int M, int K, int N) {
+  for (int m = 0; m < m_lim; ++m) {
+    for (int n = 0; n < n_lim; ++n) {
+      float result = 0.0f;
+      for (int k = 0; k < k_lim; ++k) {
+        result += A[m * K + k] * B[k * N + n];
+      }
+      C[m * N + n] += result;
+    }
+  }
+}
+template <int TILE>
+void matmul_tiled_v3(const float* A, const float* B, float* C, int M, int K,
+                     int N) {
+  for (int m = 0; m < M; m += TILE) {
+    int m_max = std::min(m + TILE, M);
+    for (int n = 0; n < N; n += TILE) {
+      int n_max = std::min(n + TILE, N);
+      for (int mi = m; mi < m_max; ++mi) {
+        float accum[TILE] = {0.0f};
+        for (int k = 0; k < K; k += 1) {
+          for (int ni = n; ni < n_max; ++ni) {
+            accum[ni - n] += A[mi * K + k] * B[k * N + ni];
+          }
+        }
+        for (int ni = n; ni < n_max; ++ni) {
+          C[mi * N + ni] = accum[ni - n];
+        }
+      }
+    }
+  }
+}
+
+void matmul_skinny(const float* A, const float* B, float* C, int M, int K,
+                   int N) {
   if (K != 2) {
     matmul_naive(A, B, C, M, K, N);
     return;
@@ -135,7 +173,7 @@ void matmul_naive_neon(const float* A, const float* B, float* C, int M, int K,
   }
 }
 
-template<int TILE>
+template <int TILE>
 void matmul_tiled_neon(const float* A, const float* B, float* C, int M, int K,
                        int N) {
   for (int m0 = 0; m0 < M; m0 += TILE) {
@@ -208,21 +246,22 @@ void matmul_skinny_specialized_neon(const float* A, const float* B, float* C,
 
 const std::vector<MatmulBenchmark>& registry() {
   static std::vector<MatmulBenchmark> benches = {
-      {"naive", matmul_naive},
-      // {"tiled_32", matmul_tiled<32>},
-      // {"tiled_64", matmul_tiled<64>},
-      // {"tiled_128", matmul_tiled<128>},
-      {"tiled_256", matmul_tiled<256>},
-      {"tiled_v2_256", matmul_tiled_v2<256>},
-      // {"tiled_512", matmul_tiled<512>},
-      // {"tiled_1024", matmul_tiled<1024>},
-      // {"skinny_specialized", matmul_skinny},
+    {"naive", matmul_naive},
+    // {"tiled_32", matmul_tiled<32>},
+    // {"tiled_64", matmul_tiled<64>},
+    // {"tiled_128", matmul_tiled<128>},
+    {"tiled_256", matmul_tiled<256>},
+    // {"tiled_v2_256", matmul_tiled_v2<256>},
+    {"tiled_v3_256", matmul_tiled_v3<256>},
+  // {"tiled_512", matmul_tiled<512>},
+  // {"tiled_1024", matmul_tiled<1024>},
+  // {"skinny_specialized", matmul_skinny},
 #if defined(__ARM_NEON) || defined(__ARM_NEON__)
-      // {"naive_neon", matmul_naive_neon},
-      // {"tiled_neon_32", matmul_tiled_neon<32>},
-      // {"tiled_neon_64", matmul_tiled_neon<64>},
-      {"tiled_256_neon", matmul_tiled_neon<256>},
-      // {"skinny_specialized_neon", matmul_skinny_specialized_neon},
+    // {"naive_neon", matmul_naive_neon},
+    // {"tiled_neon_32", matmul_tiled_neon<32>},
+    // {"tiled_neon_64", matmul_tiled_neon<64>},
+    {"tiled_256_neon", matmul_tiled_neon<256>},
+  // {"skinny_specialized_neon", matmul_skinny_specialized_neon},
 #endif
   };
   return benches;
@@ -230,4 +269,6 @@ const std::vector<MatmulBenchmark>& registry() {
 
 }  // namespace
 
-const std::vector<MatmulBenchmark>& get_matmul_benchmarks() { return registry(); }
+const std::vector<MatmulBenchmark>& get_matmul_benchmarks() {
+  return registry();
+}
