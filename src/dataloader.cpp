@@ -12,6 +12,9 @@
 #include <stdexcept>
 #include <string>
 #include <utility>
+#include "mlx-data/mlx/data/Array.h"
+#include "mlx-data/mlx/data/Sample.h"
+#include "mlx-data/mlx/data/Stream.h"
 
 std::string load_text_data(std::string filename) {
   std::ifstream file(filename, std::ios::ate);
@@ -66,32 +69,35 @@ void MNIST::summary() {
   std::cout << "Test labels size: " << data.test_labels.size() << std::endl;
 }
 
-MNIST_BATCH MNIST::load_data(std::string filename, int max_lines) {
+MNIST_BATCH MNIST::load_data(std::string csv_filename, int max_lines) {
   MNIST_INS ins;
   MNIST_OUTS labels;
-  std::ifstream file(filename);
-  if (!file.is_open()) {
-    throw std::runtime_error("Could not open file for reading");
-  }
-  // values are comma separated
-  std::string line;
+  auto stream = mlx::data::stream_line_reader(csv_filename, "line");
   int num_lines = 0;
-  while (std::getline(file, line)) {
+  while (true) {
+    if (max_lines > 0 && num_lines >= max_lines) break;
+    auto sample = stream.next();
+    if (sample.empty()) break;
+    auto line_array =
+        mlx::data::sample::check_key(sample, "line", mlx::data::ArrayType::Int8);
+    std::string line(
+        reinterpret_cast<char*>(line_array->data()), line_array->size());
+    if (line.empty()) {
+      continue;
+    }
     std::stringstream ss(line);
-    std::vector<std::string> tokens;
     std::string token;
-    while (std::getline(ss, token, ',')) {
-      tokens.push_back(token);
+    if (!std::getline(ss, token, ',')) {
+      continue;
     }
-    // train_data.push_back(std::stof(tokens[0]));
-    labels.push_back(std::stoi(tokens[0]));
+    labels.push_back(static_cast<float>(std::stoi(token)));
     MNIST_IN in;
-    for (int i = 1; i < tokens.size(); i++) {
-      in.push_back(std::stof(tokens[i]) / 255);
+    in.reserve(784);
+    while (std::getline(ss, token, ',')) {
+      in.push_back(std::stof(token) / 255.0f);
     }
-    ins.push_back(in);
+    ins.push_back(std::move(in));
     num_lines++;
-    if (num_lines > max_lines) break;
   }
   return {ins, labels};
 }

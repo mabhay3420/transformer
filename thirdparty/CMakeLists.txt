@@ -16,4 +16,9 @@ if(TARGET mlx)
   target_compile_options(mlx PRIVATE "-U__ARM_FEATURE_BF16")
 endif()
 
+# ---- mlx-data library ----
+
+# MLX Data reuses the MLX_BUILD_PYTHON_BINDINGS option; keep it disabled.
+add_subdirectory(mlx-data)
+
 # ----------------------

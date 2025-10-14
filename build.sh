@@ -59,13 +59,12 @@ if [[ ! -f "$BUILD_DIR/CMakeCache.txt" ]]; then
 	  "${EXTRA_ARGS[@]:-}"
 fi
 
+# convenience symlink for tooling
+rm -f compile_commands.json || true
+ln -s "$BUILD_DIR/compile_commands.json" compile_commands.json || true
 
 if [[ -n "$TARGET" ]]; then
   cmake --build "$BUILD_DIR" --target "$TARGET" -- -j16
 else
   cmake --build "$BUILD_DIR" -- -j16
 fi
-
-# convenience symlink for tooling
-rm -f compile_commands.json || true
-ln -s "$BUILD_DIR/compile_commands.json" compile_commands.json || true

@@ -10,7 +10,9 @@ add_subdirectory(thirdparty)
 # Include directories
 include_directories(include)
 include_directories(thirdparty/json/include)
-include_directories(thirdparty/mlx)
+include_directories(thirdparty)
+# include_directories(thirdparty/mlx)
+# include_directories(thirdparty/mlx-data)
 
 add_subdirectory(microbenchmarks)
 
@@ -24,6 +26,7 @@ target_link_libraries(
     PRIVATE
     nlohmann_json::nlohmann_json
     mlx
+    mlxdata
 )
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDEBUG")
