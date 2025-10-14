@@ -8,11 +8,16 @@
 #include <limits>
 #include <stdexcept>
 
+#include "mlx/device.h"
+#include "mlx/mlx.h"
+
 #if defined(__ARM_NEON) || defined(__ARM_NEON__)
 #include <arm_neon.h>
 #endif
 
 #include "matmul_cost_model.hpp"
+
+namespace mx = mlx::core;
 
 namespace {
 #if defined(__clang__) || defined(__GNUC__)
@@ -814,33 +819,21 @@ Tensor matmul(const Tensor &a, const Tensor &b, ParameterStore &store) {
   const float *A = a.data();
   const float *B = b.data();
   float *C = out.data();
-  constexpr int TILE = 256;
-  MatmulKernel kernel = predict_matmul_kernel(M, K, N);
-  if (kernel == MatmulKernel::Skinny && K != 2) kernel = MatmulKernel::Naive;
+  static const bool device_initialized = []() {
+    mx::set_default_device(mx::Device::cpu);
+    return true;
+  }();
+  (void)device_initialized;
 
-  switch (kernel) {
-    case MatmulKernel::Skinny:
-#if defined(__ARM_NEON) || defined(__ARM_NEON__)
-      matmul_skinny_neon(A, B, C, M, N, K);
-#else
-      matmul_skinny(A, B, C, M, N, K);
-#endif
-      break;
-    case MatmulKernel::Naive:
-#if defined(__ARM_NEON) || defined(__ARM_NEON__)
-      matmul_neon(A, B, C, M, N, K);
-#else
-      matmul_naive(A, B, C, M, N, K);
-#endif
-      break;
-    case MatmulKernel::Tiled:
-#if defined(__ARM_NEON) || defined(__ARM_NEON__)
-      matmul_tiled_neon<TILE>(A, B, C, M, N, K);
-#else
-      matmul_tiled<TILE>(A, B, C, M, N, K);
-#endif
-      break;
-  }
+  mx::array lhs(A, mx::Shape{M, K}, mx::float32);
+  mx::array rhs(B, mx::Shape{K, N}, mx::float32);
+
+  mx::array result = mx::matmul(lhs, rhs);
+  result.eval();
+
+  const float *result_ptr = result.data<float>();
+  const size_t total = static_cast<size_t>(M) * static_cast<size_t>(N);
+  std::copy(result_ptr, result_ptr + total, C);
   store.tape.push_back(TapeOp{OpType::Matmul, out, a, b});
   return out;
 }

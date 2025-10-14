@@ -26,6 +26,6 @@ target_include_directories(tensor_ops_test PRIVATE
   ${CMAKE_SOURCE_DIR}/include
 )
 
-target_link_libraries(tensor_ops_test PRIVATE GTest::gtest_main)
+target_link_libraries(tensor_ops_test PRIVATE GTest::gtest_main mlx)
 
 add_test(NAME tensor_ops_test COMMAND tensor_ops_test)
