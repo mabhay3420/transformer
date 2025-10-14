@@ -77,7 +77,7 @@ struct MNIST {
  private:
   std::string train_csv;
   std::string test_csv;
-  MNIST_BATCH load_data(std::string filename, int max_lines);
+  MNIST_BATCH load_data(const std::string &filename, int max_lines);
 };
 
 struct SwedishAutoInsuranceData {

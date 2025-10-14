@@ -8,17 +8,12 @@
 #include <ios>
 #include <iosfwd>
 #include <iostream>
-#include <memory>
-#include <iterator>
 #include <sstream>
 #include <stdexcept>
 #include <string>
 #include <utility>
-#include <algorithm>
 
-#include "mlx/data/Array.h"
-#include "mlx/data/Sample.h"
-#include "mlx/data/stream/CSVReader.h"
+#include "mlx/data/core/CSVReader.h"
 
 std::string load_text_data(std::string filename) {
   std::ifstream file(filename, std::ios::ate);
@@ -56,16 +51,14 @@ void Sampler::sample(Batch &batch, bool is_train) {
 }
 
 MNIST::MNIST(int max_lines, std::string train_csv, std::string test_csv)
-    : train_csv(train_csv), test_csv(test_csv) {
-  auto train_data = load_data(train_csv, max_lines);
-  auto test_data = load_data(test_csv, max_lines);
-  data = {
-      .train_data = train_data.first,
-      .train_labels = train_data.second,
-      .test_data = test_data.first,
-      .test_labels = test_data.second,
-  };
-};
+    : train_csv(std::move(train_csv)), test_csv(std::move(test_csv)) {
+  auto train_batch = load_data(this->train_csv, max_lines);
+  auto test_batch = load_data(this->test_csv, max_lines);
+  data.train_data = std::move(train_batch.first);
+  data.train_labels = std::move(train_batch.second);
+  data.test_data = std::move(test_batch.first);
+  data.test_labels = std::move(test_batch.second);
+}
 void MNIST::summary() {
   std::cout << "Train data size: " << data.train_data.size() << std::endl;
   std::cout << "Train labels size: " << data.train_labels.size() << std::endl;
@@ -73,74 +66,37 @@ void MNIST::summary() {
   std::cout << "Test labels size: " << data.test_labels.size() << std::endl;
 }
 
-MNIST_BATCH MNIST::load_data(std::string csv_filename, int max_lines) {
-  MNIST_INS ins;
+MNIST_BATCH MNIST::load_data(const std::string &csv_filename, int max_lines) {
+  MNIST_INS images;
   MNIST_OUTS labels;
-  std::ifstream file(csv_filename, std::ios::binary);
-  if (!file.is_open()) {
-    throw std::runtime_error("Could not open file for reading");
+
+  mlx::data::core::CSVReader reader(csv_filename, ',', '"');
+
+  if (max_lines > 0) {
+    images.reserve(max_lines);
+    labels.reserve(max_lines);
   }
 
-  std::string csv_body((std::istreambuf_iterator<char>(file)),
-                       std::istreambuf_iterator<char>());
-  if (csv_body.empty()) {
-    return {ins, labels};
-  }
+  int loaded = 0;
+  while (max_lines <= 0 || loaded < max_lines) {
+    auto row = reader.next();
+    if (row.empty()) break;
+    if (row.size() < 2) {
+      throw std::runtime_error("MNIST CSV row must contain label and pixels");
+    }
 
-  auto newline_pos = csv_body.find('\n');
-  std::string first_line =
-      (newline_pos == std::string::npos) ? csv_body : csv_body.substr(0, newline_pos);
-  if (first_line.empty()) {
-    return {ins, labels};
-  }
-
-  int num_columns =
-      static_cast<int>(std::count(first_line.begin(), first_line.end(), ',')) + 1;
-  if (num_columns < 2) {
-    throw std::runtime_error("MNIST CSV is expected to have at least two columns");
-  }
-
-  std::ostringstream header;
-  header << "label";
-  std::vector<std::string> pixel_keys;
-  pixel_keys.reserve(num_columns - 1);
-  for (int i = 1; i < num_columns; ++i) {
-    std::string key = "pixel" + std::to_string(i - 1);
-    header << ',' << key;
-    pixel_keys.push_back(std::move(key));
-  }
-  header << '\n';
-
-  std::string csv_with_header = header.str();
-  csv_with_header += csv_body;
-  auto csv_stream = std::make_shared<std::istringstream>(std::move(csv_with_header));
-  mlx::data::stream::CSVReader reader(csv_stream);
-
-  int num_lines = 0;
-  while (max_lines <= 0 || num_lines < max_lines) {
-    auto sample = reader.next();
-    if (sample.empty()) break;
-
-    auto label_array =
-        mlx::data::sample::check_key(sample, "label", mlx::data::ArrayType::Int8);
-    std::string label_str(
-        reinterpret_cast<char*>(label_array->data()), label_array->size());
-    labels.push_back(static_cast<float>(std::stoi(label_str)));
+    labels.push_back(static_cast<float>(std::stoi(row.front())));
 
     MNIST_IN pixels;
-    pixels.reserve(pixel_keys.size());
-    for (const auto& key : pixel_keys) {
-      auto value_array =
-          mlx::data::sample::check_key(sample, key, mlx::data::ArrayType::Int8);
-      std::string value_str(
-          reinterpret_cast<char*>(value_array->data()), value_array->size());
-      pixels.push_back(std::stof(value_str) / 255.0f);
+    pixels.reserve(row.size() - 1);
+    for (size_t i = 1; i < row.size(); ++i) {
+      pixels.push_back(std::stof(row[i]) / 255.0f);
     }
-    ins.push_back(std::move(pixels));
-    ++num_lines;
+    images.push_back(std::move(pixels));
+    ++loaded;
   }
 
-  return {ins, labels};
+  return {std::move(images), std::move(labels)};
 }
 
 SwedishAutoInsurance::SwedishAutoInsurance(std::string filename)
