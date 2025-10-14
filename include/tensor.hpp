@@ -79,6 +79,11 @@ struct ParameterStore {
   std::vector<TapeOp> tape;
   ParameterStoreStats stats;
   bool stats_enabled = false;
+  size_t param_grad_offset = 0;
+  size_t param_grad_span = 0;
+  size_t param_grad_elements = 0;
+  bool param_block_initialized = false;
+  bool param_block_contiguous = true;
 
   // Reserve space for a tensor; returns starting offset.
   size_t allocate(size_t count);
@@ -108,14 +113,15 @@ struct ParameterStore {
   bool stats_active() const { return stats_enabled; }
   void print_stats() const;
 
-
-
   // Bulk zero grads (optional convenience)
   void zero_grad();
 
   // Autograd controls
   void clear_tape();
   void backward(const Tensor &loss);
+
+ private:
+  void register_parameter_allocation(size_t offset, size_t count);
 };
 
 // Basic elementwise ops (contiguous, same-shape only; minimal checks)

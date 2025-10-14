@@ -1,6 +1,7 @@
 #include "tensor.hpp"
 
 #include <algorithm>
+#include <cassert>
 #include <chrono>
 #include <cmath>
 #include <cstring>
@@ -377,6 +378,37 @@ void Tensor::fill(float v) {
   std::fill(ptr, ptr + numel, v);
 }
 
+void ParameterStore::register_parameter_allocation(size_t offset,
+                                                   size_t count) {
+  if (count == 0) return;
+  if (!param_block_initialized) {
+    param_grad_offset = offset;
+    param_grad_span = count;
+    param_grad_elements = count;
+    param_block_initialized = true;
+    param_block_contiguous = true;
+    return;
+  }
+
+  if (offset < param_grad_offset) {
+    param_block_contiguous = false;
+    size_t new_end = param_grad_offset + param_grad_span;
+    param_grad_offset = offset;
+    param_grad_span = new_end - param_grad_offset;
+  }
+
+  const size_t block_end = param_grad_offset + param_grad_span;
+  if (offset != block_end) {
+    param_block_contiguous = false;
+  }
+
+  const size_t new_end = offset + count;
+  if (new_end > param_grad_offset + param_grad_span) {
+    param_grad_span = new_end - param_grad_offset;
+  }
+  param_grad_elements += count;
+}
+
 // ParameterStore
 size_t ParameterStore::allocate(size_t count) {
   const size_t off = used;
@@ -482,6 +514,9 @@ Tensor ParameterStore::tensor(const std::vector<int> &shape, TensorInit init) {
 Tensor ParameterStore::parameter(const std::vector<int> &shape, float scale,
                                  unsigned seed) {
   auto t = tensor(shape);
+  if (t.numel > 0) {
+    register_parameter_allocation(t.offset, t.numel);
+  }
   std::mt19937 gen(seed ? seed : std::random_device{}());
   std::uniform_real_distribution<float> dist(-scale, scale);
   auto *p = t.data();
@@ -535,9 +570,32 @@ void ParameterStore::print_stats() const {
 }
 
 void ParameterStore::zero_grad() {
-  float *grad_base = grad_ptr(0);
-  const size_t count = used;
-  if (!grad_base || count == 0) {
+  size_t zero_offset = 0;
+  size_t zero_count = 0;
+
+  if (param_block_initialized) {
+    zero_offset = param_grad_offset;
+    zero_count = param_grad_span;
+  } else {
+    zero_offset = 0;
+    zero_count = used;
+  }
+
+#ifndef NDEBUG
+  if (param_block_initialized && param_block_contiguous) {
+    assert(param_grad_span == param_grad_elements);
+  }
+#endif
+
+  if (zero_count == 0) {
+    if (stats_enabled) {
+      stats.zero_grad_calls += 1;
+    }
+    return;
+  }
+
+  float *grad_base = grad_ptr(zero_offset);
+  if (!grad_base) {
     if (stats_enabled) {
       stats.zero_grad_calls += 1;
     }
@@ -546,14 +604,14 @@ void ParameterStore::zero_grad() {
 
   if (stats_enabled) {
     auto start = std::chrono::steady_clock::now();
-    zero_buffer(grad_base, count);
+    zero_buffer(grad_base, zero_count);
     auto end = std::chrono::steady_clock::now();
     stats.zero_grad_calls += 1;
-    stats.zero_grad_elems += count;
+    stats.zero_grad_elems += zero_count;
     stats.zero_grad_ms +=
         std::chrono::duration<double, std::milli>(end - start).count();
   } else {
-    zero_buffer(grad_base, count);
+    zero_buffer(grad_base, zero_count);
   }
 }
 
