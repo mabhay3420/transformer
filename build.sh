@@ -50,7 +50,7 @@ while (( "$#" )); do
 done
 
 # run only if "$BUILD_DIR/CMakeCache.txt" doesn't exist
-if [[ ! -f "$BUILD_DIR/CMakeCache.txt" ]]; then
+if [[ ! -f "$BUILD_DIR/build.ninja" ]]; then
 	cmake -S . -B "$BUILD_DIR" \
 	  -G "Ninja" \
 	  -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
