@@ -5,7 +5,6 @@ set -euo pipefail
 # Examples:
 #   ./build.sh                      # configure + build default target in build/release
 #   ./build.sh -t tensor_ops_test   # build only the tensor_ops_test target
-#   ./build.sh -B build/debug -T Debug -- -DENABLE_TESTS=ON
 
 detect_apple_mcpu() {
   if [[ -n "${APPLE_MCPU_OVERRIDE:-}" ]]; then
@@ -50,12 +49,12 @@ while (( "$#" )); do
   esac
 done
 
-# cmake -S . -B "$BUILD_DIR" \
-#   -G "Ninja" \
-#   -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
-#   -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-#   -DCMAKE_CXX_FLAGS="${DEFAULT_CXX_FLAGS}" \
-#   "${EXTRA_ARGS[@]:-}"
+cmake -S . -B "$BUILD_DIR" \
+  -G "Ninja" \
+  -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
+  -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+  -DCMAKE_CXX_FLAGS="${DEFAULT_CXX_FLAGS}" \
+  "${EXTRA_ARGS[@]:-}"
 
 if [[ -n "$TARGET" ]]; then
   cmake --build "$BUILD_DIR" --target "$TARGET" -- -j16

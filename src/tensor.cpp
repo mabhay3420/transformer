@@ -731,8 +731,8 @@ void matmul_skinny(const float *A, const float *B, float *C, int M, int N,
   }
 }
 
-void matmul_skinny_neon(const float *A, const float *B, float *C, int M,
-                        int N, int K) {
+void matmul_skinny_neon(const float *A, const float *B, float *C, int M, int N,
+                        int K) {
 #if defined(__ARM_NEON) || defined(__ARM_NEON__)
   const float *b0 = B;
   const float *b1 = B + N;

@@ -1,11 +1,11 @@
 TARGET=${2:-"xor-pt"}
 ./build_debug.sh
 sudo rm -rf tformer_trace.trace
-codesign --entitlements entitlements.plist --sign - --force ./build/tformer
+codesign --entitlements entitlements.plist --sign - --force ./build/debug/tformer
 if [ "$1" = "t" ]; then
-	xctrace record --template "Time Profiler" --output tformer_trace.trace --launch ./build/tformer $TARGET
+	xctrace record --template "Time Profiler" --output tformer_trace.trace --launch ./build/debug/tformer $TARGET
 elif [ "$1" = "m" ]; then
-	sudo xctrace record --template "Allocations" --output tformer_trace.trace --launch ./build/tformer $TARGET
+	sudo xctrace record --template "Allocations" --output tformer_trace.trace --launch ./build/debug/tformer $TARGET
 else
 	echo "Usage: ./build_debug.sh t (for time profiler) | m (for memory allocations)"
 	exit 1
