@@ -4,3 +4,6 @@
 [submodule "thirdparty/mlx"]
 	path = thirdparty/mlx
 	url = git@github.com:ml-explore/mlx.git
+[submodule "thirdparty/mlx-data"]
+	path = thirdparty/mlx-data
+	url = https://github.com/ml-explore/mlx-data.git
