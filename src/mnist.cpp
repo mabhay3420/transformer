@@ -160,15 +160,15 @@ void MnistDnnPT() {
 
   // const int MAX_TRAIN_SAMPLES = 60000;
   // const int MAX_TEST_SAMPLES = 5000;
+  // const int epochs = 15;
   const int MAX_TRAIN_SAMPLES = 6000;
   const int MAX_TEST_SAMPLES = 500;
+  const int epochs = 5;
   const int hidden_dim1 = 256;
   const int hidden_dim2 = 128;
   const int num_classes = 10;
   const int batch_size = 128;
   const int eval_batch = 128;
-  // const int epochs = 15;
-  const int epochs = 5;
   const float lr = 0.01f;
 
   MNIST mnist(MAX_TRAIN_SAMPLES);
