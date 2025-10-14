@@ -27,6 +27,7 @@ target_link_libraries(
     nlohmann_json::nlohmann_json
     mlx
     mlxdata
+    bxzstr
 )
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDEBUG")

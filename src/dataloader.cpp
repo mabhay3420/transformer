@@ -8,13 +8,17 @@
 #include <ios>
 #include <iosfwd>
 #include <iostream>
+#include <memory>
+#include <iterator>
 #include <sstream>
 #include <stdexcept>
 #include <string>
 #include <utility>
-#include "mlx-data/mlx/data/Array.h"
-#include "mlx-data/mlx/data/Sample.h"
-#include "mlx-data/mlx/data/Stream.h"
+#include <algorithm>
+
+#include "mlx/data/Array.h"
+#include "mlx/data/Sample.h"
+#include "mlx/data/stream/CSVReader.h"
 
 std::string load_text_data(std::string filename) {
   std::ifstream file(filename, std::ios::ate);
@@ -72,33 +76,70 @@ void MNIST::summary() {
 MNIST_BATCH MNIST::load_data(std::string csv_filename, int max_lines) {
   MNIST_INS ins;
   MNIST_OUTS labels;
-  auto stream = mlx::data::stream_line_reader(csv_filename, "line");
-  int num_lines = 0;
-  while (true) {
-    if (max_lines > 0 && num_lines >= max_lines) break;
-    auto sample = stream.next();
-    if (sample.empty()) break;
-    auto line_array =
-        mlx::data::sample::check_key(sample, "line", mlx::data::ArrayType::Int8);
-    std::string line(
-        reinterpret_cast<char*>(line_array->data()), line_array->size());
-    if (line.empty()) {
-      continue;
-    }
-    std::stringstream ss(line);
-    std::string token;
-    if (!std::getline(ss, token, ',')) {
-      continue;
-    }
-    labels.push_back(static_cast<float>(std::stoi(token)));
-    MNIST_IN in;
-    in.reserve(784);
-    while (std::getline(ss, token, ',')) {
-      in.push_back(std::stof(token) / 255.0f);
-    }
-    ins.push_back(std::move(in));
-    num_lines++;
+  std::ifstream file(csv_filename, std::ios::binary);
+  if (!file.is_open()) {
+    throw std::runtime_error("Could not open file for reading");
   }
+
+  std::string csv_body((std::istreambuf_iterator<char>(file)),
+                       std::istreambuf_iterator<char>());
+  if (csv_body.empty()) {
+    return {ins, labels};
+  }
+
+  auto newline_pos = csv_body.find('\n');
+  std::string first_line =
+      (newline_pos == std::string::npos) ? csv_body : csv_body.substr(0, newline_pos);
+  if (first_line.empty()) {
+    return {ins, labels};
+  }
+
+  int num_columns =
+      static_cast<int>(std::count(first_line.begin(), first_line.end(), ',')) + 1;
+  if (num_columns < 2) {
+    throw std::runtime_error("MNIST CSV is expected to have at least two columns");
+  }
+
+  std::ostringstream header;
+  header << "label";
+  std::vector<std::string> pixel_keys;
+  pixel_keys.reserve(num_columns - 1);
+  for (int i = 1; i < num_columns; ++i) {
+    std::string key = "pixel" + std::to_string(i - 1);
+    header << ',' << key;
+    pixel_keys.push_back(std::move(key));
+  }
+  header << '\n';
+
+  std::string csv_with_header = header.str();
+  csv_with_header += csv_body;
+  auto csv_stream = std::make_shared<std::istringstream>(std::move(csv_with_header));
+  mlx::data::stream::CSVReader reader(csv_stream);
+
+  int num_lines = 0;
+  while (max_lines <= 0 || num_lines < max_lines) {
+    auto sample = reader.next();
+    if (sample.empty()) break;
+
+    auto label_array =
+        mlx::data::sample::check_key(sample, "label", mlx::data::ArrayType::Int8);
+    std::string label_str(
+        reinterpret_cast<char*>(label_array->data()), label_array->size());
+    labels.push_back(static_cast<float>(std::stoi(label_str)));
+
+    MNIST_IN pixels;
+    pixels.reserve(pixel_keys.size());
+    for (const auto& key : pixel_keys) {
+      auto value_array =
+          mlx::data::sample::check_key(sample, key, mlx::data::ArrayType::Int8);
+      std::string value_str(
+          reinterpret_cast<char*>(value_array->data()), value_array->size());
+      pixels.push_back(std::stof(value_str) / 255.0f);
+    }
+    ins.push_back(std::move(pixels));
+    ++num_lines;
+  }
+
   return {ins, labels};
 }
 
