@@ -15,8 +15,6 @@
 #include <arm_neon.h>
 #endif
 
-#include "matmul_cost_model.hpp"
-
 namespace mx = mlx::core;
 
 namespace {
@@ -37,6 +35,14 @@ size_t compute_numel(const std::vector<int> &shape) {
 inline void zero_buffer(float *ptr, size_t count) {
   if (!ptr || count == 0) return;
   std::memset(ptr, 0, count * sizeof(float));
+}
+
+inline void ensure_mlx_cpu_device() {
+  static const bool init = []() {
+    mx::set_default_device(mx::Device::cpu);
+    return true;
+  }();
+  (void)init;
 }
 
 #if defined(__ARM_NEON) || defined(__ARM_NEON__)
@@ -298,20 +304,32 @@ void backward_matmul(TapeOp &op) {
   const float *gY = op.out.grad();
   float *gA = op.a.grad();
   float *gB = op.b.grad();
-  constexpr int TILE = 32;
-  MatmulKernel kernel = predict_matmul_kernel(M, K, N);
-  if (kernel == MatmulKernel::Skinny && K != 2) kernel = MatmulKernel::Naive;
 
-  switch (kernel) {
-    case MatmulKernel::Skinny:
-      backward_matmul_skinny(A, B, gY, gA, gB, M, N, K);
-      break;
-    case MatmulKernel::Naive:
-      backward_matmul_naive(A, B, gY, gA, gB, M, N, K);
-      break;
-    case MatmulKernel::Tiled:
-      backward_matmul_tiled<TILE>(A, B, gY, gA, gB, M, N, K);
-      break;
+  ensure_mlx_cpu_device();
+
+  mx::array lhs(A, mx::Shape{M, K}, mx::float32);
+  mx::array rhs(B, mx::Shape{K, N}, mx::float32);
+  mx::array grad_y(gY, mx::Shape{M, N}, mx::float32);
+
+  mx::array rhs_T = mx::transpose(rhs);
+  mx::array lhs_T = mx::transpose(lhs);
+
+  mx::array grad_a = mx::matmul(grad_y, rhs_T);
+  grad_a.eval();
+  const float *grad_a_ptr = grad_a.data<float>();
+  const size_t grad_a_elems =
+      static_cast<size_t>(M) * static_cast<size_t>(K);
+  for (size_t i = 0; i < grad_a_elems; ++i) {
+    gA[i] += grad_a_ptr[i];
+  }
+
+  mx::array grad_b = mx::matmul(lhs_T, grad_y);
+  grad_b.eval();
+  const float *grad_b_ptr = grad_b.data<float>();
+  const size_t grad_b_elems =
+      static_cast<size_t>(K) * static_cast<size_t>(N);
+  for (size_t i = 0; i < grad_b_elems; ++i) {
+    gB[i] += grad_b_ptr[i];
   }
 }
 
@@ -819,11 +837,7 @@ Tensor matmul(const Tensor &a, const Tensor &b, ParameterStore &store) {
   const float *A = a.data();
   const float *B = b.data();
   float *C = out.data();
-  static const bool device_initialized = []() {
-    mx::set_default_device(mx::Device::cpu);
-    return true;
-  }();
-  (void)device_initialized;
+  ensure_mlx_cpu_device();
 
   mx::array lhs(A, mx::Shape{M, K}, mx::float32);
   mx::array rhs(B, mx::Shape{K, N}, mx::float32);

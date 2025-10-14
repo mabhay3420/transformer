@@ -158,10 +158,10 @@ void MnistDnnPT() {
 
   srand(42);
 
-  const int MAX_TRAIN_SAMPLES = 60000;
-  const int MAX_TEST_SAMPLES = 5000;
-  // const int MAX_TRAIN_SAMPLES = 6000;
-  // const int MAX_TEST_SAMPLES = 500;
+  // const int MAX_TRAIN_SAMPLES = 60000;
+  // const int MAX_TEST_SAMPLES = 5000;
+  const int MAX_TRAIN_SAMPLES = 6000;
+  const int MAX_TEST_SAMPLES = 500;
   const int hidden_dim1 = 256;
   const int hidden_dim2 = 128;
   const int num_classes = 10;
