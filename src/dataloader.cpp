@@ -125,9 +125,9 @@ SwedishAutoInsurance::SwedishAutoInsurance(std::string filename)
     throw std::runtime_error("FILE_NOT_FOUND");
   }
 
-  std::vector<pair<float, float>> parsedData;
+  std::vector<std::pair<float, float>> parsedData;
   // read line by line
-  string line;
+  std::string line;
   while (std::getline(file, line)) {
     std::stringstream ss(line);
     std::vector<std::string> tokens;

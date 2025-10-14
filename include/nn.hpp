@@ -64,16 +64,4 @@ struct Sequential : public Module {
 Tensor bce_with_logits_loss(const Tensor &logits, const Tensor &targets,
                             ParameterStore &store, float eps = 1e-6f);
 
-// Optim
-inline void sgd_step(const std::vector<Tensor> &params, float lr) {
-  for (const auto &p : params) {
-    float *w = p.store ? p.store->data_ptr(p.offset) : nullptr;
-    float *g = p.store ? p.store->grad_ptr(p.offset) : nullptr;
-    if (!w || !g) continue;
-    for (size_t i = 0; i < p.numel; ++i) {
-      w[i] -= lr * g[i];
-    }
-  }
-}
-
 }  // namespace nn

@@ -1,13 +1,13 @@
 #pragma once
 #include <cassert>
-#include <stdexcept>
 #include <cstdint>
+#include <cstdlib>
 #include <functional>
+#include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>
 
-using namespace std;
 template <typename T>
 void split_data(const float ratio, const std::vector<T> &data,
                 std::vector<T> &train_data, std::vector<T> &val_data) {
@@ -20,7 +20,7 @@ void split_data(const float ratio, const std::vector<T> &data,
   }
 }
 
-string load_text_data(string filename);
+std::string load_text_data(std::string filename);
 
 /*
 Batch 1:
@@ -53,18 +53,17 @@ struct Sampler {
   void sample(Batch &batch, bool is_train = true);
 };
 
-typedef vector<float> MNIST_IN;
+typedef std::vector<float> MNIST_IN;
 typedef float MNIST_OUT;
-typedef vector<MNIST_IN> MNIST_INS;
-;
-typedef vector<MNIST_OUT> MNIST_OUTS;
+typedef std::vector<MNIST_IN> MNIST_INS;
+typedef std::vector<MNIST_OUT> MNIST_OUTS;
 typedef std::pair<MNIST_INS, MNIST_OUTS> MNIST_BATCH;
 
 struct MnistDataset {
-  vector<vector<float>> train_data;
-  vector<float> train_labels;
-  vector<vector<float>> test_data;
-  vector<float> test_labels;
+  std::vector<std::vector<float>> train_data;
+  std::vector<float> train_labels;
+  std::vector<std::vector<float>> test_data;
+  std::vector<float> test_labels;
 };
 struct MNIST {
   MnistDataset data;
@@ -89,30 +88,10 @@ struct SwedishAutoInsuranceData {
 
 struct SwedishAutoInsurance {
   SwedishAutoInsuranceData data;
-  SwedishAutoInsurance(std::string filename = "data/swedish_auto_insurace.csv");
+  SwedishAutoInsurance(std::string filename =
+                           "data/swedish_auto_insurace.csv");
   void summary();
 
  private:
   std::string filename;
 };
-
-template <typename InputDataType, typename LableType,
-          typename InputMemPoolIndexType, typename LabelMemPoolIndexType>
-std::vector<std::pair<InputMemPoolIndexType, LabelMemPoolIndexType>>
-getRandomBatch(
-    const std::vector<InputDataType> &x, const std::vector<LableType> &y,
-    std::function<InputMemPoolIndexType(const InputDataType &)> inputTransform,
-    std::function<LabelMemPoolIndexType(const LableType &)> labelTransform,
-    int batch_size, int start_index = 0, int end_index = -1) {
-  if (end_index == -1) end_index = x.size();
-  std::vector<int> indices(batch_size);
-  auto total_size = x.size();
-  for (int i = 0; i < batch_size; i++) {
-    indices[i] = (rand() % (end_index - start_index)) + start_index;
-  }
-  std::vector<std::pair<InputMemPoolIndexType, LabelMemPoolIndexType>> batch;
-  for (auto i : indices) {
-    batch.push_back({inputTransform(x[i]), labelTransform(y[i])});
-  }
-  return batch;
-}

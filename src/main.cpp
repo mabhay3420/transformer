@@ -10,7 +10,6 @@
 #include "embednlp.hpp"
 #include "mnist.hpp"
 #include "utils.hpp"
-#include "xormodel.hpp"
 #include "xormodel_tensors.hpp"
 
 namespace {
@@ -48,17 +47,11 @@ int run_command(const std::map<std::string, Command> &commands,
 
 int main(int argc, char **argv) {
   const std::map<std::string, Command> commands = {
-      {"xor-pt", {"Tensor autograd XOR (PyTorch-style)", XORWithTensors}},
-      {"xor-micrograd", {"XOR using micrograd-style Value graph",
-                          XORLinearRegression}},
-      {"bigram", {"Bigram language model (counts)", BigraLm}},
-      {"bigram-pt", {"Bigram language model (Tensor)", BigraLmPT}},
-      {"bigram-nn", {"Bigram neural network (micrograd)", BigramNN}},
-      {"bigram-nn-pt", {"Bigram neural network (Tensor)", BigramNNPT}},
-      {"embed", {"Embedded bigram MLP", EmbedNLP}},
-      {"embed-pt", {"Embedded bigram Tensor model", EmbedNLPPT}},
-      {"mnist", {"MNIST classifier (micrograd)", MnistDnn}},
-      {"mnist-pt", {"MNIST classifier (Tensor)", MnistDnnPT}},
+      {"xor", {"Tensor autograd XOR", XORWithTensors}},
+      {"bigram", {"Bigram language model (Tensor)", BigraLmPT}},
+      {"bigram-nn", {"Bigram neural network (Tensor)", BigramNNPT}},
+      {"embed", {"Embedded bigram Tensor model", EmbedNLPPT}},
+      {"mnist", {"MNIST classifier (Tensor)", MnistDnnPT}},
   };
 
   if (argc > 1) {
@@ -79,5 +72,5 @@ int main(int argc, char **argv) {
     return run_command(commands, arg);
   }
 
-  return run_command(commands, "xor-pt");
+  return run_command(commands, "xor");
 }

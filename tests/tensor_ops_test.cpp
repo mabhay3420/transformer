@@ -4,8 +4,10 @@
 #include <cmath>
 #include <vector>
 
-#include "tensor.hpp"
+#include "learning_rate.hpp"
 #include "nn.hpp"
+#include "optimizer.hpp"
+#include "tensor.hpp"
 
 static void fill_vec(float *p, const std::vector<float> &vals) {
   std::copy(vals.begin(), vals.end(), p);
@@ -188,4 +190,38 @@ TEST(NN, BCEWithLogitsGradMatchesAnalytic) {
     const float expected = (sig - targets.data()[i]) * invN;
     EXPECT_NEAR(logits.grad()[i], expected, 1e-5f);
   }
+}
+
+TEST(Optimizer, SGDBasicStep) {
+  ParameterStore ps;
+  auto param = ps.tensor({2}, TensorInit::ZeroData);
+  float *data = param.data();
+  data[0] = 1.0f;
+  data[1] = -1.0f;
+  float *grad = param.grad();
+  grad[0] = 0.5f;
+  grad[1] = -0.25f;
+
+  ConstantLRScheduler scheduler(0.1f);
+  optim::SGD optimizer({param}, scheduler);
+  optimizer.step();
+
+  EXPECT_FLOAT_EQ(data[0], 0.95f);
+  EXPECT_FLOAT_EQ(data[1], -0.975f);
+}
+
+TEST(Optimizer, AdamWDecoupledWeightDecay) {
+  ParameterStore ps;
+  auto param = ps.tensor({1}, TensorInit::ZeroData);
+  param.data()[0] = 2.0f;
+  param.grad()[0] = 0.5f;
+
+  ConstantLRScheduler scheduler(0.1f);
+  optim::AdamW optimizer({param}, scheduler, 0.9f, 0.999f, 0.01f, false,
+                         1e-8f);
+  optimizer.step();
+
+  const float expected_decay = 2.0f - 0.1f * 0.01f * 2.0f;
+  const float expected_value = expected_decay - 0.1f;
+  EXPECT_NEAR(param.data()[0], expected_value, 1e-6f);
 }

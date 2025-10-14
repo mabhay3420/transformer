@@ -7,7 +7,9 @@
 #include <iostream>
 #include <vector>
 
+#include "learning_rate.hpp"
 #include "nn.hpp"
+#include "optimizer.hpp"
 #include "tensor.hpp"
 #include "utils.hpp"
 
@@ -154,6 +156,9 @@ void XORWithTensors() {
   model.emplace_back<nn::Relu>();
   auto params = model.params();
 
+  ConstantLRScheduler scheduler(lr);
+  optim::AdamW optimizer(params, scheduler, 0.9f, 0.999f, 1e-4f);
+
   size_t total_param_count = 0;
   for (const auto &p : params) total_param_count += p.numel;
   cout << "Total params: " << total_param_count << endl;
@@ -169,7 +174,7 @@ void XORWithTensors() {
   std::vector<float> val_accuracy;
 
   for (int epoch = 0; epoch < epochs; ++epoch) {
-    store.zero_grad();
+    optimizer.zero_grad();
     store.clear_tape();
 
     Batch batch = sample_batch(x_train, y_train, batch_size);
@@ -182,7 +187,7 @@ void XORWithTensors() {
     losses.push_back(loss_value);
 
     store.backward(loss);
-    nn::sgd_step(params, lr);
+    optimizer.step();
     store.clear_tape();
 
     if (epoch % trace_every == 0) {

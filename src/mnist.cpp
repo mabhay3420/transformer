@@ -1,15 +1,13 @@
 #include "mnist.hpp"
 
 #include <algorithm>
+#include <climits>
 #include <cstdlib>
-#include <memory>
+#include <iostream>
+#include <vector>
 
 #include "dataloader.hpp"
 #include "learning_rate.hpp"
-#include "loss.hpp"
-#include "mempool.hpp"
-#include "micrograd.hpp"
-#include "mlp.hpp"
 #include "nn.hpp"
 #include "optimizer.hpp"
 #include "tensor.hpp"
@@ -40,127 +38,18 @@ int argmax_from_logits(const float *logits, int size) {
 
 }  // namespace
 
-void MnistDnn() {
-  auto LINES_TO_READ = 60000;
-  MNIST mnist(LINES_TO_READ);
-  mnist.summary();
-  auto start = std::chrono::high_resolution_clock::now();
-  auto mem_pool = new MemPool<Value>();
-  auto in_size = mnist.data.train_data[0].size();
-  auto out_size = 10;  // 10 classes
-
-  auto n = MLP(in_size, {10, out_size}, mem_pool, false);
-  mem_pool->set_persistent_boundary();
-
-  auto params = n.params();
-  auto TOTAL_SIZE = mnist.data.train_data.size();
-  auto BATCH_SIZE = 64;
-  auto TRAIN_FRACTION = 0.8;
-  // int VAL_SIZE =
-  //     std::min<int>((1 - TRAIN_FRACTION) * TOTAL_SIZE, BATCH_SIZE * 4);
-  int VAL_SIZE = (1 - TRAIN_FRACTION) * TOTAL_SIZE;
-  // auto TOTAL_EPOCH = TOTAL_SIZE / BATCH_SIZE;
-  auto TOTAL_EPOCH = 1000;
-  auto TRACE_EVERY = TOTAL_EPOCH / TOTAL_EPOCH;
-  TRACE_EVERY = std::max<int>(TRACE_EVERY, 1);
-
-  std::cout << "Total dataset size: " << TOTAL_SIZE << std::endl;
-  std::cout << "Batch size: " << BATCH_SIZE << std::endl;
-  std::cout << "Total epochs: " << TOTAL_EPOCH << std::endl;
-  std::cout << "Total parameters: " << params.size() << std::endl;
-
-  std::vector<float> losses;
-  //   IMPORTANT
-  auto LR0 = 0.01f;
-  auto LR_GAMMA = 0.5f;
-  auto LR_CLIFF = TOTAL_EPOCH / 5;
-  StepLRScheduler lr_scheduler(LR0, LR_CLIFF, LR_GAMMA);
-  // ConstantLRScheduler lr_scheduler(LR0);
-  AdamWOptimizer<StepLRScheduler> optimizer(mem_pool, params, lr_scheduler);
-
-  auto inputTransform = [&](const std::vector<float> &x) {
-    return val(x, mem_pool);
-  };
-  auto labelTransform = [&](const float x) { return val(x, mem_pool); };
-  auto getRandomBatchFn =
-      std::bind(getRandomBatch<std::vector<float>, float,
-                               std::vector<MemPoolIndex>, MemPoolIndex>,
-                mnist.data.train_data, mnist.data.train_labels, inputTransform,
-                labelTransform, BATCH_SIZE, VAL_SIZE, -1);
-
-  // TRAINING LOOP
-  for (int epoch = 0; epoch < TOTAL_EPOCH; epoch++) {
-    optimizer.zero_grad();
-    mem_pool->deallocate_temp();
-    auto batch = getRandomBatchFn();
-    std::vector<std::vector<MemPoolIndex>> predicted;
-    std::vector<MemPoolIndex> expected;
-    for (auto [xi, yi] : batch) {
-      auto yi_hat = n(xi);
-      auto yi_hat_probs = softmax(yi_hat, mem_pool);
-      predicted.push_back(yi_hat_probs);
-      expected.push_back(yi);
-    }
-    auto loss = cross_entropy(predicted, expected, mem_pool);
-    losses.push_back(mem_pool->get(loss)->data);
-    backprop(loss, mem_pool);
-    optimizer.step();
-    if (epoch % TRACE_EVERY == 0) {
-      std::cout << "Epoch: " << epoch << " Loss: " << mem_pool->get(loss)->data
-                << std::endl;
-    }
-  }
-  auto end = std::chrono::high_resolution_clock::now();
-  auto end_ms =
-      std::chrono::duration_cast<std::chrono::milliseconds>(end - start)
-          .count();
-  std::cout << "Time taken: " << end_ms << " ms" << std::endl;
-  std::cout << "Time take per epoch: "
-            << static_cast<float>(end_ms) / TOTAL_EPOCH << " ms" << std::endl;
-  std::vector<std::vector<float>> x_val_float;
-  std::vector<float> y_val_float;
-  auto total = 0;
-  auto correct = 0;
-  for (int i = 0; i < VAL_SIZE; i++) {
-    if (i % BATCH_SIZE == 0) {
-      std::cout << "Validating: " << i << "/" << VAL_SIZE << std::endl;
-      mem_pool->deallocate_temp();
-    }
-    auto x_f = mnist.data.train_data[i];
-    auto x = inputTransform(x_f);
-    auto result_v_i = n(x);
-    // what is the max index
-    auto out = argmax(result_v_i, mem_pool);
-    int correct_result = mnist.data.train_labels[i];
-    total++;
-    correct += (correct_result == out);
-    y_val_float.push_back(out);
-    x_val_float.push_back(x_f);
-  }
-  auto accuracy = static_cast<float>(correct) / total;
-  std::cout << "Accuracy: " << accuracy << std::endl;
-  std::cout << "Loss in the end: " << losses.back() << std::endl;
-  json j = losses;
-  dumpJson(j, "data/losses.json");
-  dumpMemPoolEntries(params, mem_pool, "data/params.json");
-
-  j = json{
-      {"x", x_val_float},
-      {"y_across_epochs", y_val_float},
-  };
-  dumpJson(j, "data/xor_val.json");
-  mem_pool->deallocate_all();
-}
-
 void MnistDnnPT() {
   using std::cout;
   using std::endl;
 
   srand(42);
 
-  const int MAX_TRAIN_SAMPLES = 60000;
-  const int MAX_TEST_SAMPLES = 5000;
-  const int epochs = 15;
+  // const int MAX_TRAIN_SAMPLES = 60000;
+  // const int MAX_TEST_SAMPLES = 5000;
+  // const int epochs = 50;
+  const int MAX_TRAIN_SAMPLES = INT_MAX;
+  const int MAX_TEST_SAMPLES = INT_MAX;
+  const int epochs = 50;
   // const int MAX_TRAIN_SAMPLES = 6000;
   // const int MAX_TEST_SAMPLES = 500;
   // const int epochs = 5;
@@ -219,18 +108,18 @@ void MnistDnnPT() {
 
   const size_t eval_batch_sz = static_cast<size_t>(eval_batch);
   const size_t forward_eval =
-    activation_block(eval_batch_sz, hidden_dim1) +
-    activation_block(eval_batch_sz, hidden_dim2) +
-    eval_batch_sz * static_cast<size_t>(num_classes) * 2ULL;
+      activation_block(eval_batch_sz, hidden_dim1) +
+      activation_block(eval_batch_sz, hidden_dim2) +
+      eval_batch_sz * static_cast<size_t>(num_classes) * 2ULL;
 
   const size_t val_iters =
-      val_count > 0 ? static_cast<size_t>((val_count + eval_batch - 1) /
-                                          eval_batch)
-                    : 0ULL;
+      val_count > 0
+          ? static_cast<size_t>((val_count + eval_batch - 1) / eval_batch)
+          : 0ULL;
   const size_t test_iters =
-      test_total > 0 ? static_cast<size_t>((test_total + eval_batch - 1) /
-                                           eval_batch)
-                     : 0ULL;
+      test_total > 0
+          ? static_cast<size_t>((test_total + eval_batch - 1) / eval_batch)
+          : 0ULL;
   const size_t eval_hint = (val_iters + test_iters) * forward_eval;
 
   size_t approx_hint = static_buffers + train_hint + eval_hint;
@@ -246,6 +135,9 @@ void MnistDnnPT() {
 
   auto params = model.params();
 
+  StepLRScheduler scheduler(lr, (steps_per_epoch * epochs) / 5, 0.5);
+  optim::AdamW optimizer(params, scheduler, 0.9f, 0.999f, 1e-4f);
+
   Tensor batch_X = store.tensor({batch_size, input_dim});
   Tensor batch_y =
       store.tensor({batch_size, num_classes}, TensorInit::ZeroData);
@@ -254,7 +146,7 @@ void MnistDnnPT() {
   for (int epoch = 0; epoch < epochs; ++epoch) {
     float epoch_loss = 0.0f;
     for (int step = 0; step < steps_per_epoch; ++step) {
-      store.zero_grad();
+      optimizer.zero_grad();
       batch_y.fill(0.0f);
 
       for (int i = 0; i < batch_size; ++i) {
@@ -271,7 +163,7 @@ void MnistDnnPT() {
       epoch_loss += loss.data()[0];
 
       store.backward(loss);
-      nn::sgd_step(params, lr);
+      optimizer.step();
       store.clear_tape();
     }
     float avg_loss = epoch_loss / static_cast<float>(steps_per_epoch);

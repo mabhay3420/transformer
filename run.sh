@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-target="xor-pt"
+target="xor"
 vis_mode=""
 
 for arg in "$@"; do

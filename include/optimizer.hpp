@@ -1,173 +1,234 @@
 #pragma once
 
-#include <memory>
-#include <unordered_map>
+#include <algorithm>
+#include <cmath>
+#include <cstddef>
+#include <utility>
+#include <vector>
 
-#include "mempool.hpp"
-template <typename T>
-struct Optimizer {
-  int step_count;
-  MemPool<Value> *mem_pool;
-  std::vector<MemPoolIndex> params;
+#include "tensor.hpp"
 
-  Optimizer(MemPool<Value> *mem_pool, std::vector<MemPoolIndex> params,
-            float momentum_beta = 0.0f)
-      : mem_pool(mem_pool), params(params), step_count(0) {}
+namespace optim {
+
+class Optimizer {
+ protected:
+  std::vector<Tensor> params_;
+  size_t step_count_;
+
+ public:
+  explicit Optimizer(std::vector<Tensor> params)
+      : params_(std::move(params)), step_count_(0) {}
+  virtual ~Optimizer() = default;
 
   void zero_grad() {
-    for (auto p : params) {
-      mem_pool->get(p)->grad = 0.0f;
+    for (auto &param : params_) {
+      param.zero_grad();
     }
   }
-  void step() { static_cast<T *>(this)->step(); }
-};
 
-template <typename LRScheduleType>
-struct OptimizerWithLRSchedule
-    : Optimizer<OptimizerWithLRSchedule<LRScheduleType>> {
-  using Base = Optimizer<OptimizerWithLRSchedule<LRScheduleType>>;
-  using Base::mem_pool;
-  using Base::params;
-  using Base::step_count;
-  LRScheduleType &lr_scheduler;
-  OptimizerWithLRSchedule(MemPool<Value> *mem_pool,
-                          std::vector<MemPoolIndex> params,
-                          LRScheduleType &lr_scheduler)
-      : Optimizer<OptimizerWithLRSchedule<LRScheduleType>>(mem_pool, params),
-        lr_scheduler(lr_scheduler) {}
-  void step();
-};
+  virtual void step() = 0;
 
-template <typename LRSchedulerType>
-struct SGDOptimizer : OptimizerWithLRSchedule<LRSchedulerType> {
-  using Base = OptimizerWithLRSchedule<LRSchedulerType>;
-  using Base::lr_scheduler;
-  using Base::mem_pool;
-  using Base::params;
-  using Base::step_count;
-  float momentum_beta;
-  std::unordered_map<MemPoolIndex, float> momentum;
-  SGDOptimizer(MemPool<Value> *mem_pool, std::vector<MemPoolIndex> params,
-               LRSchedulerType &lr_scheduler, float momentum_beta = 0.0f)
-      : Base(mem_pool, params, lr_scheduler), momentum_beta(momentum_beta) {}
-  void step() {
-    step_count++;
-    auto CURR_LR = lr_scheduler.get();
-    for (auto p : params) {
-      momentum[p] = (momentum_beta * momentum[p]) + mem_pool->get(p)->grad;
-      mem_pool->get(p)->data += -CURR_LR * momentum[p];
+ protected:
+  static void ensure_state_size(std::vector<float> &state, size_t target) {
+    if (state.size() != target) {
+      state.assign(target, 0.0f);
     }
+  }
+
+  static bool valid_param(const Tensor &t) {
+    return t.numel > 0 && t.data() != nullptr && t.grad() != nullptr;
   }
 };
 
-template <typename LRSchedulerType>
-struct AdamOptimizer : OptimizerWithLRSchedule<LRSchedulerType> {
-  using Base = OptimizerWithLRSchedule<LRSchedulerType>;
-  using Base::lr_scheduler;
-  using Base::mem_pool;
-  using Base::params;
-  using Base::step_count;
-  float beta1;
-  float beta2;
-  float weight_decay;
-  bool amsgrad;
-  float epsilon;
-  std::unordered_map<MemPoolIndex, float> moment_1;
-  std::unordered_map<MemPoolIndex, float> moment_2;
-  std::unordered_map<MemPoolIndex, float> moment_2_max;
+template <typename Scheduler>
+class OptimizerWithScheduler : public Optimizer {
+ protected:
+  Scheduler *scheduler_;
 
-  AdamOptimizer(MemPool<Value> *mem_pool, std::vector<MemPoolIndex> params,
-                LRSchedulerType &lr_scheduler, float beta1 = 0.9f,
-                float beta2 = 0.999f, float weight_decay = 0,
-                bool amsgrad = false, float epsilon = 1e-8f)
-      : OptimizerWithLRSchedule<LRSchedulerType>(mem_pool, params,
-                                                 lr_scheduler),
-        beta1(beta1),
-        beta2(beta2),
-        weight_decay(weight_decay),
-        amsgrad(amsgrad),
-        epsilon(epsilon){};
+ public:
+  OptimizerWithScheduler(std::vector<Tensor> params, Scheduler &scheduler)
+      : Optimizer(std::move(params)), scheduler_(&scheduler) {}
+};
 
-  void step() {
-    step_count++;
-    auto CURR_LR = lr_scheduler.get();
-    for (auto p : params) {
-      if (weight_decay > 0.0f) {
-        mem_pool->get(p)->grad += weight_decay * mem_pool->get(p)->data;
-      }
-      moment_1[p] =
-          (beta1 * moment_1[p]) + (1.0f - beta1) * mem_pool->get(p)->grad;
-      moment_2[p] = (beta2 * moment_2[p]) + (1.0f - beta2) *
-                                                mem_pool->get(p)->grad *
-                                                mem_pool->get(p)->grad;
-      auto moment_1_norm = moment_1[p] / (1.0f - std::pow(beta1, step_count));
-      float moment_2_norm;
-      if (amsgrad) {
-        moment_2_max[p] = std::max(moment_2_max[p], moment_2[p]);
-        moment_2_norm = moment_2_max[p] / (1.0f - std::pow(beta2, step_count));
+template <typename Scheduler>
+class SGD : public OptimizerWithScheduler<Scheduler> {
+ public:
+  SGD(std::vector<Tensor> params, Scheduler &scheduler,
+      float momentum_beta = 0.0f)
+      : OptimizerWithScheduler<Scheduler>(std::move(params), scheduler),
+        momentum_beta_(momentum_beta),
+        momentum_(this->params_.size()) {}
+
+  void step() override {
+    const float lr = this->scheduler_->get();
+    ++this->step_count_;
+
+    for (size_t idx = 0; idx < this->params_.size(); ++idx) {
+      Tensor &param = this->params_[idx];
+      if (!Optimizer::valid_param(param)) continue;
+      float *data = param.data();
+      const float *grad = param.grad();
+      const size_t n = param.numel;
+      if (momentum_beta_ != 0.0f) {
+        Optimizer::ensure_state_size(momentum_[idx], n);
+        auto &momentum_vec = momentum_[idx];
+        for (size_t i = 0; i < n; ++i) {
+          momentum_vec[i] =
+              momentum_beta_ * momentum_vec[i] + grad[i];
+          data[i] -= lr * momentum_vec[i];
+        }
       } else {
-        moment_2_norm = moment_2[p] / (1.0f - std::pow(beta2, step_count));
+        for (size_t i = 0; i < n; ++i) {
+          data[i] -= lr * grad[i];
+        }
       }
-      mem_pool->get(p)->data +=
-          -CURR_LR * moment_1_norm / (std::sqrt(moment_2_norm) + epsilon);
     }
   }
+
+ private:
+  float momentum_beta_;
+  std::vector<std::vector<float>> momentum_;
 };
 
-template <typename LRSchedulerType>
-struct AdamWOptimizer : OptimizerWithLRSchedule<LRSchedulerType> {
-  using Base = OptimizerWithLRSchedule<LRSchedulerType>;
-  using Base::lr_scheduler;
-  using Base::mem_pool;
-  using Base::params;
-  using Base::step_count;
-  float beta1;
-  float beta2;
-  float weight_decay;
-  bool amsgrad;
-  float epsilon;
-  std::unordered_map<MemPoolIndex, float> moment_1;
-  std::unordered_map<MemPoolIndex, float> moment_2;
-  std::unordered_map<MemPoolIndex, float> moment_2_max;
-  std::unordered_map<MemPoolIndex, float> moment_1_max;
+template <typename Scheduler>
+class Adam : public OptimizerWithScheduler<Scheduler> {
+ public:
+  Adam(std::vector<Tensor> params, Scheduler &scheduler, float beta1 = 0.9f,
+       float beta2 = 0.999f, float weight_decay = 0.0f, bool amsgrad = false,
+       float epsilon = 1e-8f)
+      : OptimizerWithScheduler<Scheduler>(std::move(params), scheduler),
+        beta1_(beta1),
+        beta2_(beta2),
+        weight_decay_(weight_decay),
+        amsgrad_(amsgrad),
+        epsilon_(epsilon),
+        m1_(this->params_.size()),
+        m2_(this->params_.size()),
+        vhat_(amsgrad ? this->params_.size() : 0) {}
 
-  AdamWOptimizer(MemPool<Value> *mem_pool, std::vector<MemPoolIndex> params,
-                 LRSchedulerType &lr_scheduler, float beta1 = 0.9f,
-                 float beta2 = 0.999f, float weight_decay = 0,
-                 bool amsgrad = false, float epsilon = 1e-8f)
-      : OptimizerWithLRSchedule<LRSchedulerType>(mem_pool, params,
-                                                 lr_scheduler),
-        beta1(beta1),
-        beta2(beta2),
-        weight_decay(weight_decay),
-        amsgrad(amsgrad),
-        epsilon(epsilon){};
+  void step() override {
+    const float lr = this->scheduler_->get();
+    ++this->step_count_;
+    const float bc1 = 1.0f - std::pow(beta1_, static_cast<float>(this->step_count_));
+    const float bc2 = 1.0f - std::pow(beta2_, static_cast<float>(this->step_count_));
 
-  void step() {
-    step_count++;
-    auto CURR_LR = lr_scheduler.get();
-    for (auto p : params) {
-      if (weight_decay > 0.0f) {
-        mem_pool->get(p)->data -=
-            weight_decay * CURR_LR * mem_pool->get(p)->data;
+    for (size_t idx = 0; idx < this->params_.size(); ++idx) {
+      Tensor &param = this->params_[idx];
+      if (!Optimizer::valid_param(param)) continue;
+      float *data = param.data();
+      const float *grad_ptr = param.grad();
+      const size_t n = param.numel;
+      Optimizer::ensure_state_size(m1_[idx], n);
+      Optimizer::ensure_state_size(m2_[idx], n);
+      if (amsgrad_) {
+        Optimizer::ensure_state_size(vhat_[idx], n);
       }
+      auto &m1_vec = m1_[idx];
+      auto &m2_vec = m2_[idx];
+      std::vector<float> *vhat_vec = amsgrad_ ? &vhat_[idx] : nullptr;
 
-      moment_1[p] =
-          beta1 * moment_1[p] + (1.0f - beta1) * mem_pool->get(p)->grad;
-      moment_2[p] = beta2 * moment_2[p] + (1.0f - beta2) *
-                                              mem_pool->get(p)->grad *
-                                              mem_pool->get(p)->grad;
-      auto moment_1_norm = moment_1[p] / (1.0f - std::pow(beta1, step_count));
+      for (size_t i = 0; i < n; ++i) {
+        float grad = grad_ptr[i];
+        if (weight_decay_ != 0.0f) {
+          grad += weight_decay_ * data[i];
+        }
 
-      float moment_2_norm;
-      if (amsgrad) {
-        moment_2_max[p] = std::max(moment_2_max[p], moment_2[p]);
-        moment_2_norm = moment_2_max[p] / (1.0f - std::pow(beta2, step_count));
-      } else {
-        moment_2_norm = moment_2[p] / (1.0f - std::pow(beta2, step_count));
+        m1_vec[i] = beta1_ * m1_vec[i] + (1.0f - beta1_) * grad;
+        m2_vec[i] = beta2_ * m2_vec[i] + (1.0f - beta2_) * grad * grad;
+
+        float m1_hat = m1_vec[i] / bc1;
+        float m2_term = m2_vec[i];
+        if (amsgrad_) {
+          (*vhat_vec)[i] = std::max((*vhat_vec)[i], m2_vec[i]);
+          m2_term = (*vhat_vec)[i];
+        }
+        float m2_hat = m2_term / bc2;
+        data[i] -= lr * m1_hat / (std::sqrt(m2_hat) + epsilon_);
       }
-      mem_pool->get(p)->data -=
-          CURR_LR * moment_1_norm / ((std::sqrt(moment_2_norm) + epsilon));
     }
   }
+
+ private:
+  float beta1_;
+  float beta2_;
+  float weight_decay_;
+  bool amsgrad_;
+  float epsilon_;
+  std::vector<std::vector<float>> m1_;
+  std::vector<std::vector<float>> m2_;
+  std::vector<std::vector<float>> vhat_;
 };
+
+template <typename Scheduler>
+class AdamW : public OptimizerWithScheduler<Scheduler> {
+ public:
+  AdamW(std::vector<Tensor> params, Scheduler &scheduler, float beta1 = 0.9f,
+        float beta2 = 0.999f, float weight_decay = 0.0f, bool amsgrad = false,
+        float epsilon = 1e-8f)
+      : OptimizerWithScheduler<Scheduler>(std::move(params), scheduler),
+        beta1_(beta1),
+        beta2_(beta2),
+        weight_decay_(weight_decay),
+        amsgrad_(amsgrad),
+        epsilon_(epsilon),
+        m1_(this->params_.size()),
+        m2_(this->params_.size()),
+        vhat_(amsgrad ? this->params_.size() : 0) {}
+
+  void step() override {
+    const float lr = this->scheduler_->get();
+    ++this->step_count_;
+    const float bc1 = 1.0f - std::pow(beta1_, static_cast<float>(this->step_count_));
+    const float bc2 = 1.0f - std::pow(beta2_, static_cast<float>(this->step_count_));
+
+    for (size_t idx = 0; idx < this->params_.size(); ++idx) {
+      Tensor &param = this->params_[idx];
+      if (!Optimizer::valid_param(param)) continue;
+      float *data = param.data();
+      const float *grad_ptr = param.grad();
+      const size_t n = param.numel;
+      Optimizer::ensure_state_size(m1_[idx], n);
+      Optimizer::ensure_state_size(m2_[idx], n);
+      if (amsgrad_) {
+        Optimizer::ensure_state_size(vhat_[idx], n);
+      }
+      auto &m1_vec = m1_[idx];
+      auto &m2_vec = m2_[idx];
+      std::vector<float> *vhat_vec = amsgrad_ ? &vhat_[idx] : nullptr;
+
+      if (weight_decay_ != 0.0f) {
+        for (size_t i = 0; i < n; ++i) {
+          data[i] -= lr * weight_decay_ * data[i];
+        }
+      }
+
+      for (size_t i = 0; i < n; ++i) {
+        float grad = grad_ptr[i];
+        m1_vec[i] = beta1_ * m1_vec[i] + (1.0f - beta1_) * grad;
+        m2_vec[i] = beta2_ * m2_vec[i] + (1.0f - beta2_) * grad * grad;
+
+        float m1_hat = m1_vec[i] / bc1;
+        float m2_term = m2_vec[i];
+        if (amsgrad_) {
+          (*vhat_vec)[i] = std::max((*vhat_vec)[i], m2_vec[i]);
+          m2_term = (*vhat_vec)[i];
+        }
+        float m2_hat = m2_term / bc2;
+        data[i] -= lr * m1_hat / (std::sqrt(m2_hat) + epsilon_);
+      }
+    }
+  }
+
+ private:
+  float beta1_;
+  float beta2_;
+  float weight_decay_;
+  bool amsgrad_;
+  float epsilon_;
+  std::vector<std::vector<float>> m1_;
+  std::vector<std::vector<float>> m2_;
+  std::vector<std::vector<float>> vhat_;
+};
+
+}  // namespace optim
+

@@ -2,7 +2,6 @@
 
 #include <vector>
 
-void EmbedNLP();
 void EmbedNLPPT();
 struct BigramMLPData {
   std::vector<std::vector<int>> input;
