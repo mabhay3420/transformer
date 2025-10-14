@@ -49,12 +49,16 @@ while (( "$#" )); do
   esac
 done
 
-cmake -S . -B "$BUILD_DIR" \
-  -G "Ninja" \
-  -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
-  -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-  -DCMAKE_CXX_FLAGS="${DEFAULT_CXX_FLAGS}" \
-  "${EXTRA_ARGS[@]:-}"
+# run only if "$BUILD_DIR/CMakeCache.txt" doesn't exist
+if [[ ! -f "$BUILD_DIR/CMakeCache.txt" ]]; then
+	cmake -S . -B "$BUILD_DIR" \
+	  -G "Ninja" \
+	  -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
+	  -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+	  -DCMAKE_CXX_FLAGS="${DEFAULT_CXX_FLAGS}" \
+	  "${EXTRA_ARGS[@]:-}"
+fi
+
 
 if [[ -n "$TARGET" ]]; then
   cmake --build "$BUILD_DIR" --target "$TARGET" -- -j16
