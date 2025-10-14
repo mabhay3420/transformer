@@ -19,6 +19,9 @@ case "$TARGET" in
   elementwise)
     ./build/release/microbenchmarks/elementwise/elementwise_bench_main "$@"
     ;;
+  csv_loader)
+    ./build/release/microbenchmarks/csv_loader/csv_loader_bench_main "$@"
+    ;;
   *)
     echo "Unknown benchmark: $TARGET"
     exit 1

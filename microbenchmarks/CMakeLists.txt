@@ -4,3 +4,4 @@ project(TransformersMicrobenchmarks LANGUAGES CXX)
 
 add_subdirectory(matmul)
 add_subdirectory(elementwise)
+add_subdirectory(csv_loader)
