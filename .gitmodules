@@ -1,3 +1,6 @@
 [submodule "thirdparty/json"]
 	path = thirdparty/json
 	url = https://github.com/nlohmann/json.git
+[submodule "thirdparty/mlx"]
+	path = thirdparty/mlx
+	url = git@github.com:ml-explore/mlx.git

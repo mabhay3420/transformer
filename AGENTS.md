@@ -16,6 +16,9 @@ For debug and address sanitized versions:
 ## Tools Usage
 1. `ast-grep`: A tool for searching and replacing text in source code.
 
+## Python Environment
+We use `.venv` and `uv pip install` for installing dependencies.
+
 ## Benchmarks
 
 - Prefer adding or extending microbenchmarks under `microbenchmarks/` when

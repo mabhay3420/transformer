@@ -27,7 +27,6 @@ detect_apple_mcpu() {
 
 BUILD_DIR=${BUILD_DIR:-build/release}
 BUILD_TYPE=${BUILD_TYPE:-Release}
-CXX=${CXX:-clang++}
 TARGET=""
 EXTRA_ARGS=()
 
@@ -52,16 +51,16 @@ while (( "$#" )); do
 done
 
 # cmake -S . -B "$BUILD_DIR" \
+#   -G "Ninja" \
 #   -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
 #   -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-#   -DCMAKE_CXX_COMPILER="$CXX" \
 #   -DCMAKE_CXX_FLAGS="${DEFAULT_CXX_FLAGS}" \
 #   "${EXTRA_ARGS[@]:-}"
 
 if [[ -n "$TARGET" ]]; then
-  cmake --build "$BUILD_DIR" --target "$TARGET" -- -j2
+  cmake --build "$BUILD_DIR" --target "$TARGET" -- -j16
 else
-  cmake --build "$BUILD_DIR" -- -j2
+  cmake --build "$BUILD_DIR" -- -j16
 fi
 
 # convenience symlink for tooling

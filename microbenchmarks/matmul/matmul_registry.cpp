@@ -1,6 +1,7 @@
 #include <algorithm>
-
 #include "bench_runner.hpp"
+#include "mlx/device.h"
+#include "mlx/mlx.h"
 
 #if defined(__ARM_NEON) || defined(__ARM_NEON__)
 #include <arm_neon.h>
@@ -8,6 +9,7 @@
 
 namespace {
 
+namespace mx = mlx::core;
 void matmul_naive(const float* A, const float* B, float* C, int M, int K,
                   int N) {
   for (int m = 0; m < M; ++m) {
@@ -162,6 +164,18 @@ void matmul_skinny_specialized_neon(const float* A, const float* B, float* C,
 
 #endif
 
+void matmul_mlx(const float* A, const float* B, float* C, int M, int K, int N) {
+  mx::set_default_device(mx::Device::cpu);
+  mx::array lhs(A, mx::Shape{M, K}, mx::float32);
+  mx::array rhs(B, mx::Shape{K, N}, mx::float32);
+
+  auto result = mx::matmul(lhs, rhs);
+  result.eval();
+
+  const float* result_ptr = result.data<float>();
+  std::copy(result_ptr, result_ptr + static_cast<size_t>(M) * N, C);
+}
+
 const std::vector<MatmulBenchmark>& registry() {
   static std::vector<MatmulBenchmark> benches = {
     {"naive", matmul_naive},
@@ -169,6 +183,7 @@ const std::vector<MatmulBenchmark>& registry() {
 #if defined(__ARM_NEON) || defined(__ARM_NEON__)
     {"tiled_256_neon", matmul_tiled_neon<256>},
 #endif
+    {"mlx_auto", matmul_mlx},
   };
   return benches;
 }

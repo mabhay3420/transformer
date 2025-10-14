@@ -14,6 +14,11 @@ target_include_directories(matmul_bench
         ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
+target_link_libraries(matmul_bench
+    PUBLIC
+        mlx
+)
+
 add_executable(matmul_bench_main bench_entry.cpp)
 
 target_link_libraries(matmul_bench_main
