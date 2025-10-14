@@ -3,11 +3,14 @@
 #include <_stdlib.h>
 
 #include <__config>
+#include <algorithm>
 #include <cassert>
+#include <cstdlib>
 #include <fstream>
 #include <ios>
 #include <iosfwd>
 #include <iostream>
+#include <memory>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -70,27 +73,42 @@ MNIST_BATCH MNIST::load_data(const std::string &csv_filename, int max_lines) {
   MNIST_INS images;
   MNIST_OUTS labels;
 
-  mlx::data::core::CSVReader reader(csv_filename, ',', '"');
-
-  if (max_lines > 0) {
-    images.reserve(max_lines);
-    labels.reserve(max_lines);
+  std::string csv_contents = load_text_data(csv_filename);
+  if (csv_contents.empty()) {
+    return {std::move(images), std::move(labels)};
   }
 
-  int loaded = 0;
-  while (max_lines <= 0 || loaded < max_lines) {
+  size_t total_rows =
+      static_cast<size_t>(std::count(csv_contents.begin(), csv_contents.end(), '\n'));
+  if (!csv_contents.empty() && csv_contents.back() != '\n') {
+    total_rows += 1;
+  }
+  if (total_rows == 0) {
+    return {std::move(images), std::move(labels)};
+  }
+  if (max_lines > 0) {
+    total_rows = std::min<size_t>(total_rows, static_cast<size_t>(max_lines));
+  }
+  images.reserve(total_rows);
+  labels.reserve(total_rows);
+
+  auto csv_stream = std::make_shared<std::istringstream>(std::move(csv_contents));
+  mlx::data::core::CSVReader reader(csv_stream, ',', '"');
+
+  size_t loaded = 0;
+  while (loaded < total_rows) {
     auto row = reader.next();
     if (row.empty()) break;
     if (row.size() < 2) {
       throw std::runtime_error("MNIST CSV row must contain label and pixels");
     }
 
-    labels.push_back(static_cast<float>(std::stoi(row.front())));
+    labels.push_back(
+        static_cast<float>(std::strtol(row.front().c_str(), nullptr, 10)));
 
-    MNIST_IN pixels;
-    pixels.reserve(row.size() - 1);
+    MNIST_IN pixels(row.size() - 1);
     for (size_t i = 1; i < row.size(); ++i) {
-      pixels.push_back(std::stof(row[i]) / 255.0f);
+      pixels[i - 1] = std::strtof(row[i].c_str(), nullptr) / 255.0f;
     }
     images.push_back(std::move(pixels));
     ++loaded;
