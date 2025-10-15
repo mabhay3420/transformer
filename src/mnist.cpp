@@ -14,67 +14,24 @@
 #include "tensor.hpp"
 #include "utils.hpp"
 
-namespace {
-
-void fill_one_hot(Tensor &tensor, int row, int index) {
-  if (tensor.shape.size() != 2) return;
-  if (index < 0 || index >= tensor.shape[1]) return;
-  float *ptr = tensor.data();
-  int stride = tensor.shape[1];
-  ptr[row * stride + index] = 1.0f;
-}
-
-int argmax_from_logits(const float *logits, int size) {
-  if (size <= 0) return 0;
-  int best_idx = 0;
-  float best_val = logits[0];
-  for (int i = 1; i < size; ++i) {
-    if (logits[i] > best_val) {
-      best_val = logits[i];
-      best_idx = i;
-    }
-  }
-  return best_idx;
-}
-
-}  // namespace
-
 void MnistDnnPT() {
   using std::cout;
   using std::endl;
 
   srand(42);
 
-  const auto env_to_int = [](const char *name, int fallback) {
-    if (const char *value = std::getenv(name)) {
-      char *end = nullptr;
-      long parsed = std::strtol(value, &end, 10);
-      if (end != value) return static_cast<int>(parsed);
-    }
-    return fallback;
-  };
-
-  const auto env_to_float = [](const char *name, float fallback) {
-    if (const char *value = std::getenv(name)) {
-      char *end = nullptr;
-      float parsed = std::strtof(value, &end);
-      if (end != value) return parsed;
-    }
-    return fallback;
-  };
-
   const int MAX_TRAIN_SAMPLES = INT_MAX;
   const int MAX_TEST_SAMPLES = INT_MAX;
   const int default_epochs = 50;
   const int default_hidden1 = 512;
   const int default_hidden2 = 128;
-  const int hidden_dim1 = env_to_int("MNIST_HIDDEN_DIM1", default_hidden1);
-  const int hidden_dim2 = env_to_int("MNIST_HIDDEN_DIM2", default_hidden2);
+  const int hidden_dim1 = getenv_int("MNIST_HIDDEN_DIM1", default_hidden1);
+  const int hidden_dim2 = getenv_int("MNIST_HIDDEN_DIM2", default_hidden2);
   const int num_classes = 10;
-  const int batch_size = std::max(1, env_to_int("MNIST_BATCH_SIZE", 128));
+  const int batch_size = std::max(1, getenv_int("MNIST_BATCH_SIZE", 128));
   const int eval_batch =
-      std::max(1, env_to_int("MNIST_EVAL_BATCH_SIZE", batch_size));
-  const int epochs = std::max(1, env_to_int("MNIST_EPOCHS", default_epochs));
+      std::max(1, getenv_int("MNIST_EVAL_BATCH_SIZE", batch_size));
+  const int epochs = std::max(1, getenv_int("MNIST_EPOCHS", default_epochs));
 
   const auto dim_lr_scale = [](int dim, int baseline) {
     if (dim <= 0 || baseline <= 0) return 1.0f;
@@ -85,7 +42,7 @@ void MnistDnnPT() {
   const float scaled_lr =
       base_lr * std::min(dim_lr_scale(hidden_dim1, default_hidden1),
                          dim_lr_scale(hidden_dim2, default_hidden2));
-  const float lr = env_to_float("MNIST_LR", scaled_lr);
+  const float lr = getenv_float("MNIST_LR", scaled_lr);
 
   MNIST mnist(MAX_TRAIN_SAMPLES);
   mnist.summary();

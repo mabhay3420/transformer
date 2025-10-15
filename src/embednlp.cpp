@@ -33,45 +33,6 @@ void encode_context_row(Tensor &tensor, int row,
   }
 }
 
-std::vector<float> softmax_from_logits(const float *logits, int size) {
-  std::vector<float> probs(size);
-  if (size == 0) return probs;
-  float max_logit = logits[0];
-  for (int i = 1; i < size; ++i) {
-    max_logit = std::max(max_logit, logits[i]);
-  }
-  float sum = 0.0f;
-  for (int i = 0; i < size; ++i) {
-    float val = std::exp(logits[i] - max_logit);
-    probs[i] = val;
-    sum += val;
-  }
-  if (sum <= 0.0f) {
-    const float inv = 1.0f / std::max(1, size);
-    for (int i = 0; i < size; ++i) {
-      probs[i] = inv;
-    }
-    return probs;
-  }
-  for (int i = 0; i < size; ++i) {
-    probs[i] /= sum;
-  }
-  return probs;
-}
-
-int argmax_from_logits(const float *logits, int size) {
-  if (size <= 0) return 0;
-  int best_idx = 0;
-  float best_val = logits[0];
-  for (int i = 1; i < size; ++i) {
-    if (logits[i] > best_val) {
-      best_val = logits[i];
-      best_idx = i;
-    }
-  }
-  return best_idx;
-}
-
 }  // namespace
 
 BigramMLPData getBigramMLPData(std::vector<int> &data, int context_length,
@@ -237,4 +198,3 @@ void EmbedNLPPT() {
 
   store.print_stats();
 }
-
