@@ -436,6 +436,17 @@ void ParameterStore::reserve(size_t total_elements) {
   }
 }
 
+size_t ParameterStore::mark() const { return used; }
+
+void ParameterStore::reset(size_t mark) {
+  if (mark > used)
+    throw std::invalid_argument("ParameterStore::reset mark beyond used");
+  used = mark;
+  if (stats_enabled) {
+    stats.peak_elements = std::max(stats.peak_elements, used);
+  }
+}
+
 void ParameterStore::ensure_capacity(size_t required) {
   if (required <= capacity) return;
 

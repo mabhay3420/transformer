@@ -92,6 +92,10 @@ struct ParameterStore {
   void reserve(size_t total_elements);
   void ensure_capacity(size_t required);
 
+  // Memory scope helpers for reusing temporary tensors between iterations.
+  size_t mark() const;
+  void reset(size_t mark);
+
   // Introspection helpers
   size_t size() const { return used; }
   size_t capacity_count() const { return capacity; }

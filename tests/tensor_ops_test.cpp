@@ -36,6 +36,22 @@ TEST(ParameterStore, ReserveHint) {
   EXPECT_GE(ps.capacity_count(), prev_capacity);
 }
 
+TEST(ParameterStore, ResetReuse) {
+  ParameterStore ps;
+  auto persistent = ps.tensor({4}, TensorInit::ZeroData);
+  fill_vec(persistent.data(), {1.f, 2.f, 3.f, 4.f});
+
+  size_t mark = ps.mark();
+  auto scratch = ps.tensor({2});
+  const size_t scratch_offset = scratch.offset;
+
+  ps.reset(mark);
+  auto reused = ps.tensor({2});
+  EXPECT_EQ(reused.offset, scratch_offset);
+  EXPECT_FLOAT_EQ(persistent.data()[0], 1.f);
+  EXPECT_FLOAT_EQ(persistent.data()[3], 4.f);
+}
+
 TEST(TensorOps, AddBackward) {
   ParameterStore ps;
   ps.clear_tape();
