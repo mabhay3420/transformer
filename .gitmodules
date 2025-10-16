@@ -3,7 +3,7 @@
 	url = https://github.com/nlohmann/json.git
 [submodule "thirdparty/mlx"]
 	path = thirdparty/mlx
-	url = git@github.com:mabhay3420/mlx.git
+	url = https://github.com/mabhay3420/mlx.git
 [submodule "thirdparty/mlx-data"]
 	path = thirdparty/mlx-data
-	url = git@github.com:mabhay3420/mlx-data.git
+	url = https://github.com/mabhay3420/mlx-data.git
