@@ -18,28 +18,24 @@ endif()
 
 add_executable(tensor_ops_test
   tensor_ops_test.cpp
-  ${CMAKE_SOURCE_DIR}/src/tensor.cpp
-  ${CMAKE_SOURCE_DIR}/src/nn.cpp
 )
 
 target_include_directories(tensor_ops_test PRIVATE
   ${CMAKE_SOURCE_DIR}/include
 )
 
-target_link_libraries(tensor_ops_test PRIVATE GTest::gtest_main mlx)
+target_link_libraries(tensor_ops_test PRIVATE GTest::gtest_main tformer_core)
 
 add_test(NAME tensor_ops_test COMMAND tensor_ops_test)
 
 add_executable(utils_test
   utils_test.cpp
-  ${CMAKE_SOURCE_DIR}/src/utils.cpp
-  ${CMAKE_SOURCE_DIR}/src/tensor.cpp
 )
 
 target_include_directories(utils_test PRIVATE
   ${CMAKE_SOURCE_DIR}/include
 )
 
-target_link_libraries(utils_test PRIVATE GTest::gtest_main mlx)
+target_link_libraries(utils_test PRIVATE GTest::gtest_main tformer_core)
 
 add_test(NAME utils_test COMMAND utils_test)

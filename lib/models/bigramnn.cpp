@@ -13,6 +13,7 @@
 #include "probs.hpp"
 #include "tensor.hpp"
 #include "tokenizer.hpp"
+#include "train/language_utils.hpp"
 #include "utils.hpp"
 
 void BigramNNPT() {
@@ -103,20 +104,8 @@ void BigramNNPT() {
        << endl;
 
   Tensor eval_input = store.tensor({1, vocab_size}, TensorInit::ZeroData);
-  int correct = 0;
-  int total = 0;
-  for (size_t i = 0; i + 1 < val_data.size(); ++i) {
-    eval_input.fill(0.0f);
-    fill_one_hot(eval_input, 0, val_data[i]);
-    Tensor logits = model(eval_input, store);
-    const float *logits_ptr = logits.data();
-    int predicted = argmax_from_logits(logits_ptr, vocab_size);
-    int expected = val_data[i + 1];
-    if (predicted == expected) ++correct;
-    ++total;
-    store.clear_tape();
-  }
-  float accuracy = total > 0 ? static_cast<float>(correct) / total : 0.0f;
+  float accuracy = train::evaluate_sequence_accuracy(
+      model, store, eval_input, val_data, vocab_size);
   cout << "Validation accuracy: " << accuracy << endl;
 
   cout << "Sampled text:" << endl;
@@ -126,11 +115,9 @@ void BigramNNPT() {
     eval_input.fill(0.0f);
     fill_one_hot(eval_input, 0, current);
     Tensor logits = model(eval_input, store);
-    const float *logits_ptr = logits.data();
-    auto probs = softmax_from_logits(logits_ptr, vocab_size);
+    int next = train::sample_next_token(logits, vocab_size);
     store.clear_tape();
-    MultinomialDistribution dist(probs);
-    current = dist.sample(1)[0];
+    current = next;
     std::cout << tokenizer.decode(current);
   }
   std::cout << std::endl;

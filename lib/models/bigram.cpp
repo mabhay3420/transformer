@@ -14,30 +14,8 @@
 #include "probs.hpp"
 #include "tensor.hpp"
 #include "tokenizer.hpp"
+#include "train/language_utils.hpp"
 #include "utils.hpp"
-
-namespace {
-
-float evaluate_nll(nn::Sequential &model, ParameterStore &store,
-                   Tensor &scratch_input, const std::vector<int> &sequence,
-                   int vocab_size) {
-  if (sequence.size() < 2) return 0.0f;
-  float total = 0.0f;
-  scratch_input.fill(0.0f);
-  for (size_t i = 0; i + 1 < sequence.size(); ++i) {
-    scratch_input.fill(0.0f);
-    fill_one_hot(scratch_input, 0, sequence[i]);
-    Tensor logits = model(scratch_input, store);
-    const float *logits_ptr = logits.data();
-    auto probs = softmax_from_logits(logits_ptr, vocab_size);
-    float prob = std::max(probs[sequence[i + 1]], 1e-8f);
-    total += -std::log(prob);
-    store.clear_tape();
-  }
-  return total / static_cast<float>(sequence.size() - 1);
-}
-
-}  // namespace
 
 void BigraLmPT() {
   using std::cout;
@@ -122,8 +100,11 @@ void BigraLmPT() {
        << endl;
 
   Tensor eval_input = store.tensor({1, vocab_size}, TensorInit::ZeroData);
-  float train_nll = evaluate_nll(model, store, eval_input, train_data, vocab_size);
-  float val_nll = evaluate_nll(model, store, eval_input, val_data, vocab_size);
+  float train_nll = train::evaluate_sequence_nll(model, store, eval_input,
+                                                 train_data, vocab_size);
+  float val_nll =
+      train::evaluate_sequence_nll(model, store, eval_input, val_data,
+                                   vocab_size);
   cout << "Training NLL: " << train_nll << endl;
   cout << "Validation NLL: " << val_nll << endl;
 
@@ -134,11 +115,8 @@ void BigraLmPT() {
     eval_input.fill(0.0f);
     fill_one_hot(eval_input, 0, current);
     Tensor logits = model(eval_input, store);
-    const float *logits_ptr = logits.data();
-    auto probs = softmax_from_logits(logits_ptr, vocab_size);
+    current = train::sample_next_token(logits, vocab_size);
     store.clear_tape();
-    MultinomialDistribution dist(probs);
-    current = dist.sample(1)[0];
     std::cout << tokenizer.decode(current);
   }
   std::cout << std::endl;

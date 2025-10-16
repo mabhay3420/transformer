@@ -10,6 +10,7 @@ For debug and address sanitized versions:
 
 - Always add unit tests for new ops, layers, and training loops under `tests/` using GoogleTest.
 - Run tests using `./test.sh`.
+- After significant refactors or feature work, run at least one end-to-end workflow via `./run.sh <command>` (e.g. `./run.sh mnist`) to guard against integration regressions.
 - Keep tests small and fast; prefer simple shape cases and exact gradient checks (or finite-difference checks) for new tensor ops.
 - Run tests whenever making changes to core autograd/memory/tensor code.
 

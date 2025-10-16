@@ -14,6 +14,7 @@
 #include "probs.hpp"
 #include "tensor.hpp"
 #include "tokenizer.hpp"
+#include "train/language_utils.hpp"
 #include "utils.hpp"
 
 namespace {
@@ -185,9 +186,7 @@ void EmbedNLPPT() {
     eval_input.fill(0.0f);
     encode_context_row(eval_input, 0, context, vocab_size);
     Tensor logits = model(eval_input, store);
-    const auto probs = softmax_from_logits(logits.data(), vocab_size);
-    MultinomialDistribution dist(probs);
-    const int next = dist.sample(1)[0];
+    const int next = train::sample_next_token(logits, vocab_size);
     std::cout << tokenizer.decode(next);
     for (int j = 0; j < context_length - 1; ++j) {
       context[j] = context[j + 1];

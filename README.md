@@ -13,6 +13,12 @@ where possible:
 - `./run.sh` builds the project and executes the default `xor-pt` command, which trains the XOR task using the PyTorch-style `nn` modules and tensor autograd.
 - `./build/release/tformer --list` shows all available entrypoints. Use `./build/release/tformer <command>` or `./run.sh <command>` to run an alternative experiment (e.g. `bigram`, `mnist`).
 
+# Layout
+
+- `apps/` hosts thin CLI entrypoints (e.g. `apps/main.cpp`) that dispatch into the library.
+- `lib/` is organized by concern: `core/` for tensors/autograd, `nn/` for modules, `data/` for loaders, `models/` for experiment logic, `train/` for shared helpers, and `utils/` for miscellaneous support code.
+- Public headers remain under `include/`, with new subdirectories like `include/train/` and `include/data/` mirroring the implementation layout.
+
 # Microbenchmarks
 
 Microbenchmarks live under `microbenchmarks/` and can be built and executed via
