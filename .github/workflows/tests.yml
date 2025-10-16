@@ -12,8 +12,6 @@ concurrency:
 jobs:
   build-and-test:
     runs-on: macos-latest
-    env:
-      CCACHE_DIR: ~/.cache/ccache
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -21,40 +19,12 @@ jobs:
           fetch-depth: 0
           submodules: recursive
 
-      - name: Restore build cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            build/release
-          key: ${{ runner.os }}-build-${{ hashFiles('**/CMakeLists.txt', 'build.sh', 'test.sh') }}
-          restore-keys: |
-            ${{ runner.os }}-build-
-
-      - name: Prepare ccache directory
-        run: mkdir -p ~/.cache/ccache
-
-      - name: Restore ccache
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/ccache
-          key: ${{ runner.os }}-ccache-${{ hashFiles('**/CMakeLists.txt', 'build.sh', 'test.sh') }}
-          restore-keys: |
-            ${{ runner.os }}-ccache-
-
       - name: Ensure build tools
         run: |
           brew update
           brew list cmake || brew install cmake
-          brew list ccache || brew install ccache
 
       - name: Run unit tests
         run: |
           chmod +x ./test.sh || true
           ./test.sh
-
-      - name: Show ccache stats
-        if: always()
-        run: |
-          if command -v ccache >/dev/null 2>&1; then
-            ccache -s
-          fi
