@@ -5,6 +5,10 @@ on:
     branches: [ main, master ]
   pull_request:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   clang-format:
     runs-on: macos-latest
@@ -21,4 +25,3 @@ jobs:
         run: |
           chmod +x ./format.sh
           ./format.sh --check
-
