@@ -2,12 +2,7 @@ build/
 .cache/
 *.dot
 # tmp dump
-data/
-data/*.json
-data/*.png
-data/*.gif
-data/*.mp4
-data/logs.txt
+data_tmp/
 data/frames
 .DS_Store
 *.trace
