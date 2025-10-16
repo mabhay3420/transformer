@@ -7,6 +7,7 @@
 where possible:
     - use std library
     - use auto
+    - run `./format.sh --check` before committing (the pre-commit hook enforces this automatically)
 
 # Running
 
