@@ -12,7 +12,12 @@ if [[ "${1:-}" == "--check" || "${1:-}" == "-n" ]]; then
 fi
 
 if ! command -v clang-format >/dev/null 2>&1; then
-  echo "error: clang-format not found. Please install clang-format." >&2
+  os_name=$(uname -s)
+  if [[ "$os_name" == "Darwin" ]]; then
+    echo "error: clang-format not found. Install it with: brew install clang-format" >&2
+  else
+    echo "error: clang-format not found. Install it with your package manager, e.g.: sudo apt-get install clang-format" >&2
+  fi
   exit 1
 fi
 

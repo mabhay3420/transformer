@@ -16,10 +16,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install clang-format
+      - name: Ensure clang-format
         run: |
-          sudo apt-get update
-          sudo apt-get install -y clang-format
+          brew update
+          brew list clang-format >/dev/null 2>&1 || brew install clang-format
 
       - name: Run formatting check
         run: |
