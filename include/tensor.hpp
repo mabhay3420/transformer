@@ -45,19 +45,19 @@ enum class OpType {
 };
 
 struct Tensor {
-  ParameterStore *store = nullptr;
+  ParameterStore* store = nullptr;
   size_t offset = 0;       // start index into store buffers
   std::vector<int> shape;  // simple, contiguous layout
   size_t numel = 0;        // product(shape)
 
   Tensor() = default;
-  Tensor(ParameterStore *s, size_t off, std::vector<int> sh, size_t n)
+  Tensor(ParameterStore* s, size_t off, std::vector<int> sh, size_t n)
       : store(s), offset(off), shape(std::move(sh)), numel(n) {}
 
-  float *data();
-  float *grad();
-  const float *data() const;
-  const float *grad() const;
+  float* data();
+  float* grad();
+  const float* data() const;
+  const float* grad() const;
 
   void zero_grad();
   void fill(float v);
@@ -99,21 +99,21 @@ struct ParameterStore {
   // Introspection helpers
   size_t size() const { return used; }
   size_t capacity_count() const { return capacity; }
-  float *data_ptr(size_t offset);
-  const float *data_ptr(size_t offset) const;
-  float *grad_ptr(size_t offset);
-  const float *grad_ptr(size_t offset) const;
+  float* data_ptr(size_t offset);
+  const float* data_ptr(size_t offset) const;
+  float* grad_ptr(size_t offset);
+  const float* grad_ptr(size_t offset) const;
 
   // Factory helpers
-  Tensor tensor(const std::vector<int> &shape,
+  Tensor tensor(const std::vector<int>& shape,
                 TensorInit init = TensorInit::UninitializedData);
-  Tensor parameter(const std::vector<int> &shape, float scale = 0.01f,
+  Tensor parameter(const std::vector<int>& shape, float scale = 0.01f,
                    unsigned seed = 0);
 
   // Stats controls
   void enable_stats(bool enabled = true);
   void reset_stats();
-  const ParameterStoreStats &get_stats() const;
+  const ParameterStoreStats& get_stats() const;
   bool stats_active() const { return stats_enabled; }
   void print_stats() const;
 
@@ -122,28 +122,28 @@ struct ParameterStore {
 
   // Autograd controls
   void clear_tape();
-  void backward(const Tensor &loss);
+  void backward(const Tensor& loss);
 
  private:
   void register_parameter_allocation(size_t offset, size_t count);
 };
 
 // Basic elementwise ops (contiguous, same-shape only; minimal checks)
-Tensor add(const Tensor &a, const Tensor &b, ParameterStore &store);
-Tensor sub(const Tensor &a, const Tensor &b, ParameterStore &store);
-Tensor mul(const Tensor &a, const Tensor &b, ParameterStore &store);
+Tensor add(const Tensor& a, const Tensor& b, ParameterStore& store);
+Tensor sub(const Tensor& a, const Tensor& b, ParameterStore& store);
+Tensor mul(const Tensor& a, const Tensor& b, ParameterStore& store);
 
 // Simple matrix multiply: a[M,K] x b[K,N] -> out[M,N]
-Tensor matmul(const Tensor &a, const Tensor &b, ParameterStore &store);
+Tensor matmul(const Tensor& a, const Tensor& b, ParameterStore& store);
 
 // Unary ops
-Tensor relu(const Tensor &x, ParameterStore &store);
-Tensor vtanh(const Tensor &x, ParameterStore &store);
-Tensor sigmoid(const Tensor &x, ParameterStore &store);
-Tensor vlog(const Tensor &x, ParameterStore &store);  // natural log
+Tensor relu(const Tensor& x, ParameterStore& store);
+Tensor vtanh(const Tensor& x, ParameterStore& store);
+Tensor sigmoid(const Tensor& x, ParameterStore& store);
+Tensor vlog(const Tensor& x, ParameterStore& store);  // natural log
 
 // Reductions
-Tensor sum(const Tensor &x, ParameterStore &store);  // returns scalar [1]
+Tensor sum(const Tensor& x, ParameterStore& store);  // returns scalar [1]
 
 // Add bias vector b[H] to each row of X[N,H]
-Tensor add_rowwise(const Tensor &X, const Tensor &b, ParameterStore &store);
+Tensor add_rowwise(const Tensor& X, const Tensor& b, ParameterStore& store);

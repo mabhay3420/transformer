@@ -19,13 +19,13 @@
 
 namespace {
 
-void encode_context_row(Tensor &tensor, int row,
-                        const std::vector<int> &context, int vocab_size) {
+void encode_context_row(Tensor& tensor, int row,
+                        const std::vector<int>& context, int vocab_size) {
   if (tensor.shape.size() != 2) return;
   const int stride = tensor.shape[1];
   if (stride % vocab_size != 0) return;
   const int context_length = stride / vocab_size;
-  float *ptr = tensor.data() + row * stride;
+  float* ptr = tensor.data() + row * stride;
   for (int pos = 0; pos < context_length; ++pos) {
     const int idx = pos < static_cast<int>(context.size()) ? context[pos] : -1;
     if (idx >= 0 && idx < vocab_size) {
@@ -36,7 +36,7 @@ void encode_context_row(Tensor &tensor, int row,
 
 }  // namespace
 
-BigramMLPData getBigramMLPData(std::vector<int> &data, int context_length,
+BigramMLPData getBigramMLPData(std::vector<int>& data, int context_length,
                                int start_char_index) {
   BigramMLPData seq_data;
   for (int i = 0; i < static_cast<int>(data.size()); ++i) {
@@ -167,7 +167,7 @@ void EmbedNLPPT() {
     eval_input.fill(0.0f);
     encode_context_row(eval_input, 0, val_seq.input[i], vocab_size);
     Tensor logits = model(eval_input, store);
-    const float *logits_ptr = logits.data();
+    const float* logits_ptr = logits.data();
     const int predicted = argmax_from_logits(logits_ptr, vocab_size);
     const int expected = val_seq.target[i];
     if (predicted == expected) ++correct;

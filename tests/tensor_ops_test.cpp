@@ -9,7 +9,7 @@
 #include "optimizer.hpp"
 #include "tensor.hpp"
 
-static void fill_vec(float *p, const std::vector<float> &vals) {
+static void fill_vec(float* p, const std::vector<float>& vals) {
   std::copy(vals.begin(), vals.end(), p);
 }
 
@@ -211,10 +211,10 @@ TEST(NN, BCEWithLogitsGradMatchesAnalytic) {
 TEST(Optimizer, SGDBasicStep) {
   ParameterStore ps;
   auto param = ps.tensor({2}, TensorInit::ZeroData);
-  float *data = param.data();
+  float* data = param.data();
   data[0] = 1.0f;
   data[1] = -1.0f;
-  float *grad = param.grad();
+  float* grad = param.grad();
   grad[0] = 0.5f;
   grad[1] = -0.25f;
 

@@ -24,7 +24,7 @@ namespace {
 #else
 #define UNROLL4
 #endif
-size_t compute_numel(const std::vector<int> &shape) {
+size_t compute_numel(const std::vector<int>& shape) {
   size_t n = 1;
   for (int d : shape) {
     if (d <= 0) throw std::invalid_argument("Tensor shape must be positive");
@@ -33,7 +33,7 @@ size_t compute_numel(const std::vector<int> &shape) {
   return n;
 }
 
-inline void zero_buffer(float *ptr, size_t count) {
+inline void zero_buffer(float* ptr, size_t count) {
   if (!ptr || count == 0) return;
   std::memset(ptr, 0, count * sizeof(float));
 }
@@ -57,89 +57,89 @@ inline float horizontal_add(float32x4_t v) {
 
 namespace {
 
-void backward_add(TapeOp &op) {
-  const float *g_out = op.out.grad();
-  float *ga = op.a.grad();
-  float *gb = op.b.grad();
+void backward_add(TapeOp& op) {
+  const float* g_out = op.out.grad();
+  float* ga = op.a.grad();
+  float* gb = op.b.grad();
   for (size_t i = 0; i < op.out.numel; ++i) {
     ga[i] += g_out[i];
     gb[i] += g_out[i];
   }
 }
 
-void backward_sub(TapeOp &op) {
-  const float *g_out = op.out.grad();
-  float *ga = op.a.grad();
-  float *gb = op.b.grad();
+void backward_sub(TapeOp& op) {
+  const float* g_out = op.out.grad();
+  float* ga = op.a.grad();
+  float* gb = op.b.grad();
   for (size_t i = 0; i < op.out.numel; ++i) {
     ga[i] += g_out[i];
     gb[i] -= g_out[i];
   }
 }
 
-void backward_mul(TapeOp &op) {
-  const float *g_out = op.out.grad();
-  const float *a_data = op.a.data();
-  const float *b_data = op.b.data();
-  float *ga = op.a.grad();
-  float *gb = op.b.grad();
+void backward_mul(TapeOp& op) {
+  const float* g_out = op.out.grad();
+  const float* a_data = op.a.data();
+  const float* b_data = op.b.data();
+  float* ga = op.a.grad();
+  float* gb = op.b.grad();
   for (size_t i = 0; i < op.out.numel; ++i) {
     ga[i] += g_out[i] * b_data[i];
     gb[i] += g_out[i] * a_data[i];
   }
 }
 
-void backward_relu(TapeOp &op) {
-  const float *g_out = op.out.grad();
-  const float *x = op.a.data();
-  float *gx = op.a.grad();
+void backward_relu(TapeOp& op) {
+  const float* g_out = op.out.grad();
+  const float* x = op.a.data();
+  float* gx = op.a.grad();
   for (size_t i = 0; i < op.out.numel; ++i) {
     gx[i] += g_out[i] * (x[i] > 0.0f ? 1.0f : 0.0f);
   }
 }
 
-void backward_tanh(TapeOp &op) {
-  const float *g_out = op.out.grad();
-  const float *y = op.out.data();
-  float *gx = op.a.grad();
+void backward_tanh(TapeOp& op) {
+  const float* g_out = op.out.grad();
+  const float* y = op.out.data();
+  float* gx = op.a.grad();
   for (size_t i = 0; i < op.out.numel; ++i) {
     gx[i] += g_out[i] * (1.0f - y[i] * y[i]);
   }
 }
 
-void backward_sigmoid(TapeOp &op) {
-  const float *g_out = op.out.grad();
-  const float *y = op.out.data();
-  float *gx = op.a.grad();
+void backward_sigmoid(TapeOp& op) {
+  const float* g_out = op.out.grad();
+  const float* y = op.out.data();
+  float* gx = op.a.grad();
   for (size_t i = 0; i < op.out.numel; ++i) {
     gx[i] += g_out[i] * y[i] * (1.0f - y[i]);
   }
 }
 
-void backward_log(TapeOp &op) {
-  const float *g_out = op.out.grad();
-  const float *x = op.a.data();
-  float *gx = op.a.grad();
+void backward_log(TapeOp& op) {
+  const float* g_out = op.out.grad();
+  const float* x = op.a.data();
+  float* gx = op.a.grad();
   for (size_t i = 0; i < op.out.numel; ++i) {
     gx[i] += g_out[i] / x[i];
   }
 }
 
-void backward_sum(TapeOp &op) {
+void backward_sum(TapeOp& op) {
   const float g_out = op.out.grad()[0];
-  float *gx = op.a.grad();
+  float* gx = op.a.grad();
   for (size_t i = 0; i < op.a.numel; ++i) {
     gx[i] += g_out;
   }
 }
 
-void backward_matmul_skinny(const float *A, const float *B, const float *gY,
-                            float *gA, float *gB, int M, int N, int K) {
-  const float *b0 = B;
-  const float *b1 = B + N;
+void backward_matmul_skinny(const float* A, const float* B, const float* gY,
+                            float* gA, float* gB, int M, int N, int K) {
+  const float* b0 = B;
+  const float* b1 = B + N;
 #if defined(__ARM_NEON) || defined(__ARM_NEON__)
   for (int m = 0; m < M; ++m) {
-    const float *gY_row = gY + m * N;
+    const float* gY_row = gY + m * N;
     float32x4_t sum0 = vdupq_n_f32(0.0f);
     float32x4_t sum1 = vdupq_n_f32(0.0f);
     int n = 0;
@@ -157,13 +157,13 @@ void backward_matmul_skinny(const float *A, const float *B, const float *gY,
       acc0 += gy_val * b0[n];
       acc1 += gy_val * b1[n];
     }
-    float *gA_row = gA + m * K;
+    float* gA_row = gA + m * K;
     gA_row[0] += acc0;
     gA_row[1] += acc1;
   }
 #else
   for (int m = 0; m < M; ++m) {
-    const float *gY_row = gY + m * N;
+    const float* gY_row = gY + m * N;
     float acc0 = 0.0f;
     float acc1 = 0.0f;
     UNROLL4
@@ -172,7 +172,7 @@ void backward_matmul_skinny(const float *A, const float *B, const float *gY,
       acc0 += gy_val * b0[n];
       acc1 += gy_val * b1[n];
     }
-    float *gA_row = gA + m * K;
+    float* gA_row = gA + m * K;
     gA_row[0] += acc0;
     gA_row[1] += acc1;
   }
@@ -182,7 +182,7 @@ void backward_matmul_skinny(const float *A, const float *B, const float *gY,
     float acc1 = 0.0f;
     UNROLL4
     for (int m = 0; m < M; ++m) {
-      const float *a_row = A + m * K;
+      const float* a_row = A + m * K;
       float gy_val = gY[m * N + n];
       acc0 += a_row[0] * gy_val;
       acc1 += a_row[1] * gy_val;
@@ -192,11 +192,11 @@ void backward_matmul_skinny(const float *A, const float *B, const float *gY,
   }
 }
 
-void backward_matmul_naive(const float *A, const float *B, const float *gY,
-                           float *gA, float *gB, int M, int N, int K) {
+void backward_matmul_naive(const float* A, const float* B, const float* gY,
+                           float* gA, float* gB, int M, int N, int K) {
 #if defined(__ARM_NEON) || defined(__ARM_NEON__)
   for (int m = 0; m < M; ++m) {
-    const float *gY_row = gY + m * N;
+    const float* gY_row = gY + m * N;
     for (int k = 0; k < K; ++k) {
       float32x4_t sum = vdupq_n_f32(0.0f);
       int n = 0;
@@ -214,7 +214,7 @@ void backward_matmul_naive(const float *A, const float *B, const float *gY,
   }
 #else
   for (int m = 0; m < M; ++m) {
-    const float *gY_row = gY + m * N;
+    const float* gY_row = gY + m * N;
     for (int k = 0; k < K; ++k) {
       float acc = 0.0f;
       UNROLL4
@@ -226,7 +226,7 @@ void backward_matmul_naive(const float *A, const float *B, const float *gY,
   }
 #endif
   for (int k = 0; k < K; ++k) {
-    float *gB_row = gB + k * N;
+    float* gB_row = gB + k * N;
     for (int n = 0; n < N; ++n) {
       float acc = 0.0f;
       UNROLL4
@@ -239,8 +239,8 @@ void backward_matmul_naive(const float *A, const float *B, const float *gY,
 }
 
 template <int TILE_SIZE>
-void backward_matmul_tiled(const float *A, const float *B, const float *gY,
-                           float *gA, float *gB, int M, int N, int K) {
+void backward_matmul_tiled(const float* A, const float* B, const float* gY,
+                           float* gA, float* gB, int M, int N, int K) {
   for (int m0 = 0; m0 < M; m0 += TILE_SIZE) {
     int m_max = std::min(m0 + TILE_SIZE, M);
     for (int k0 = 0; k0 < K; k0 += TILE_SIZE) {
@@ -251,16 +251,16 @@ void backward_matmul_tiled(const float *A, const float *B, const float *gY,
         for (int n0 = 0; n0 < N; n0 += TILE_SIZE) {
           int n_max = std::min(n0 + TILE_SIZE, N);
           int n_block = n_max - n0;
-          const float *gY_ptr = gY + m * N + n0;
+          const float* gY_ptr = gY + m * N + n0;
           for (int ni = 0; ni < n_block; ++ni) {
             float gy_val = gY_ptr[ni];
-            const float *b_ptr = B + k0 * N + (n0 + ni);
+            const float* b_ptr = B + k0 * N + (n0 + ni);
             for (int ki = 0; ki < k_block; ++ki) {
               accum[ki] += gy_val * b_ptr[ki * N];
             }
           }
         }
-        float *gA_row = gA + m * K + k0;
+        float* gA_row = gA + m * K + k0;
         for (int ki = 0; ki < k_block; ++ki) {
           gA_row[ki] += accum[ki];
         }
@@ -280,13 +280,13 @@ void backward_matmul_tiled(const float *A, const float *B, const float *gY,
           int m_max = std::min(m0 + TILE_SIZE, M);
           for (int m = m0; m < m_max; ++m) {
             float a_val = A[m * K + (k0 + k)];
-            const float *gY_ptr = gY + m * N + n0;
+            const float* gY_ptr = gY + m * N + n0;
             for (int ni = 0; ni < n_block; ++ni) {
               accum[ni] += a_val * gY_ptr[ni];
             }
           }
         }
-        float *gB_row = gB + (k0 + k) * N + n0;
+        float* gB_row = gB + (k0 + k) * N + n0;
         for (int ni = 0; ni < n_block; ++ni) {
           gB_row[ni] += accum[ni];
         }
@@ -296,15 +296,15 @@ void backward_matmul_tiled(const float *A, const float *B, const float *gY,
 }
 
 // TODO - First benchmark and then use M-Series `Accelerate` Matmul kernel
-void backward_matmul(TapeOp &op) {
+void backward_matmul(TapeOp& op) {
   int M = op.a.shape[0];
   int K = op.a.shape[1];
   int N = op.b.shape[1];
-  const float *A = op.a.data();
-  const float *B = op.b.data();
-  const float *gY = op.out.grad();
-  float *gA = op.a.grad();
-  float *gB = op.b.grad();
+  const float* A = op.a.data();
+  const float* B = op.b.data();
+  const float* gY = op.out.grad();
+  float* gA = op.a.grad();
+  float* gB = op.b.grad();
 
   ensure_mlx_cpu_device();
 
@@ -317,7 +317,7 @@ void backward_matmul(TapeOp &op) {
 
   mx::array grad_a = mx::matmul(grad_y, rhs_T);
   grad_a.eval();
-  const float *grad_a_ptr = grad_a.data<float>();
+  const float* grad_a_ptr = grad_a.data<float>();
   const size_t grad_a_elems = static_cast<size_t>(M) * static_cast<size_t>(K);
   for (size_t i = 0; i < grad_a_elems; ++i) {
     gA[i] += grad_a_ptr[i];
@@ -325,19 +325,19 @@ void backward_matmul(TapeOp &op) {
 
   mx::array grad_b = mx::matmul(lhs_T, grad_y);
   grad_b.eval();
-  const float *grad_b_ptr = grad_b.data<float>();
+  const float* grad_b_ptr = grad_b.data<float>();
   const size_t grad_b_elems = static_cast<size_t>(K) * static_cast<size_t>(N);
   for (size_t i = 0; i < grad_b_elems; ++i) {
     gB[i] += grad_b_ptr[i];
   }
 }
 
-void backward_add_rowwise(TapeOp &op) {
+void backward_add_rowwise(TapeOp& op) {
   int N = op.a.shape[0];
   int H = op.a.shape[1];
-  const float *g_out = op.out.grad();
-  float *gX = op.a.grad();
-  float *gb = op.b.grad();
+  const float* g_out = op.out.grad();
+  float* gX = op.a.grad();
+  float* gb = op.b.grad();
   for (int i = 0; i < N * H; ++i) {
     gX[i] += g_out[i];
   }
@@ -353,25 +353,25 @@ void backward_add_rowwise(TapeOp &op) {
 }  // namespace
 
 // Tensor methods
-float *Tensor::data() { return store ? store->data_ptr(offset) : nullptr; }
-float *Tensor::grad() { return store ? store->grad_ptr(offset) : nullptr; }
-const float *Tensor::data() const {
+float* Tensor::data() { return store ? store->data_ptr(offset) : nullptr; }
+float* Tensor::grad() { return store ? store->grad_ptr(offset) : nullptr; }
+const float* Tensor::data() const {
   return store ? store->data_ptr(offset) : nullptr;
 }
-const float *Tensor::grad() const {
+const float* Tensor::grad() const {
   return store ? store->grad_ptr(offset) : nullptr;
 }
 
 void Tensor::zero_grad() {
   if (!store) return;
-  float *ptr = store->grad_ptr(offset);
+  float* ptr = store->grad_ptr(offset);
   if (!ptr) return;
   zero_buffer(ptr, numel);
 }
 
 void Tensor::fill(float v) {
   if (!store) return;
-  float *ptr = store->data_ptr(offset);
+  float* ptr = store->data_ptr(offset);
   if (!ptr) return;
   std::fill(ptr, ptr + numel, v);
 }
@@ -469,31 +469,31 @@ void ParameterStore::ensure_capacity(size_t required) {
   }
 }
 
-float *ParameterStore::data_ptr(size_t offset) {
+float* ParameterStore::data_ptr(size_t offset) {
   return data_buf ? data_buf.get() + offset : nullptr;
 }
 
-const float *ParameterStore::data_ptr(size_t offset) const {
+const float* ParameterStore::data_ptr(size_t offset) const {
   return data_buf ? data_buf.get() + offset : nullptr;
 }
 
-float *ParameterStore::grad_ptr(size_t offset) {
+float* ParameterStore::grad_ptr(size_t offset) {
   return grad_buf ? grad_buf.get() + offset : nullptr;
 }
 
-const float *ParameterStore::grad_ptr(size_t offset) const {
+const float* ParameterStore::grad_ptr(size_t offset) const {
   return grad_buf ? grad_buf.get() + offset : nullptr;
 }
 
-Tensor ParameterStore::tensor(const std::vector<int> &shape, TensorInit init) {
+Tensor ParameterStore::tensor(const std::vector<int>& shape, TensorInit init) {
   const bool zero_data = (init == TensorInit::ZeroData);
   const size_t n = compute_numel(shape);
   const size_t off = allocate(n);
 
   if (n == 0) return Tensor{this, off, shape, n};
 
-  float *data = data_ptr(off);
-  float *grad = grad_ptr(off);
+  float* data = data_ptr(off);
+  float* grad = grad_ptr(off);
 
   if (stats_enabled) {
     auto start = std::chrono::steady_clock::now();
@@ -520,7 +520,7 @@ Tensor ParameterStore::tensor(const std::vector<int> &shape, TensorInit init) {
   return Tensor{this, off, shape, n};
 }
 
-Tensor ParameterStore::parameter(const std::vector<int> &shape, float scale,
+Tensor ParameterStore::parameter(const std::vector<int>& shape, float scale,
                                  unsigned seed) {
   auto t = tensor(shape);
   if (t.numel > 0) {
@@ -528,7 +528,7 @@ Tensor ParameterStore::parameter(const std::vector<int> &shape, float scale,
   }
   std::mt19937 gen(seed ? seed : std::random_device{}());
   std::uniform_real_distribution<float> dist(-scale, scale);
-  auto *p = t.data();
+  auto* p = t.data();
   for (size_t i = 0; i < t.numel; ++i) p[i] = dist(gen);
   return t;
 }
@@ -540,7 +540,7 @@ void ParameterStore::enable_stats(bool enabled) {
 
 void ParameterStore::reset_stats() { stats = ParameterStoreStats{}; }
 
-const ParameterStoreStats &ParameterStore::get_stats() const { return stats; }
+const ParameterStoreStats& ParameterStore::get_stats() const { return stats; }
 
 void ParameterStore::print_stats() const {
   using std::cout;
@@ -603,7 +603,7 @@ void ParameterStore::zero_grad() {
     return;
   }
 
-  float *grad_base = grad_ptr(zero_offset);
+  float* grad_base = grad_ptr(zero_offset);
   if (!grad_base) {
     if (stats_enabled) {
       stats.zero_grad_calls += 1;
@@ -626,11 +626,11 @@ void ParameterStore::zero_grad() {
 
 void ParameterStore::clear_tape() { tape.clear(); }
 
-void ParameterStore::backward(const Tensor &loss) {
+void ParameterStore::backward(const Tensor& loss) {
   if (loss.store != this)
     throw std::invalid_argument("loss belongs to different store");
   // Seed dL/dL = 1
-  float *g = loss.store->grad_ptr(loss.offset);
+  float* g = loss.store->grad_ptr(loss.offset);
   if (loss.numel == 1) {
     g[0] += 1.0f;
   } else {
@@ -638,7 +638,7 @@ void ParameterStore::backward(const Tensor &loss) {
   }
   // Traverse tape in reverse
   for (auto it = tape.rbegin(); it != tape.rend(); ++it) {
-    TapeOp &op = *it;
+    TapeOp& op = *it;
     switch (op.type) {
       case OpType::Add:
         backward_add(op);
@@ -675,7 +675,7 @@ void ParameterStore::backward(const Tensor &loss) {
 }
 
 // Ops
-static void assert_same_shape(const Tensor &a, const Tensor &b) {
+static void assert_same_shape(const Tensor& a, const Tensor& b) {
   if (a.shape.size() != b.shape.size())
     throw std::invalid_argument("Shape rank mismatch");
   if (a.numel != b.numel) throw std::invalid_argument("Numel mismatch");
@@ -683,90 +683,90 @@ static void assert_same_shape(const Tensor &a, const Tensor &b) {
     if (a.shape[i] != b.shape[i]) throw std::invalid_argument("Shape mismatch");
 }
 
-Tensor add(const Tensor &a, const Tensor &b, ParameterStore &store) {
+Tensor add(const Tensor& a, const Tensor& b, ParameterStore& store) {
   assert_same_shape(a, b);
   Tensor out = store.tensor(a.shape);
-  const float *ap = a.data();
-  const float *bp = b.data();
-  float *op = out.data();
+  const float* ap = a.data();
+  const float* bp = b.data();
+  float* op = out.data();
   for (size_t i = 0; i < a.numel; ++i) op[i] = ap[i] + bp[i];
   store.tape.push_back(TapeOp{OpType::Add, out, a, b});
   return out;
 }
 
-Tensor sub(const Tensor &a, const Tensor &b, ParameterStore &store) {
+Tensor sub(const Tensor& a, const Tensor& b, ParameterStore& store) {
   assert_same_shape(a, b);
   Tensor out = store.tensor(a.shape);
-  const float *ap = a.data();
-  const float *bp = b.data();
-  float *op = out.data();
+  const float* ap = a.data();
+  const float* bp = b.data();
+  float* op = out.data();
   for (size_t i = 0; i < a.numel; ++i) op[i] = ap[i] - bp[i];
   store.tape.push_back(TapeOp{OpType::Sub, out, a, b});
   return out;
 }
 
-Tensor mul(const Tensor &a, const Tensor &b, ParameterStore &store) {
+Tensor mul(const Tensor& a, const Tensor& b, ParameterStore& store) {
   assert_same_shape(a, b);
   Tensor out = store.tensor(a.shape);
-  const float *ap = a.data();
-  const float *bp = b.data();
-  float *op = out.data();
+  const float* ap = a.data();
+  const float* bp = b.data();
+  float* op = out.data();
   for (size_t i = 0; i < a.numel; ++i) op[i] = ap[i] * bp[i];
   store.tape.push_back(TapeOp{OpType::Mul, out, a, b});
   return out;
 }
 
-Tensor relu(const Tensor &x, ParameterStore &store) {
+Tensor relu(const Tensor& x, ParameterStore& store) {
   Tensor out = store.tensor(x.shape);
-  const float *xp = x.data();
-  float *op = out.data();
+  const float* xp = x.data();
+  float* op = out.data();
   for (size_t i = 0; i < x.numel; ++i) op[i] = xp[i] > 0.0f ? xp[i] : 0.0f;
   store.tape.push_back(TapeOp{OpType::Relu, out, x, Tensor{}});
   return out;
 }
 
-Tensor vtanh(const Tensor &x, ParameterStore &store) {
+Tensor vtanh(const Tensor& x, ParameterStore& store) {
   Tensor out = store.tensor(x.shape);
-  const float *xp = x.data();
-  float *op = out.data();
+  const float* xp = x.data();
+  float* op = out.data();
   for (size_t i = 0; i < x.numel; ++i) op[i] = std::tanh(xp[i]);
   store.tape.push_back(TapeOp{OpType::Tanh, out, x, Tensor{}});
   return out;
 }
 
-Tensor sigmoid(const Tensor &x, ParameterStore &store) {
+Tensor sigmoid(const Tensor& x, ParameterStore& store) {
   Tensor out = store.tensor(x.shape);
-  const float *xp = x.data();
-  float *op = out.data();
+  const float* xp = x.data();
+  float* op = out.data();
   for (size_t i = 0; i < x.numel; ++i) op[i] = 1.0f / (1.0f + std::exp(-xp[i]));
   store.tape.push_back(TapeOp{OpType::Sigmoid, out, x, Tensor{}});
   return out;
 }
 
-Tensor vlog(const Tensor &x, ParameterStore &store) {
+Tensor vlog(const Tensor& x, ParameterStore& store) {
   Tensor out = store.tensor(x.shape);
-  const float *xp = x.data();
-  float *op = out.data();
+  const float* xp = x.data();
+  float* op = out.data();
   for (size_t i = 0; i < x.numel; ++i) op[i] = std::log(xp[i]);
   store.tape.push_back(TapeOp{OpType::Log, out, x, Tensor{}});
   return out;
 }
 
-Tensor sum(const Tensor &x, ParameterStore &store) {
+Tensor sum(const Tensor& x, ParameterStore& store) {
   Tensor out = store.tensor({1});
   float acc = 0.0f;
-  const float *xp = x.data();
+  const float* xp = x.data();
   for (size_t i = 0; i < x.numel; ++i) acc += xp[i];
   out.data()[0] = acc;
   store.tape.push_back(TapeOp{OpType::Sum, out, x, Tensor{}});
   return out;
 }
 
-void matmul_naive(const float *A, const float *B, float *C, int M, int N,
+void matmul_naive(const float* A, const float* B, float* C, int M, int N,
                   int K) {
   for (int m = 0; m < M; ++m) {
-    const float *a_row = A + m * K;
-    float *c_row = C + m * N;
+    const float* a_row = A + m * K;
+    float* c_row = C + m * N;
     for (int n = 0; n < N; ++n) {
       float acc = 0.0f;
       UNROLL4
@@ -778,7 +778,7 @@ void matmul_naive(const float *A, const float *B, float *C, int M, int N,
   }
 }
 
-void matmul_neon(const float *A, const float *B, float *C, int M, int N,
+void matmul_neon(const float* A, const float* B, float* C, int M, int N,
                  int K) {
 #if defined(__ARM_NEON) || defined(__ARM_NEON__)
   for (int m = 0; m < M; ++m) {
@@ -805,15 +805,15 @@ void matmul_neon(const float *A, const float *B, float *C, int M, int N,
 #endif
 }
 
-void matmul_skinny(const float *A, const float *B, float *C, int M, int N,
+void matmul_skinny(const float* A, const float* B, float* C, int M, int N,
                    int K) {
-  const float *b0 = B;
-  const float *b1 = B + N;
+  const float* b0 = B;
+  const float* b1 = B + N;
   for (int m = 0; m < M; ++m) {
-    const float *a_row = A + m * K;
+    const float* a_row = A + m * K;
     float a0 = a_row[0];
     float a1 = a_row[1];
-    float *c_row = C + m * N;
+    float* c_row = C + m * N;
     UNROLL4
     for (int n = 0; n < N; ++n) {
       c_row[n] = a0 * b0[n] + a1 * b1[n];
@@ -821,16 +821,16 @@ void matmul_skinny(const float *A, const float *B, float *C, int M, int N,
   }
 }
 
-void matmul_skinny_neon(const float *A, const float *B, float *C, int M, int N,
+void matmul_skinny_neon(const float* A, const float* B, float* C, int M, int N,
                         int K) {
 #if defined(__ARM_NEON) || defined(__ARM_NEON__)
-  const float *b0 = B;
-  const float *b1 = B + N;
+  const float* b0 = B;
+  const float* b1 = B + N;
   for (int m = 0; m < M; ++m) {
-    const float *a_row = A + m * K;
+    const float* a_row = A + m * K;
     const float a0 = a_row[0];
     const float a1 = a_row[1];
-    float *c_row = C + m * N;
+    float* c_row = C + m * N;
     int n = 0;
     const float32x4_t a0_vec = vdupq_n_f32(a0);
     const float32x4_t a1_vec = vdupq_n_f32(a1);
@@ -851,7 +851,7 @@ void matmul_skinny_neon(const float *A, const float *B, float *C, int M, int N,
 }
 
 template <int TILE_SIZE>
-void matmul_tiled(const float *A, const float *B, float *C, int M, int N,
+void matmul_tiled(const float* A, const float* B, float* C, int M, int N,
                   int K) {
   for (int m0 = 0; m0 < M; m0 += TILE_SIZE) {
     int m_max = std::min(m0 + TILE_SIZE, M);
@@ -865,13 +865,13 @@ void matmul_tiled(const float *A, const float *B, float *C, int M, int N,
           int k_max = std::min(k0 + TILE_SIZE, K);
           for (int k = k0; k < k_max; ++k) {
             float a_val = A[m * K + k];
-            const float *b_ptr = B + k * N + n0;
+            const float* b_ptr = B + k * N + n0;
             for (int ni = 0; ni < n_block; ++ni) {
               accum[ni] += a_val * b_ptr[ni];
             }
           }
         }
-        float *c_row = C + m * N + n0;
+        float* c_row = C + m * N + n0;
         for (int ni = 0; ni < n_block; ++ni) {
           c_row[ni] = accum[ni];
         }
@@ -881,7 +881,7 @@ void matmul_tiled(const float *A, const float *B, float *C, int M, int N,
 }
 
 template <int TILE_SIZE>
-void matmul_tiled_neon(const float *A, const float *B, float *C, int M, int N,
+void matmul_tiled_neon(const float* A, const float* B, float* C, int M, int N,
                        int K) {
 #if defined(__ARM_NEON) || defined(__ARM_NEON__)
   matmul_tiled<TILE_SIZE>(A, B, C, M, N, K);
@@ -891,7 +891,7 @@ void matmul_tiled_neon(const float *A, const float *B, float *C, int M, int N,
 }
 
 // TODO - First benchmark and then use M-Series `Accelerate` Matmul kernel
-Tensor matmul(const Tensor &a, const Tensor &b, ParameterStore &store) {
+Tensor matmul(const Tensor& a, const Tensor& b, ParameterStore& store) {
   if (a.shape.size() != 2 || b.shape.size() != 2)
     throw std::invalid_argument("matmul expects 2D tensors");
   int M = a.shape[0];
@@ -901,9 +901,9 @@ Tensor matmul(const Tensor &a, const Tensor &b, ParameterStore &store) {
   if (K != K2) throw std::invalid_argument("matmul inner dim mismatch");
   Tensor out = store.tensor({M, N});
 
-  const float *A = a.data();
-  const float *B = b.data();
-  float *C = out.data();
+  const float* A = a.data();
+  const float* B = b.data();
+  float* C = out.data();
   ensure_mlx_cpu_device();
 
   mx::array lhs(A, mx::Shape{M, K}, mx::float32);
@@ -912,23 +912,23 @@ Tensor matmul(const Tensor &a, const Tensor &b, ParameterStore &store) {
   mx::array result = mx::matmul(lhs, rhs);
   result.eval();
 
-  const float *result_ptr = result.data<float>();
+  const float* result_ptr = result.data<float>();
   const size_t total = static_cast<size_t>(M) * static_cast<size_t>(N);
   std::copy(result_ptr, result_ptr + total, C);
   store.tape.push_back(TapeOp{OpType::Matmul, out, a, b});
   return out;
 }
 
-Tensor add_rowwise(const Tensor &X, const Tensor &b, ParameterStore &store) {
+Tensor add_rowwise(const Tensor& X, const Tensor& b, ParameterStore& store) {
   if (X.shape.size() != 2 || b.shape.size() != 1)
     throw std::invalid_argument("add_rowwise expects X[N,H], b[H]");
   int N = X.shape[0];
   int H = X.shape[1];
   if (b.shape[0] != H) throw std::invalid_argument("add_rowwise dim mismatch");
   Tensor out = store.tensor({N, H});
-  const float *xp = X.data();
-  const float *bp = b.data();
-  float *op = out.data();
+  const float* xp = X.data();
+  const float* bp = b.data();
+  float* op = out.data();
   for (int n = 0; n < N; ++n) {
     for (int h = 0; h < H; ++h) {
       op[n * H + h] = xp[n * H + h] + bp[h];

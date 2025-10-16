@@ -3,7 +3,7 @@
 #include <stdexcept>
 
 // must initialize with a set of unique characters
-CharTokenizer::CharTokenizer(const std::set<char> &chars)
+CharTokenizer::CharTokenizer(const std::set<char>& chars)
     : unique_chars(chars) {
   int id = 0;
   for (char c : unique_chars) {
@@ -13,7 +13,7 @@ CharTokenizer::CharTokenizer(const std::set<char> &chars)
   }
 }
 
-std::vector<int> CharTokenizer::encode(const std::string &text) const {
+std::vector<int> CharTokenizer::encode(const std::string& text) const {
   std::vector<int> encoded;
   for (char c : text) {
     auto it = char_to_id.find(c);
@@ -35,7 +35,7 @@ int CharTokenizer::encode(char c) const {
   }
 }
 
-std::string CharTokenizer::decode(const std::vector<int> &encoded) const {
+std::string CharTokenizer::decode(const std::vector<int>& encoded) const {
   std::string text;
   for (int id : encoded) {
     auto it = id_to_char.find(id);
@@ -48,7 +48,7 @@ std::string CharTokenizer::decode(const std::vector<int> &encoded) const {
   return text;
 };
 
-char CharTokenizer::decode(const int &encoded) const {
+char CharTokenizer::decode(const int& encoded) const {
   auto it = id_to_char.find(encoded);
   if (it != id_to_char.end()) {
     return it->second;

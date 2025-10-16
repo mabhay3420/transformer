@@ -4,7 +4,7 @@
 
 namespace nn {
 
-Linear::Linear(int in_f, int out_f, ParameterStore &store, bool bias,
+Linear::Linear(int in_f, int out_f, ParameterStore& store, bool bias,
                float init_scale, unsigned seed)
     : in_features(in_f),
       out_features(out_f),
@@ -13,7 +13,7 @@ Linear::Linear(int in_f, int out_f, ParameterStore &store, bool bias,
       b(bias ? store.parameter({out_f}, init_scale, seed ^ 0xA5A5A5)
              : Tensor{}) {}
 
-Tensor Linear::forward(const Tensor &x, ParameterStore &store) {
+Tensor Linear::forward(const Tensor& x, ParameterStore& store) {
   auto y = matmul(x, W, store);
   if (use_bias) {
     y = add_rowwise(y, b, store);
@@ -26,21 +26,21 @@ std::vector<Tensor> Linear::params() {
   return {W};
 }
 
-Tensor Tanh::forward(const Tensor &x, ParameterStore &store) {
+Tensor Tanh::forward(const Tensor& x, ParameterStore& store) {
   return vtanh(x, store);
 }
 
-Tensor Relu::forward(const Tensor &x, ParameterStore &store) {
+Tensor Relu::forward(const Tensor& x, ParameterStore& store) {
   return relu(x, store);
 }
 
-Tensor Sigmoid::forward(const Tensor &x, ParameterStore &store) {
+Tensor Sigmoid::forward(const Tensor& x, ParameterStore& store) {
   return sigmoid(x, store);
 }
 
-Tensor Sequential::forward(const Tensor &x, ParameterStore &store) {
+Tensor Sequential::forward(const Tensor& x, ParameterStore& store) {
   Tensor h = x;
-  for (auto &m : layers) {
+  for (auto& m : layers) {
     h = m->forward(h, store);
   }
   return h;
@@ -48,15 +48,15 @@ Tensor Sequential::forward(const Tensor &x, ParameterStore &store) {
 
 std::vector<Tensor> Sequential::params() {
   std::vector<Tensor> all;
-  for (auto &m : layers) {
+  for (auto& m : layers) {
     auto p = m->params();
     all.insert(all.end(), p.begin(), p.end());
   }
   return all;
 }
 
-Tensor bce_with_logits_loss(const Tensor &logits, const Tensor &targets,
-                            ParameterStore &store, float eps) {
+Tensor bce_with_logits_loss(const Tensor& logits, const Tensor& targets,
+                            ParameterStore& store, float eps) {
   auto probs = sigmoid(logits, store);
   Tensor ones = store.tensor(targets.shape);
   std::fill(ones.data(), ones.data() + ones.numel, 1.0f);

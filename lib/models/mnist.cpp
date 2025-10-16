@@ -139,8 +139,8 @@ void MnistDnnPT() {
 
       for (int i = 0; i < batch_size; ++i) {
         int idx = rand() % train_count;
-        float *dst = batch_X.data() + i * input_dim;
-        const auto &sample = mnist.data.train_data[idx];
+        float* dst = batch_X.data() + i * input_dim;
+        const auto& sample = mnist.data.train_data[idx];
         std::copy(sample.begin(), sample.end(), dst);
         int label = static_cast<int>(mnist.data.train_labels[idx]);
         fill_one_hot(batch_y, i, label);
@@ -172,12 +172,12 @@ void MnistDnnPT() {
     reset_scratch();
     int current_batch = std::min(eval_batch, end_idx - idx);
     for (int i = 0; i < current_batch; ++i) {
-      float *dst = eval_X.data() + i * input_dim;
-      const auto &sample = mnist.data.train_data[idx + i];
+      float* dst = eval_X.data() + i * input_dim;
+      const auto& sample = mnist.data.train_data[idx + i];
       std::copy(sample.begin(), sample.end(), dst);
     }
     Tensor logits = model(eval_X, store);
-    const float *logits_ptr = logits.data();
+    const float* logits_ptr = logits.data();
     for (int i = 0; i < current_batch; ++i) {
       int predicted =
           argmax_from_logits(logits_ptr + i * num_classes, num_classes);
@@ -190,20 +190,20 @@ void MnistDnnPT() {
   cout << "Validation accuracy (" << total << " samples): " << val_accuracy
        << endl;
 
-  const auto &test_data = mnist.data.test_data;
-  const auto &test_labels = mnist.data.test_labels;
+  const auto& test_data = mnist.data.test_data;
+  const auto& test_labels = mnist.data.test_labels;
   correct = 0;
   total = 0;
   for (int idx = 0; idx < test_total; idx += eval_batch) {
     reset_scratch();
     int current_batch = std::min(eval_batch, test_total - idx);
     for (int i = 0; i < current_batch; ++i) {
-      float *dst = eval_X.data() + i * input_dim;
-      const auto &sample = test_data[idx + i];
+      float* dst = eval_X.data() + i * input_dim;
+      const auto& sample = test_data[idx + i];
       std::copy(sample.begin(), sample.end(), dst);
     }
     Tensor logits = model(eval_X, store);
-    const float *logits_ptr = logits.data();
+    const float* logits_ptr = logits.data();
     for (int i = 0; i < current_batch; ++i) {
       int predicted =
           argmax_from_logits(logits_ptr + i * num_classes, num_classes);

@@ -21,7 +21,7 @@ class Optimizer {
   virtual ~Optimizer() = default;
 
   void zero_grad() {
-    for (auto &param : params_) {
+    for (auto& param : params_) {
       param.zero_grad();
     }
   }
@@ -29,13 +29,13 @@ class Optimizer {
   virtual void step() = 0;
 
  protected:
-  static void ensure_state_size(std::vector<float> &state, size_t target) {
+  static void ensure_state_size(std::vector<float>& state, size_t target) {
     if (state.size() != target) {
       state.assign(target, 0.0f);
     }
   }
 
-  static bool valid_param(const Tensor &t) {
+  static bool valid_param(const Tensor& t) {
     return t.numel > 0 && t.data() != nullptr && t.grad() != nullptr;
   }
 };
@@ -43,17 +43,17 @@ class Optimizer {
 template <typename Scheduler>
 class OptimizerWithScheduler : public Optimizer {
  protected:
-  Scheduler *scheduler_;
+  Scheduler* scheduler_;
 
  public:
-  OptimizerWithScheduler(std::vector<Tensor> params, Scheduler &scheduler)
+  OptimizerWithScheduler(std::vector<Tensor> params, Scheduler& scheduler)
       : Optimizer(std::move(params)), scheduler_(&scheduler) {}
 };
 
 template <typename Scheduler>
 class SGD : public OptimizerWithScheduler<Scheduler> {
  public:
-  SGD(std::vector<Tensor> params, Scheduler &scheduler,
+  SGD(std::vector<Tensor> params, Scheduler& scheduler,
       float momentum_beta = 0.0f)
       : OptimizerWithScheduler<Scheduler>(std::move(params), scheduler),
         momentum_beta_(momentum_beta),
@@ -64,14 +64,14 @@ class SGD : public OptimizerWithScheduler<Scheduler> {
     ++this->step_count_;
 
     for (size_t idx = 0; idx < this->params_.size(); ++idx) {
-      Tensor &param = this->params_[idx];
+      Tensor& param = this->params_[idx];
       if (!Optimizer::valid_param(param)) continue;
-      float *data = param.data();
-      const float *grad = param.grad();
+      float* data = param.data();
+      const float* grad = param.grad();
       const size_t n = param.numel;
       if (momentum_beta_ != 0.0f) {
         Optimizer::ensure_state_size(momentum_[idx], n);
-        auto &momentum_vec = momentum_[idx];
+        auto& momentum_vec = momentum_[idx];
         for (size_t i = 0; i < n; ++i) {
           momentum_vec[i] = momentum_beta_ * momentum_vec[i] + grad[i];
           data[i] -= lr * momentum_vec[i];
@@ -92,7 +92,7 @@ class SGD : public OptimizerWithScheduler<Scheduler> {
 template <typename Scheduler>
 class Adam : public OptimizerWithScheduler<Scheduler> {
  public:
-  Adam(std::vector<Tensor> params, Scheduler &scheduler, float beta1 = 0.9f,
+  Adam(std::vector<Tensor> params, Scheduler& scheduler, float beta1 = 0.9f,
        float beta2 = 0.999f, float weight_decay = 0.0f, bool amsgrad = false,
        float epsilon = 1e-8f)
       : OptimizerWithScheduler<Scheduler>(std::move(params), scheduler),
@@ -114,19 +114,19 @@ class Adam : public OptimizerWithScheduler<Scheduler> {
         1.0f - std::pow(beta2_, static_cast<float>(this->step_count_));
 
     for (size_t idx = 0; idx < this->params_.size(); ++idx) {
-      Tensor &param = this->params_[idx];
+      Tensor& param = this->params_[idx];
       if (!Optimizer::valid_param(param)) continue;
-      float *data = param.data();
-      const float *grad_ptr = param.grad();
+      float* data = param.data();
+      const float* grad_ptr = param.grad();
       const size_t n = param.numel;
       Optimizer::ensure_state_size(m1_[idx], n);
       Optimizer::ensure_state_size(m2_[idx], n);
       if (amsgrad_) {
         Optimizer::ensure_state_size(vhat_[idx], n);
       }
-      auto &m1_vec = m1_[idx];
-      auto &m2_vec = m2_[idx];
-      std::vector<float> *vhat_vec = amsgrad_ ? &vhat_[idx] : nullptr;
+      auto& m1_vec = m1_[idx];
+      auto& m2_vec = m2_[idx];
+      std::vector<float>* vhat_vec = amsgrad_ ? &vhat_[idx] : nullptr;
 
       for (size_t i = 0; i < n; ++i) {
         float grad = grad_ptr[i];
@@ -163,7 +163,7 @@ class Adam : public OptimizerWithScheduler<Scheduler> {
 template <typename Scheduler>
 class AdamW : public OptimizerWithScheduler<Scheduler> {
  public:
-  AdamW(std::vector<Tensor> params, Scheduler &scheduler, float beta1 = 0.9f,
+  AdamW(std::vector<Tensor> params, Scheduler& scheduler, float beta1 = 0.9f,
         float beta2 = 0.999f, float weight_decay = 0.0f, bool amsgrad = false,
         float epsilon = 1e-8f)
       : OptimizerWithScheduler<Scheduler>(std::move(params), scheduler),
@@ -185,19 +185,19 @@ class AdamW : public OptimizerWithScheduler<Scheduler> {
         1.0f - std::pow(beta2_, static_cast<float>(this->step_count_));
 
     for (size_t idx = 0; idx < this->params_.size(); ++idx) {
-      Tensor &param = this->params_[idx];
+      Tensor& param = this->params_[idx];
       if (!Optimizer::valid_param(param)) continue;
-      float *data = param.data();
-      const float *grad_ptr = param.grad();
+      float* data = param.data();
+      const float* grad_ptr = param.grad();
       const size_t n = param.numel;
       Optimizer::ensure_state_size(m1_[idx], n);
       Optimizer::ensure_state_size(m2_[idx], n);
       if (amsgrad_) {
         Optimizer::ensure_state_size(vhat_[idx], n);
       }
-      auto &m1_vec = m1_[idx];
-      auto &m2_vec = m2_[idx];
-      std::vector<float> *vhat_vec = amsgrad_ ? &vhat_[idx] : nullptr;
+      auto& m1_vec = m1_[idx];
+      auto& m2_vec = m2_[idx];
+      std::vector<float>* vhat_vec = amsgrad_ ? &vhat_[idx] : nullptr;
 
       if (weight_decay_ != 0.0f) {
         for (size_t i = 0; i < n; ++i) {

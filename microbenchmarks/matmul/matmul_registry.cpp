@@ -179,12 +179,12 @@ void matmul_mlx(const float* A, const float* B, float* C, int M, int K, int N) {
 
 const std::vector<MatmulBenchmark>& registry() {
   static std::vector<MatmulBenchmark> benches = {
-    {"naive", matmul_naive},
-    {"tiled_v3_256", matmul_tiled_v3<256>},
+      {"naive", matmul_naive},
+      {"tiled_v3_256", matmul_tiled_v3<256>},
 #if defined(__ARM_NEON) || defined(__ARM_NEON__)
-    {"tiled_256_neon", matmul_tiled_neon<256>},
+      {"tiled_256_neon", matmul_tiled_neon<256>},
 #endif
-    {"mlx_auto", matmul_mlx},
+      {"mlx_auto", matmul_mlx},
   };
   return benches;
 }

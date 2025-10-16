@@ -7,15 +7,15 @@ struct LRScheduler {
   float curr_lr;
   int cnt;
 
-  LRScheduler(float init_lr) : init_lr(init_lr), curr_lr(init_lr), cnt(0){};
+  LRScheduler(float init_lr) : init_lr(init_lr), curr_lr(init_lr), cnt(0) {};
 
-  float get() { return static_cast<T *>(this)->get(); }
-  float getLog() { return static_cast<T *>(this)->getLog(); }
+  float get() { return static_cast<T*>(this)->get(); }
+  float getLog() { return static_cast<T*>(this)->getLog(); }
 };
 
 struct ConstantLRScheduler : LRScheduler<ConstantLRScheduler> {
   ConstantLRScheduler(float init_lr)
-      : LRScheduler<ConstantLRScheduler>(init_lr){};
+      : LRScheduler<ConstantLRScheduler>(init_lr) {};
   float get() { return init_lr; }
   float getLog() { return init_lr; }
 };

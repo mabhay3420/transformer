@@ -19,13 +19,13 @@ struct Command {
   std::function<void()> action;
 };
 
-int run_command(const std::map<std::string, Command> &commands,
-                const std::string &name) {
+int run_command(const std::map<std::string, Command>& commands,
+                const std::string& name) {
   const auto it = commands.find(name);
   if (it == commands.end()) {
     std::cerr << "Unknown command: " << name
               << "\nAvailable commands:" << std::endl;
-    for (const auto &entry : commands) {
+    for (const auto& entry : commands) {
       std::cerr << "  " << entry.first << "\t" << entry.second.description
                 << std::endl;
     }
@@ -45,7 +45,7 @@ int run_command(const std::map<std::string, Command> &commands,
 
 }  // namespace
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
   const std::map<std::string, Command> commands = {
       {"xor", {"Tensor autograd XOR", XORWithTensors}},
       {"bigram", {"Bigram language model (Tensor)", BigraLmPT}},
@@ -57,7 +57,7 @@ int main(int argc, char **argv) {
   if (argc > 1) {
     const std::string arg = argv[1];
     if (arg == "--list" || arg == "-l") {
-      for (const auto &entry : commands) {
+      for (const auto& entry : commands) {
         std::cout << entry.first << '\t' << entry.second.description
                   << std::endl;
       }

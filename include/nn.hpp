@@ -11,8 +11,8 @@ namespace nn {
 
 struct Module {
   virtual ~Module() = default;
-  virtual Tensor forward(const Tensor &x, ParameterStore &store) = 0;
-  Tensor operator()(const Tensor &x, ParameterStore &store) {
+  virtual Tensor forward(const Tensor& x, ParameterStore& store) = 0;
+  Tensor operator()(const Tensor& x, ParameterStore& store) {
     return forward(x, store);
   }
   virtual std::vector<Tensor> params() { return {}; }
@@ -25,43 +25,43 @@ struct Linear : public Module {
   Tensor W;
   Tensor b;  // if use_bias==false, b.numel==0
 
-  Linear(int in_f, int out_f, ParameterStore &store, bool bias = true,
+  Linear(int in_f, int out_f, ParameterStore& store, bool bias = true,
          float init_scale = 0.5f, unsigned seed = 0);
-  Tensor forward(const Tensor &x, ParameterStore &store) override;
+  Tensor forward(const Tensor& x, ParameterStore& store) override;
   std::vector<Tensor> params() override;
 };
 
 struct Tanh : public Module {
-  Tensor forward(const Tensor &x, ParameterStore &store) override;
+  Tensor forward(const Tensor& x, ParameterStore& store) override;
 };
 
 struct Relu : public Module {
-  Tensor forward(const Tensor &x, ParameterStore &store) override;
+  Tensor forward(const Tensor& x, ParameterStore& store) override;
 };
 
 struct Sigmoid : public Module {
-  Tensor forward(const Tensor &x, ParameterStore &store) override;
+  Tensor forward(const Tensor& x, ParameterStore& store) override;
 };
 
 struct Sequential : public Module {
   std::vector<std::unique_ptr<Module>> layers;
   Sequential() = default;
-  Tensor forward(const Tensor &x, ParameterStore &store) override;
+  Tensor forward(const Tensor& x, ParameterStore& store) override;
   std::vector<Tensor> params() override;
   void push_back(std::unique_ptr<Module> m) { layers.push_back(std::move(m)); }
   template <typename T, typename... Args>
-  T &emplace_back(Args &&...args) {
+  T& emplace_back(Args&&... args) {
     static_assert(std::is_base_of_v<Module, T>,
                   "Sequential accepts Module-derived layers only");
     auto layer = std::make_unique<T>(std::forward<Args>(args)...);
-    T &ref = *layer;
+    T& ref = *layer;
     layers.push_back(std::move(layer));
     return ref;
   }
 };
 
 // Losses
-Tensor bce_with_logits_loss(const Tensor &logits, const Tensor &targets,
-                            ParameterStore &store, float eps = 1e-6f);
+Tensor bce_with_logits_loss(const Tensor& logits, const Tensor& targets,
+                            ParameterStore& store, float eps = 1e-6f);
 
 }  // namespace nn

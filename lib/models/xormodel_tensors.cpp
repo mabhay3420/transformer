@@ -20,8 +20,8 @@ struct Batch {
   std::vector<float> y;
 };
 
-void fill_tensor(Tensor &t, const std::vector<std::array<float, 2>> &rows) {
-  float *p = t.data();
+void fill_tensor(Tensor& t, const std::vector<std::array<float, 2>>& rows) {
+  float* p = t.data();
   int N = t.shape[0];
   int D = t.shape[1];
   for (int i = 0; i < N; ++i) {
@@ -31,8 +31,8 @@ void fill_tensor(Tensor &t, const std::vector<std::array<float, 2>> &rows) {
   }
 }
 
-void fill_tensor(Tensor &t, const std::vector<float> &vals) {
-  float *p = t.data();
+void fill_tensor(Tensor& t, const std::vector<float>& vals) {
+  float* p = t.data();
   for (size_t i = 0; i < t.numel; ++i) p[i] = vals[i];
 }
 
@@ -40,8 +40,8 @@ float xor_label(float a, float b) {
   return ((a > 0.5f) ^ (b > 0.5f)) ? 1.0f : 0.0f;
 }
 
-Batch sample_batch(const std::vector<std::array<float, 2>> &x,
-                   const std::vector<float> &y, int batch_size) {
+Batch sample_batch(const std::vector<std::array<float, 2>>& x,
+                   const std::vector<float>& y, int batch_size) {
   Batch batch;
   batch.x.reserve(batch_size);
   batch.y.reserve(batch_size);
@@ -53,8 +53,8 @@ Batch sample_batch(const std::vector<std::array<float, 2>> &x,
   return batch;
 }
 
-Tensor mse_loss(const Tensor &predicted, const Tensor &expected,
-                ParameterStore &store) {
+Tensor mse_loss(const Tensor& predicted, const Tensor& expected,
+                ParameterStore& store) {
   auto diff = sub(predicted, expected, store);
   auto diff_sq = mul(diff, diff, store);
   auto total = sum(diff_sq, store);
@@ -160,7 +160,7 @@ void XORWithTensors() {
   optim::AdamW optimizer(params, scheduler, 0.9f, 0.999f, 1e-4f);
 
   size_t total_param_count = 0;
-  for (const auto &p : params) total_param_count += p.numel;
+  for (const auto& p : params) total_param_count += p.numel;
   cout << "Total params: " << total_param_count << endl;
   if (total_param_count != param_hint) {
     cout << "(parameter hint mismatch: expected " << param_hint << ")" << endl;
@@ -195,7 +195,7 @@ void XORWithTensors() {
       Tensor Xv = store.tensor({val_size, input_dim});
       fill_tensor(Xv, x_val);
       Tensor logits_val = model(Xv, store);
-      const float *logits_ptr = logits_val.data();
+      const float* logits_ptr = logits_val.data();
 
       int correct = 0;
       std::vector<float> y_val;

@@ -12,11 +12,11 @@ struct CharTokenizer {
   std::unordered_map<int, char> id_to_char;
 
   // must initialize with a set of unique characters
-  CharTokenizer(const std::set<char> &chars);
-  std::vector<int> encode(const std::string &text) const;
+  CharTokenizer(const std::set<char>& chars);
+  std::vector<int> encode(const std::string& text) const;
   int encode(char c) const;
-  std::string decode(const std::vector<int> &encoded) const;
-  char decode(const int &encoded) const;
+  std::string decode(const std::vector<int>& encoded) const;
+  char decode(const int& encoded) const;
 };
 
 #endif

@@ -5,7 +5,7 @@
 #include <sstream>
 
 MultinomialDistribution::MultinomialDistribution(
-    const std::vector<float> &pdist)
+    const std::vector<float>& pdist)
     : pdist(pdist), gen(std::random_device{}()) {
   if (pdist.empty()) {
     throw std::invalid_argument("Probability distribution cannot be empty");
