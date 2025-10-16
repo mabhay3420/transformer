@@ -13,8 +13,7 @@ namespace train {
 
 float evaluate_sequence_nll(nn::Sequential& model, ParameterStore& store,
                             Tensor& scratch_input,
-                            const std::vector<int>& sequence,
-                            int vocab_size) {
+                            const std::vector<int>& sequence, int vocab_size) {
   if (sequence.size() < 2) return 0.0f;
   scratch_input.fill(0.0f);
   float total = 0.0f;
@@ -65,4 +64,3 @@ int sample_next_token(const Tensor& logits, int vocab_size) {
 }
 
 }  // namespace train
-

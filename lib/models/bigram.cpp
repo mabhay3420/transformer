@@ -57,8 +57,8 @@ void BigraLmPT() {
   auto params = model.params();
 
   const int base_batch = 128;
-  const int batch_size = std::max(1, std::min<int>(base_batch,
-                                                   static_cast<int>(train_data.size()) - 1));
+  const int batch_size = std::max(
+      1, std::min<int>(base_batch, static_cast<int>(train_data.size()) - 1));
   const int epochs = 500;
   const float lr = 0.1f;
 
@@ -102,9 +102,8 @@ void BigraLmPT() {
   Tensor eval_input = store.tensor({1, vocab_size}, TensorInit::ZeroData);
   float train_nll = train::evaluate_sequence_nll(model, store, eval_input,
                                                  train_data, vocab_size);
-  float val_nll =
-      train::evaluate_sequence_nll(model, store, eval_input, val_data,
-                                   vocab_size);
+  float val_nll = train::evaluate_sequence_nll(model, store, eval_input,
+                                               val_data, vocab_size);
   cout << "Training NLL: " << train_nll << endl;
   cout << "Validation NLL: " << val_nll << endl;
 

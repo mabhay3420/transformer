@@ -139,7 +139,8 @@ double time_binary(BinaryOp op, const std::vector<float>& a,
                    int iterations) {
   op(a.data(), b.data(), out.data(), a.size());
   auto start = clock::now();
-  for (int i = 0; i < iterations; ++i) op(a.data(), b.data(), out.data(), a.size());
+  for (int i = 0; i < iterations; ++i)
+    op(a.data(), b.data(), out.data(), a.size());
   auto end = clock::now();
   std::chrono::duration<double, std::milli> elapsed = end - start;
   sink += out[0];
@@ -221,11 +222,11 @@ void run_binary_suite(const std::string& name, BinaryOp scalar_op,
 
 void run_unary_suite(const std::string& name, UnaryOp scalar_op,
 #if defined(__ARM_NEON) || defined(__ARM_NEON__)
-                      UnaryOp neon_op,
+                     UnaryOp neon_op,
 #else
-                      UnaryOp,
+                     UnaryOp,
 #endif
-                      size_t numel, int iterations) {
+                     size_t numel, int iterations) {
   std::vector<float> x(numel);
   std::vector<float> out(numel);
   std::mt19937 rng(123);
@@ -248,8 +249,8 @@ void run_sum_suite(size_t numel, int iterations) {
   std::mt19937 rng(7);
   std::uniform_real_distribution<float> dist(-1.0f, 1.0f);
   for (size_t i = 0; i < numel; ++i) x[i] = dist(rng);
-  std::cout << "== sum (N=" << numel << ", iters=" << iterations << ") =="
-            << std::endl;
+  std::cout << "== sum (N=" << numel << ", iters=" << iterations
+            << ") ==" << std::endl;
   double scalar_ms = time_sum(sum_scalar, x, iterations);
 #if defined(__ARM_NEON) || defined(__ARM_NEON__)
   double neon_ms = time_sum(sum_neon, x, iterations);

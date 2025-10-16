@@ -166,10 +166,9 @@ void run_benchmarks(const BenchmarkConfig& cfg, const std::string& label) {
           ? summary.reference
           : (!summary.results.empty() ? summary.results.front().name : "");
   const BenchmarkResult* baseline_result = find_result(reference_name);
-  const double baseline =
-      baseline_result && baseline_result->milliseconds > 0.0
-          ? baseline_result->milliseconds
-          : 0.0;
+  const double baseline = baseline_result && baseline_result->milliseconds > 0.0
+                              ? baseline_result->milliseconds
+                              : 0.0;
 
   for (const auto& result : summary.results) {
     double factor = baseline > 0.0 && result.milliseconds > 0.0

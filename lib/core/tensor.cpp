@@ -318,8 +318,7 @@ void backward_matmul(TapeOp &op) {
   mx::array grad_a = mx::matmul(grad_y, rhs_T);
   grad_a.eval();
   const float *grad_a_ptr = grad_a.data<float>();
-  const size_t grad_a_elems =
-      static_cast<size_t>(M) * static_cast<size_t>(K);
+  const size_t grad_a_elems = static_cast<size_t>(M) * static_cast<size_t>(K);
   for (size_t i = 0; i < grad_a_elems; ++i) {
     gA[i] += grad_a_ptr[i];
   }
@@ -327,8 +326,7 @@ void backward_matmul(TapeOp &op) {
   mx::array grad_b = mx::matmul(lhs_T, grad_y);
   grad_b.eval();
   const float *grad_b_ptr = grad_b.data<float>();
-  const size_t grad_b_elems =
-      static_cast<size_t>(K) * static_cast<size_t>(N);
+  const size_t grad_b_elems = static_cast<size_t>(K) * static_cast<size_t>(N);
   for (size_t i = 0; i < grad_b_elems; ++i) {
     gB[i] += grad_b_ptr[i];
   }

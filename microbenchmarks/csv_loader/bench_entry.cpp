@@ -73,8 +73,8 @@ MNIST_BATCH load_csv_batch(const std::string& csv_filename, int max_lines) {
     return {std::move(images), std::move(labels)};
   }
 
-  size_t total_rows =
-      static_cast<size_t>(std::count(csv_contents.begin(), csv_contents.end(), '\n'));
+  size_t total_rows = static_cast<size_t>(
+      std::count(csv_contents.begin(), csv_contents.end(), '\n'));
   if (!csv_contents.empty() && csv_contents.back() != '\n') {
     total_rows += 1;
   }
@@ -87,7 +87,8 @@ MNIST_BATCH load_csv_batch(const std::string& csv_filename, int max_lines) {
   images.reserve(total_rows);
   labels.reserve(total_rows);
 
-  auto csv_stream = std::make_shared<std::istringstream>(std::move(csv_contents));
+  auto csv_stream =
+      std::make_shared<std::istringstream>(std::move(csv_contents));
   mlx::data::core::CSVReader reader(csv_stream, ',', '"');
 
   size_t loaded = 0;
@@ -126,8 +127,7 @@ IterationResult run_once(const Config& cfg) {
   for (const auto& row : batch.first) {
     checksum += std::accumulate(row.begin(), row.end(), 0.0);
   }
-  checksum +=
-      std::accumulate(batch.second.begin(), batch.second.end(), 0.0);
+  checksum += std::accumulate(batch.second.begin(), batch.second.end(), 0.0);
   result.checksum = checksum;
   static volatile double sink = 0.0;
   sink += checksum;
@@ -163,8 +163,7 @@ int main(int argc, char** argv) try {
     return 0;
   }
 
-  auto [min_it, max_it] =
-      std::minmax_element(times_ms.begin(), times_ms.end());
+  auto [min_it, max_it] = std::minmax_element(times_ms.begin(), times_ms.end());
   double avg_ms = std::accumulate(times_ms.begin(), times_ms.end(), 0.0) /
                   static_cast<double>(times_ms.size());
 

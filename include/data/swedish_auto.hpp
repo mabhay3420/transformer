@@ -12,11 +12,9 @@ struct SwedishAutoInsuranceData {
 
 struct SwedishAutoInsurance {
   SwedishAutoInsuranceData data;
-  SwedishAutoInsurance(std::string filename =
-                           "data/swedish_auto_insurace.csv");
+  SwedishAutoInsurance(std::string filename = "data/swedish_auto_insurace.csv");
   void summary();
 
  private:
   std::string filename;
 };
-

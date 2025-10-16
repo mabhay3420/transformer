@@ -1,3 +1,5 @@
+#include "utils.hpp"
+
 #include <gtest/gtest.h>
 
 #include <algorithm>
@@ -8,7 +10,6 @@
 #include <vector>
 
 #include "tensor.hpp"
-#include "utils.hpp"
 
 namespace {
 

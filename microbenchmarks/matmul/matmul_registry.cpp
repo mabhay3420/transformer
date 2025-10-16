@@ -1,4 +1,5 @@
 #include <algorithm>
+
 #include "bench_runner.hpp"
 #include "mlx/device.h"
 #include "mlx/mlx.h"

@@ -48,8 +48,8 @@ MNIST_BATCH MNIST::load_data(const std::string& csv_filename, int max_lines) {
     return {std::move(images), std::move(labels)};
   }
 
-  size_t total_rows =
-      static_cast<size_t>(std::count(csv_contents.begin(), csv_contents.end(), '\n'));
+  size_t total_rows = static_cast<size_t>(
+      std::count(csv_contents.begin(), csv_contents.end(), '\n'));
   if (!csv_contents.empty() && csv_contents.back() != '\n') {
     total_rows += 1;
   }
@@ -62,7 +62,8 @@ MNIST_BATCH MNIST::load_data(const std::string& csv_filename, int max_lines) {
   images.reserve(total_rows);
   labels.reserve(total_rows);
 
-  auto csv_stream = std::make_shared<std::istringstream>(std::move(csv_contents));
+  auto csv_stream =
+      std::make_shared<std::istringstream>(std::move(csv_contents));
   mlx::data::core::CSVReader reader(csv_stream, ',', '"');
 
   size_t loaded = 0;

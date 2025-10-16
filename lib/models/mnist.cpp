@@ -1,8 +1,8 @@
 #include "mnist.hpp"
 
 #include <algorithm>
-#include <cmath>
 #include <climits>
+#include <cmath>
 #include <cstdlib>
 #include <iostream>
 #include <vector>
@@ -113,8 +113,7 @@ void MnistDnnPT() {
 
   auto params = model.params();
 
-  const int lr_cliff =
-      std::max(1, (steps_per_epoch * epochs) / 5);
+  const int lr_cliff = std::max(1, (steps_per_epoch * epochs) / 5);
   StepLRScheduler scheduler(lr, lr_cliff, 0.5f);
   optim::AdamW optimizer(params, scheduler, 0.9f, 0.999f, 1e-4f);
 

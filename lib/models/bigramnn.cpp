@@ -104,8 +104,8 @@ void BigramNNPT() {
        << endl;
 
   Tensor eval_input = store.tensor({1, vocab_size}, TensorInit::ZeroData);
-  float accuracy = train::evaluate_sequence_accuracy(
-      model, store, eval_input, val_data, vocab_size);
+  float accuracy = train::evaluate_sequence_accuracy(model, store, eval_input,
+                                                     val_data, vocab_size);
   cout << "Validation accuracy: " << accuracy << endl;
 
   cout << "Sampled text:" << endl;

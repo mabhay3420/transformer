@@ -13,4 +13,3 @@ std::string load_text_data(std::string filename) {
   file.read(&data[0], size);
   return data;
 }
-

@@ -71,12 +71,15 @@ int main(int argc, char** argv) {
       BenchmarkConfig sample{dist_mn(rng), dist_k(rng), dist_mn(rng),
                              std::max(1, cfg.iterations)};
       auto summary = collect_benchmark(sample);
-      if (summary.predicted == summary.actual) correct++;
-      else if (mismatches.size() < 5) mismatches.push_back(summary);
+      if (summary.predicted == summary.actual)
+        correct++;
+      else if (mismatches.size() < 5)
+        mismatches.push_back(summary);
     }
     std::cout << "Random trials: " << random_samples << std::endl;
     std::cout << "Cost model accuracy: " << correct << " / " << random_samples
-              << " (" << (100.0 * correct / random_samples) << "%)" << std::endl;
+              << " (" << (100.0 * correct / random_samples) << "%)"
+              << std::endl;
     if (!mismatches.empty()) {
       std::cout << "Examples of mismatches:" << std::endl;
       for (const auto& summary : mismatches) {

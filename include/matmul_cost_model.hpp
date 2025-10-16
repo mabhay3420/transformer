@@ -2,11 +2,7 @@
 
 #include <algorithm>
 
-enum class MatmulKernel {
-  Naive,
-  Tiled,
-  Skinny
-};
+enum class MatmulKernel { Naive, Tiled, Skinny };
 
 inline const char* matmul_kernel_name(MatmulKernel k) {
   switch (k) {

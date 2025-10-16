@@ -122,8 +122,7 @@ void EmbedNLPPT() {
   const int epochs = 400;
 
   Tensor batch_X = store.tensor({batch_size, input_dim}, TensorInit::ZeroData);
-  Tensor batch_y =
-      store.tensor({batch_size, vocab_size}, TensorInit::ZeroData);
+  Tensor batch_y = store.tensor({batch_size, vocab_size}, TensorInit::ZeroData);
 
   std::vector<float> losses;
   losses.reserve(epochs);
@@ -156,8 +155,8 @@ void EmbedNLPPT() {
     }
   }
 
-  cout << "Final training loss: "
-       << (losses.empty() ? 0.0f : losses.back()) << endl;
+  cout << "Final training loss: " << (losses.empty() ? 0.0f : losses.back())
+       << endl;
 
   Tensor eval_input = store.tensor({1, input_dim}, TensorInit::ZeroData);
   const size_t eval_limit = std::min<size_t>(val_seq.input.size(), 4000);
@@ -176,7 +175,8 @@ void EmbedNLPPT() {
   }
 
   const float accuracy =
-      total > 0 ? static_cast<float>(correct) / static_cast<float>(total) : 0.0f;
+      total > 0 ? static_cast<float>(correct) / static_cast<float>(total)
+                : 0.0f;
   cout << "Validation accuracy (" << total << " samples): " << accuracy << endl;
 
   cout << "Sampled text:" << endl;

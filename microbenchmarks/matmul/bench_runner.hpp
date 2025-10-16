@@ -4,7 +4,8 @@
 #include <string>
 #include <vector>
 
-using MatmulFn = std::function<void(const float*, const float*, float*, int, int, int)>;
+using MatmulFn =
+    std::function<void(const float*, const float*, float*, int, int, int)>;
 
 #include <string>
 #include <vector>

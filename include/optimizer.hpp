@@ -73,8 +73,7 @@ class SGD : public OptimizerWithScheduler<Scheduler> {
         Optimizer::ensure_state_size(momentum_[idx], n);
         auto &momentum_vec = momentum_[idx];
         for (size_t i = 0; i < n; ++i) {
-          momentum_vec[i] =
-              momentum_beta_ * momentum_vec[i] + grad[i];
+          momentum_vec[i] = momentum_beta_ * momentum_vec[i] + grad[i];
           data[i] -= lr * momentum_vec[i];
         }
       } else {
@@ -109,8 +108,10 @@ class Adam : public OptimizerWithScheduler<Scheduler> {
   void step() override {
     const float lr = this->scheduler_->get();
     ++this->step_count_;
-    const float bc1 = 1.0f - std::pow(beta1_, static_cast<float>(this->step_count_));
-    const float bc2 = 1.0f - std::pow(beta2_, static_cast<float>(this->step_count_));
+    const float bc1 =
+        1.0f - std::pow(beta1_, static_cast<float>(this->step_count_));
+    const float bc2 =
+        1.0f - std::pow(beta2_, static_cast<float>(this->step_count_));
 
     for (size_t idx = 0; idx < this->params_.size(); ++idx) {
       Tensor &param = this->params_[idx];
@@ -178,8 +179,10 @@ class AdamW : public OptimizerWithScheduler<Scheduler> {
   void step() override {
     const float lr = this->scheduler_->get();
     ++this->step_count_;
-    const float bc1 = 1.0f - std::pow(beta1_, static_cast<float>(this->step_count_));
-    const float bc2 = 1.0f - std::pow(beta2_, static_cast<float>(this->step_count_));
+    const float bc1 =
+        1.0f - std::pow(beta1_, static_cast<float>(this->step_count_));
+    const float bc2 =
+        1.0f - std::pow(beta2_, static_cast<float>(this->step_count_));
 
     for (size_t idx = 0; idx < this->params_.size(); ++idx) {
       Tensor &param = this->params_[idx];
@@ -231,4 +234,3 @@ class AdamW : public OptimizerWithScheduler<Scheduler> {
 };
 
 }  // namespace optim
-

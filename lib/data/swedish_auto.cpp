@@ -51,4 +51,3 @@ void SwedishAutoInsurance::summary() {
   std::cout << "Test data size: " << data.test_data.size() << std::endl;
   std::cout << "Test labels size: " << data.test_labels.size() << std::endl;
 }
-

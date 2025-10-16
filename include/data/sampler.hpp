@@ -17,8 +17,7 @@ struct Sampler {
   std::vector<int> val_data;
 
   Sampler(size_t batch_size, size_t block_size,
-          const std::vector<int>& train_data,
-          const std::vector<int>& val_data)
+          const std::vector<int>& train_data, const std::vector<int>& val_data)
       : batch_size(batch_size),
         block_size(block_size),
         train_data(train_data),
