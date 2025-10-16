@@ -46,6 +46,14 @@ float getenv_float(const char *name, float fallback) {
   return fallback;
 }
 
+std::string getenv_str(const char *name, const std::string &fallback) {
+  if (!name) return fallback;
+  if (const char *value = std::getenv(name)) {
+    if (value[0] != '\0') return std::string(value);
+  }
+  return fallback;
+}
+
 void fill_one_hot(Tensor &tensor, int row, int index) {
   if (tensor.shape.size() != 2) return;
   if (row < 0 || row >= tensor.shape[0]) return;

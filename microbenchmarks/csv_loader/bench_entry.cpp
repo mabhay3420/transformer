@@ -20,13 +20,17 @@ namespace {
 using clock = std::chrono::steady_clock;
 
 struct Config {
-  std::string file = "data/mnist_train.csv";
+  std::string file;
   int max_lines = -1;
   int iterations = 5;
 };
 
 Config parse_flags(int argc, char** argv) {
   Config cfg;
+  const char* env_dir = std::getenv("MNIST_DATA_DIR");
+  std::string data_dir =
+      (env_dir && env_dir[0] != '\0') ? std::string(env_dir) : "data_tmp";
+  cfg.file = data_dir + "/mnist_train.csv";
   for (int i = 1; i < argc; ++i) {
     std::string arg(argv[i]);
     if (arg.rfind("FILE=", 0) == 0) {

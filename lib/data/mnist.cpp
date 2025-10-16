@@ -13,9 +13,17 @@
 
 #include "data/text.hpp"
 #include "mlx/data/core/CSVReader.h"
+#include "utils.hpp"
 
 MNIST::MNIST(int max_lines, std::string train_csv, std::string test_csv)
     : train_csv(std::move(train_csv)), test_csv(std::move(test_csv)) {
+  const std::string data_dir = getenv_str("MNIST_DATA_DIR", "data_tmp");
+  if (this->train_csv.empty()) {
+    this->train_csv = data_dir + "/mnist_train.csv";
+  }
+  if (this->test_csv.empty()) {
+    this->test_csv = data_dir + "/mnist_test.csv";
+  }
   auto train_batch = load_data(this->train_csv, max_lines);
   auto test_batch = load_data(this->test_csv, max_lines);
   data.train_data = std::move(train_batch.first);
@@ -78,4 +86,3 @@ MNIST_BATCH MNIST::load_data(const std::string& csv_filename, int max_lines) {
 
   return {std::move(images), std::move(labels)};
 }
-

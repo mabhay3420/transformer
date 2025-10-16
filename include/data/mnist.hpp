@@ -20,8 +20,8 @@ struct MnistDataset {
 struct MNIST {
   MnistDataset data;
 
-  MNIST(int max_lines = 100, std::string train_csv = "data/mnist_train.csv",
-        std::string test_csv = "data/mnist_test.csv");
+  MNIST(int max_lines = 100, std::string train_csv = "",
+        std::string test_csv = "");
 
   void summary();
 
@@ -30,4 +30,3 @@ struct MNIST {
   std::string test_csv;
   MNIST_BATCH load_data(const std::string& filename, int max_lines);
 };
-
