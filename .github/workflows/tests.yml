@@ -56,5 +56,5 @@ jobs:
         if: always()
         run: |
           if command -v ccache >/dev/null 2>&1; then
-            ccache --show-stats
+            ccache --show-stats --stats-format=human
           fi
