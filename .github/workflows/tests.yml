@@ -24,7 +24,7 @@ jobs:
           brew update
           brew list cmake || brew install cmake
 
-       - name: Run unit tests
-         run: |
-           chmod +x ./scripts/test.sh || true
-           ./scripts/test.sh
+      - name: Run unit tests
+        run: |
+          chmod +x ./scripts/test.sh || true
+          ./scripts/test.sh

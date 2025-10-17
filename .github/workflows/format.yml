@@ -21,7 +21,7 @@ jobs:
           brew update
           brew list clang-format >/dev/null 2>&1 || brew install clang-format
 
-       - name: Run formatting check
-         run: |
-           chmod +x ./scripts/format.sh
-           ./scripts/format.sh --check
+      - name: Run formatting check
+        run: |
+          chmod +x ./scripts/format.sh
+          ./scripts/format.sh --check
