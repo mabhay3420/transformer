@@ -5,5 +5,6 @@ var searchData=
   ['reserve_5fcalls_2',['reserve_calls',['../structParameterStoreStats.html#a3384e5cbc6f47d8ff71bfdc7f7dba30c',1,'ParameterStoreStats']]],
   ['reserve_5felements_3',['reserve_elements',['../structParameterStoreStats.html#a941712e8000be738c521ba9cb2bdb129',1,'ParameterStoreStats']]],
   ['reset_4',['reset',['../structParameterStore.html#a1041b10f1c6c3e4dc51195bb1d51c615',1,'ParameterStore']]],
-  ['reset_5fstats_5',['reset_stats',['../structParameterStore.html#a361b72bbe1065b05a61b72e677343915',1,'ParameterStore']]]
+  ['reset_5fstats_5',['reset_stats',['../structParameterStore.html#a361b72bbe1065b05a61b72e677343915',1,'ParameterStore']]],
+  ['rng_6',['rng',['../structParameterStore.html#a7c392d6c5391918cabe797b593d9f734',1,'ParameterStore']]]
 ];

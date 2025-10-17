@@ -109,14 +109,16 @@ $(document).ready(function(){initNavTree('split_8hpp_source.html',''); initResiz
 <div class="foldopen" id="foldopen00009" data-start="{" data-end="}">
 <div class="line"><a id="l00009" name="l00009"></a><span class="lineno"><a class="line" href="split_8hpp.html#a8c38b6d960483d06d0dfa6265851c698">    9</a></span><span class="keywordtype">void</span> <a class="code hl_function" href="split_8hpp.html#a8c38b6d960483d06d0dfa6265851c698">split_data</a>(<span class="keyword">const</span> <span class="keywordtype">float</span> ratio, <span class="keyword">const</span> std::vector&lt;T&gt;&amp; data,</div>
 <div class="line"><a id="l00010" name="l00010"></a><span class="lineno">   10</span>                std::vector&lt;T&gt;&amp; train_data, std::vector&lt;T&gt;&amp; val_data) {</div>
-<div class="line"><a id="l00011" name="l00011"></a><span class="lineno">   11</span>  assert(ratio &gt; 0.0f &amp;&amp; ratio &lt; 1.0f &amp;&amp; <span class="stringliteral">&quot;Ratio must be between 0 and 1&quot;</span>);</div>
-<div class="line"><a id="l00012" name="l00012"></a><span class="lineno">   12</span>  <span class="keyword">auto</span> split_index = <span class="keyword">static_cast&lt;</span><span class="keywordtype">size_t</span><span class="keyword">&gt;</span>(data.size() * ratio);</div>
-<div class="line"><a id="l00013" name="l00013"></a><span class="lineno">   13</span>  train_data.assign(data.begin(), data.begin() + split_index);</div>
-<div class="line"><a id="l00014" name="l00014"></a><span class="lineno">   14</span>  val_data.assign(data.begin() + split_index, data.end());</div>
-<div class="line"><a id="l00015" name="l00015"></a><span class="lineno">   15</span>  <span class="keywordflow">if</span> (train_data.empty() || val_data.empty()) {</div>
-<div class="line"><a id="l00016" name="l00016"></a><span class="lineno">   16</span>    <span class="keywordflow">throw</span> std::runtime_error(<span class="stringliteral">&quot;Split resulted in empty dataset&quot;</span>);</div>
-<div class="line"><a id="l00017" name="l00017"></a><span class="lineno">   17</span>  }</div>
-<div class="line"><a id="l00018" name="l00018"></a><span class="lineno">   18</span>}</div>
+<div class="line"><a id="l00011" name="l00011"></a><span class="lineno">   11</span>  <span class="keywordflow">if</span> (!(ratio &gt; 0.0f &amp;&amp; ratio &lt; 1.0f)) {</div>
+<div class="line"><a id="l00012" name="l00012"></a><span class="lineno">   12</span>    <span class="keywordflow">throw</span> std::invalid_argument(<span class="stringliteral">&quot;split_data ratio must be in (0, 1)&quot;</span>);</div>
+<div class="line"><a id="l00013" name="l00013"></a><span class="lineno">   13</span>  }</div>
+<div class="line"><a id="l00014" name="l00014"></a><span class="lineno">   14</span>  <span class="keyword">auto</span> split_index = <span class="keyword">static_cast&lt;</span><span class="keywordtype">size_t</span><span class="keyword">&gt;</span>(data.size() * ratio);</div>
+<div class="line"><a id="l00015" name="l00015"></a><span class="lineno">   15</span>  train_data.assign(data.begin(), data.begin() + split_index);</div>
+<div class="line"><a id="l00016" name="l00016"></a><span class="lineno">   16</span>  val_data.assign(data.begin() + split_index, data.end());</div>
+<div class="line"><a id="l00017" name="l00017"></a><span class="lineno">   17</span>  <span class="keywordflow">if</span> (train_data.empty() || val_data.empty()) {</div>
+<div class="line"><a id="l00018" name="l00018"></a><span class="lineno">   18</span>    <span class="keywordflow">throw</span> std::runtime_error(<span class="stringliteral">&quot;Split resulted in empty dataset&quot;</span>);</div>
+<div class="line"><a id="l00019" name="l00019"></a><span class="lineno">   19</span>  }</div>
+<div class="line"><a id="l00020" name="l00020"></a><span class="lineno">   20</span>}</div>
 </div>
 <div class="ttc" id="asplit_8hpp_html_a8c38b6d960483d06d0dfa6265851c698"><div class="ttname"><a href="split_8hpp.html#a8c38b6d960483d06d0dfa6265851c698">split_data</a></div><div class="ttdeci">void split_data(const float ratio, const std::vector&lt; T &gt; &amp;data, std::vector&lt; T &gt; &amp;train_data, std::vector&lt; T &gt; &amp;val_data)</div><div class="ttdef"><b>Definition</b> split.hpp:9</div></div>
 </div><!-- fragment --></div><!-- contents -->

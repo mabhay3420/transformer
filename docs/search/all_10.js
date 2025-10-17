@@ -4,7 +4,7 @@ var searchData=
   ['tape_1',['tape',['../structParameterStore.html#a98c8bdd452fbbf44ed87ff31024434ff',1,'ParameterStore']]],
   ['tapeop_2',['TapeOp',['../structTapeOp.html',1,'']]],
   ['target_3',['target',['../structBigramMLPData.html#ac99c627dab3a1b1b3b4cf5296695a42f',1,'BigramMLPData']]],
-  ['tensor_4',['tensor',['../structTensor.html',1,'Tensor'],['../structTensor.html#a16b07c716627c19fbee317859cd23d50',1,'Tensor::Tensor()=default'],['../structTensor.html#a6741458304dfe7f85d6d3ee7fab110be',1,'Tensor::Tensor(ParameterStore *s, size_t off, std::vector&lt; int &gt; sh, size_t n)'],['../structParameterStore.html#a1a60a4a967c62bf086eef6385da23677',1,'ParameterStore::tensor()']]],
+  ['tensor_4',['tensor',['../structTensor.html',1,'Tensor'],['../structParameterStore.html#a1a60a4a967c62bf086eef6385da23677',1,'ParameterStore::tensor()'],['../structTensor.html#a16b07c716627c19fbee317859cd23d50',1,'Tensor::Tensor()=default'],['../structTensor.html#a6741458304dfe7f85d6d3ee7fab110be',1,'Tensor::Tensor(ParameterStore *s, size_t off, std::vector&lt; int &gt; sh, size_t n)']]],
   ['tensor_2ehpp_5',['tensor.hpp',['../tensor_8hpp.html',1,'']]],
   ['tensor_5fzero_5fcalls_6',['tensor_zero_calls',['../structParameterStoreStats.html#a959359ef77ca6739842eaa5278a479a9',1,'ParameterStoreStats']]],
   ['tensor_5fzero_5felems_7',['tensor_zero_elems',['../structParameterStoreStats.html#a2a27abe3e3b4553215f92f05690ca383',1,'ParameterStoreStats']]],

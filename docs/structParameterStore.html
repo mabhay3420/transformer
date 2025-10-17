@@ -141,9 +141,12 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:a1a60a4a967c62bf086eef6385da23677" id="r_a1a60a4a967c62bf086eef6385da23677"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structTensor.html">Tensor</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structParameterStore.html#a1a60a4a967c62bf086eef6385da23677">tensor</a> (const std::vector&lt; int &gt; &amp;shape, <a class="el" href="tensor_8hpp.html#a57211e58f92b94a10e1f637aa62d7a95">TensorInit</a> init=<a class="el" href="tensor_8hpp.html#a57211e58f92b94a10e1f637aa62d7a95a36d0715fcd8c494045c0445ac520d543">TensorInit::UninitializedData</a>)</td></tr>
 <tr class="memdesc:a1a60a4a967c62bf086eef6385da23677"><td class="mdescLeft">&#160;</td><td class="mdescRight">Create a new tensor.  <br /></td></tr>
 <tr class="separator:a1a60a4a967c62bf086eef6385da23677"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a5bf5334e9fc78d8913d96ec3284562f7" id="r_a5bf5334e9fc78d8913d96ec3284562f7"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structTensor.html">Tensor</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structParameterStore.html#a5bf5334e9fc78d8913d96ec3284562f7">parameter</a> (const std::vector&lt; int &gt; &amp;shape, float scale=0.01f, unsigned seed=0)</td></tr>
+<tr class="memitem:a5bf5334e9fc78d8913d96ec3284562f7" id="r_a5bf5334e9fc78d8913d96ec3284562f7"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structTensor.html">Tensor</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structParameterStore.html#a5bf5334e9fc78d8913d96ec3284562f7">parameter</a> (const std::vector&lt; int &gt; &amp;shape, float scale=0.01f, unsigned <a class="el" href="structParameterStore.html#a5101f873f447b711d5cced4457c32874">seed</a>=0)</td></tr>
 <tr class="memdesc:a5bf5334e9fc78d8913d96ec3284562f7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Create a learnable parameter tensor.  <br /></td></tr>
 <tr class="separator:a5bf5334e9fc78d8913d96ec3284562f7"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a5101f873f447b711d5cced4457c32874" id="r_a5101f873f447b711d5cced4457c32874"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structParameterStore.html#a5101f873f447b711d5cced4457c32874">seed</a> (unsigned seed)</td></tr>
+<tr class="memdesc:a5101f873f447b711d5cced4457c32874"><td class="mdescLeft">&#160;</td><td class="mdescRight">Seed the internal random number generator.  <br /></td></tr>
+<tr class="separator:a5101f873f447b711d5cced4457c32874"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa557a82837fbdd177e175b87c6ed751d" id="r_aa557a82837fbdd177e175b87c6ed751d"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structParameterStore.html#aa557a82837fbdd177e175b87c6ed751d">enable_stats</a> (bool enabled=true)</td></tr>
 <tr class="memdesc:aa557a82837fbdd177e175b87c6ed751d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Enable or disable statistics collection.  <br /></td></tr>
 <tr class="separator:aa557a82837fbdd177e175b87c6ed751d"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -192,6 +195,9 @@ Public Attributes</h2></td></tr>
 <tr class="memitem:ae20681927e478cb216b8ffcfb36ef71a" id="r_ae20681927e478cb216b8ffcfb36ef71a"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structParameterStore.html#ae20681927e478cb216b8ffcfb36ef71a">stats_enabled</a> = false</td></tr>
 <tr class="memdesc:ae20681927e478cb216b8ffcfb36ef71a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Whether to collect statistics.  <br /></td></tr>
 <tr class="separator:ae20681927e478cb216b8ffcfb36ef71a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a7c392d6c5391918cabe797b593d9f734" id="r_a7c392d6c5391918cabe797b593d9f734"><td class="memItemLeft" align="right" valign="top">std::mt19937&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structParameterStore.html#a7c392d6c5391918cabe797b593d9f734">rng</a> {5489u}</td></tr>
+<tr class="memdesc:a7c392d6c5391918cabe797b593d9f734"><td class="mdescLeft">&#160;</td><td class="mdescRight">Deterministic RNG for parameters.  <br /></td></tr>
+<tr class="separator:a7c392d6c5391918cabe797b593d9f734"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a61fb3dff57a44ccaa81be3281b3ec62c" id="r_a61fb3dff57a44ccaa81be3281b3ec62c"><td class="memItemLeft" align="right" valign="top">size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structParameterStore.html#a61fb3dff57a44ccaa81be3281b3ec62c">param_grad_offset</a> = 0</td></tr>
 <tr class="separator:a61fb3dff57a44ccaa81be3281b3ec62c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ad66cea8f85803f77a12fe3b9654131d5" id="r_ad66cea8f85803f77a12fe3b9654131d5"><td class="memItemLeft" align="right" valign="top">size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structParameterStore.html#ad66cea8f85803f77a12fe3b9654131d5">param_grad_span</a> = 0</td></tr>
@@ -642,6 +648,32 @@ Public Attributes</h2></td></tr>
 
 </div>
 </div>
+<a id="a5101f873f447b711d5cced4457c32874" name="a5101f873f447b711d5cced4457c32874"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a5101f873f447b711d5cced4457c32874">&#9670;&#160;</a></span>seed()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void ParameterStore::seed </td>
+          <td>(</td>
+          <td class="paramtype">unsigned&#160;</td>
+          <td class="paramname"><em>seed</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Seed the internal random number generator. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">seed</td><td>New RNG seed </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
 <a id="aef58522c72aee41e13064559413334f1" name="aef58522c72aee41e13064559413334f1"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#aef58522c72aee41e13064559413334f1">&#9670;&#160;</a></span>size()</h2>
 
@@ -871,6 +903,22 @@ Public Attributes</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
+
+</div>
+</div>
+<a id="a7c392d6c5391918cabe797b593d9f734" name="a7c392d6c5391918cabe797b593d9f734"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a7c392d6c5391918cabe797b593d9f734">&#9670;&#160;</a></span>rng</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::mt19937 ParameterStore::rng {5489u}</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Deterministic RNG for parameters. </p>
 
 </div>
 </div>
