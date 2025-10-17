@@ -402,3 +402,19 @@ TEST(NN, SequentialModel) {
   EXPECT_FLOAT_EQ(output.data()[1], 0.0f);
   EXPECT_TRUE(output.data()[2] >= 0.0f);
 }
+
+TEST(NN, LinearDeterministicDefaultSeed) {
+  ParameterStore ps1;
+  ParameterStore ps2;
+  nn::Linear linear1(2, 2, ps1);
+  nn::Linear linear2(2, 2, ps2);
+  auto params1 = linear1.params();
+  auto params2 = linear2.params();
+  ASSERT_EQ(params1.size(), params2.size());
+  for (size_t p = 0; p < params1.size(); ++p) {
+    ASSERT_EQ(params1[p].numel, params2[p].numel);
+    for (size_t i = 0; i < params1[p].numel; ++i) {
+      EXPECT_FLOAT_EQ(params1[p].data()[i], params2[p].data()[i]);
+    }
+  }
+}
