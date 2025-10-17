@@ -8,6 +8,7 @@
 
 #pragma once
 #include <cmath>
+#include <stdexcept>
 
 /**
  * @class LRScheduler
@@ -142,7 +143,14 @@ struct StepLRScheduler : LRScheduler<StepLRScheduler> {
       : LRScheduler<StepLRScheduler>(init_lr),
         cliff(cliff),
         gamma(gamma),
-        limit(limit) {}
+        limit(limit) {
+    if (cliff <= 0) {
+      throw std::invalid_argument("StepLRScheduler cliff must be positive");
+    }
+    if (gamma <= 0.0f) {
+      throw std::invalid_argument("StepLRScheduler gamma must be positive");
+    }
+  }
 
   /**
    * @brief Get current learning rate with step decay.
