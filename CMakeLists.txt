@@ -60,3 +60,16 @@ option(ENABLE_TESTS "Build unit tests" ON)
 if(ENABLE_TESTS)
   add_subdirectory(tests)
 endif()
+
+# Doxygen
+find_package(Doxygen)
+if(DOXYGEN_FOUND)
+    add_custom_target(doc
+        COMMAND ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+        COMMENT "Generating API documentation with Doxygen"
+        VERBATIM
+    )
+else()
+    message(WARNING "Doxygen not found. Documentation target disabled.")
+endif()

@@ -1,0 +1,19 @@
+var searchData=
+[
+  ['sample_0',['sample',['../struct_sampler.html#ac5332d5fd160c54ff39121f2c08f0302',1,'Sampler::sample()'],['../struct_multinomial_distribution.html#a38ad29edc058ff1d70438483f856c065',1,'MultinomialDistribution::sample()']]],
+  ['sample_5fnext_5ftoken_1',['sample_next_token',['../namespacetrain.html#afebfe49a2f98408b1bd74b84751ad6b6',1,'train']]],
+  ['sampler_2',['Sampler',['../struct_sampler.html#af2c52fc4829defbe1f657b31706a6e31',1,'Sampler']]],
+  ['sequential_3',['Sequential',['../structnn_1_1_sequential.html#a2cb72bd659c91a4e7b72e2e87df58c3b',1,'nn::Sequential']]],
+  ['sgd_4',['SGD',['../classoptim_1_1_s_g_d.html#a7a4eec9b6d27035ec02ffb51422e88ff',1,'optim::SGD']]],
+  ['sigmoid_5',['sigmoid',['../tensor_8hpp.html#aac5cbeead459ead246ee02bd7332389f',1,'tensor.hpp']]],
+  ['size_6',['size',['../struct_parameter_store.html#aef58522c72aee41e13064559413334f1',1,'ParameterStore']]],
+  ['softmax_5ffrom_5flogits_7',['softmax_from_logits',['../utils_8hpp.html#a5dfceef553eaf7ed3f987edbbb102e69',1,'utils.hpp']]],
+  ['split_5fdata_8',['split_data',['../split_8hpp.html#a8c38b6d960483d06d0dfa6265851c698',1,'split.hpp']]],
+  ['stats_5factive_9',['stats_active',['../struct_parameter_store.html#a33a71561ad3adc77ece6527289bfef26',1,'ParameterStore']]],
+  ['step_10',['step',['../classoptim_1_1_optimizer.html#ad9a5904b78707346eeab961629342af7',1,'optim::Optimizer::step()'],['../classoptim_1_1_s_g_d.html#af563ec82e2b7929afbd28dbf549b50af',1,'optim::SGD::step()'],['../classoptim_1_1_adam.html#ac94daadd6de7e3c908824638aa72736a',1,'optim::Adam::step()'],['../classoptim_1_1_adam_w.html#a148915b8ec1a27d905c6c787eade49e1',1,'optim::AdamW::step()']]],
+  ['steplrscheduler_11',['StepLRScheduler',['../struct_step_l_r_scheduler.html#a53e68ac17a26be299a14cd09c1809c36',1,'StepLRScheduler']]],
+  ['sub_12',['sub',['../tensor_8hpp.html#af8188634b15beea61418f501b69d61f4',1,'tensor.hpp']]],
+  ['sum_13',['sum',['../tensor_8hpp.html#a5f84356edd6b97f36290af42a3e53165',1,'tensor.hpp']]],
+  ['summary_14',['summary',['../struct_m_n_i_s_t.html#a1f08c4a793be9e39e4aea57de727620d',1,'MNIST::summary()'],['../struct_swedish_auto_insurance.html#a5d4ee630643a4899e6192e18dee16107',1,'SwedishAutoInsurance::summary()']]],
+  ['swedishautoinsurance_15',['SwedishAutoInsurance',['../struct_swedish_auto_insurance.html#a961bb51e1e0706555c70d33eaa57ad4a',1,'SwedishAutoInsurance']]]
+];
