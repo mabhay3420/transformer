@@ -94,6 +94,25 @@ TEST(UtilsTensorHelpers, FillOneHotSetsSingleEntry) {
   }
 }
 
+TEST(UtilsTensorHelpers, FillOneHotClearsExistingRowValues) {
+  ParameterStore store;
+  auto tensor = store.tensor({2, 3}, TensorInit::ZeroData);
+  float* data = tensor.data();
+  ASSERT_NE(data, nullptr);
+  for (size_t idx = 0; idx < tensor.numel; ++idx) {
+    data[idx] = 0.5f;
+  }
+
+  fill_one_hot(tensor, 0, 1);
+
+  EXPECT_FLOAT_EQ(data[0], 0.0f);
+  EXPECT_FLOAT_EQ(data[1], 1.0f);
+  EXPECT_FLOAT_EQ(data[2], 0.0f);
+  EXPECT_FLOAT_EQ(data[3], 0.5f);
+  EXPECT_FLOAT_EQ(data[4], 0.5f);
+  EXPECT_FLOAT_EQ(data[5], 0.5f);
+}
+
 TEST(UtilsTensorHelpers, FillOneHotIgnoresInvalidIndices) {
   ParameterStore store;
   auto tensor = store.tensor({2, 3}, TensorInit::ZeroData);
