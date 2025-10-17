@@ -160,6 +160,7 @@ struct ParameterStore {
   std::vector<TapeOp> tape;           ///< Operation tape for autograd
   ParameterStoreStats stats;          ///< Performance statistics
   bool stats_enabled = false;         ///< Whether to collect statistics
+  std::mt19937 rng{5489u};            ///< Deterministic RNG for parameters
 
   // Internal tracking for parameter gradients
   size_t param_grad_offset = 0;
@@ -257,6 +258,12 @@ struct ParameterStore {
    */
   Tensor parameter(const std::vector<int>& shape, float scale = 0.01f,
                    unsigned seed = 0);
+
+  /**
+   * @brief Seed the internal random number generator.
+   * @param seed New RNG seed
+   */
+  void seed(unsigned seed);
 
   /**
    * @brief Enable or disable statistics collection.

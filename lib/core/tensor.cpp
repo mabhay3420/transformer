@@ -526,12 +526,22 @@ Tensor ParameterStore::parameter(const std::vector<int>& shape, float scale,
   if (t.numel > 0) {
     register_parameter_allocation(t.offset, t.numel);
   }
-  std::mt19937 gen(seed ? seed : std::random_device{}());
   std::uniform_real_distribution<float> dist(-scale, scale);
   auto* p = t.data();
-  for (size_t i = 0; i < t.numel; ++i) p[i] = dist(gen);
+  if (seed == 0) {
+    for (size_t i = 0; i < t.numel; ++i) {
+      p[i] = dist(rng);
+    }
+  } else {
+    std::mt19937 gen(seed);
+    for (size_t i = 0; i < t.numel; ++i) {
+      p[i] = dist(gen);
+    }
+  }
   return t;
 }
+
+void ParameterStore::seed(unsigned seed) { rng.seed(seed); }
 
 void ParameterStore::enable_stats(bool enabled) {
   stats_enabled = enabled;
