@@ -7,6 +7,7 @@ on:
   pull_request:
     branches:
       - main
+  workflow_dispatch:
 
 jobs:
   docs:
@@ -17,6 +18,8 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
 
     - name: Install Doxygen
       run: sudo apt-get update && sudo apt-get install -y doxygen
@@ -24,12 +27,43 @@ jobs:
     - name: Generate Documentation
       run: doxygen
 
-    - name: Move docs to root
-      run: mv docs/html/* docs/
+    - name: Publish to gh-pages branch
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      env:
+        WORKTREE_DIR: ${{ runner.temp }}/gh-pages
+      run: |
+        set -euo pipefail
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+        git config --global --add safe.directory "$(pwd)"
 
-    - name: Deploy to GitHub Pages
-      if: github.ref == 'refs/heads/main'
-      uses: peaceiris/actions-gh-pages@v3
-      with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: docs
+        docs_source="docs/html"
+        worktree="${WORKTREE_DIR}"
+        rm -rf "${worktree}"
+
+        if git ls-remote --exit-code origin gh-pages >/dev/null 2>&1; then
+          git fetch origin gh-pages
+          git worktree add "${worktree}" gh-pages
+        else
+          git worktree add --orphan "${worktree}" gh-pages
+        fi
+
+        mkdir -p "${worktree}/docs"
+        rsync -a --delete "${docs_source}/" "${worktree}/docs/"
+        touch "${worktree}/.nojekyll"
+
+        cd "${worktree}"
+        git add --all
+        if git rev-parse --verify HEAD >/dev/null 2>&1; then
+          if git diff --cached --quiet; then
+            echo "No documentation changes to publish."
+            cd -
+            git worktree remove "${worktree}"
+            exit 0
+          fi
+        fi
+
+        git commit -m "Update docs for ${GITHUB_SHA}"
+        git push origin HEAD:gh-pages
+        cd -
+        git worktree remove "${worktree}"
