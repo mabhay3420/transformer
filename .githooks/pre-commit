@@ -3,10 +3,10 @@ set -euo pipefail
 
 # Ensure formatting stays consistent before committing.
 # Run the formatter in check mode so commits only proceed when clean.
-if [[ ! -x "./format.sh" ]]; then
-  echo "pre-commit: missing ./format.sh; cannot enforce formatting." >&2
+if [[ ! -x "./scripts/format.sh" ]]; then
+  echo "pre-commit: missing ./scripts/format.sh; cannot enforce formatting." >&2
   exit 1
 fi
 
-echo "pre-commit: running ./format.sh --check"
-./format.sh --check
+echo "pre-commit: running ./scripts/format.sh --check"
+./scripts/format.sh --check
