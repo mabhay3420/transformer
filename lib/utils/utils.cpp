@@ -59,8 +59,13 @@ void fill_one_hot(Tensor& tensor, int row, int index) {
   if (row < 0 || row >= tensor.shape[0]) return;
   if (index < 0 || index >= tensor.shape[1]) return;
   float* ptr = tensor.data();
+  if (!ptr) return;
   int stride = tensor.shape[1];
-  ptr[row * stride + index] = 1.0f;
+  float* row_ptr = ptr + row * stride;
+  for (int i = 0; i < stride; ++i) {
+    row_ptr[i] = 0.0f;
+  }
+  row_ptr[index] = 1.0f;
 }
 
 int argmax_from_logits(const float* logits, int size) {
