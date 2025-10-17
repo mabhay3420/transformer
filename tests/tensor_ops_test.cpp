@@ -348,6 +348,13 @@ TEST(Scheduler, StepLRScheduler) {
   EXPECT_FLOAT_EQ(sched.get(), 0.05f);  // step 3
 }
 
+TEST(Scheduler, StepLRSchedulerHonorsLimit) {
+  StepLRScheduler sched(0.1f, 1, 0.5f, 0.03f);
+  EXPECT_FLOAT_EQ(sched.get(), 0.05f);
+  EXPECT_FLOAT_EQ(sched.get(), 0.03f);
+  EXPECT_FLOAT_EQ(sched.get(), 0.03f);
+}
+
 TEST(Optimizer, AdamBasicStep) {
   ParameterStore ps;
   auto param = ps.tensor({1}, TensorInit::ZeroData);
