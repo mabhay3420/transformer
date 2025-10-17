@@ -9,6 +9,7 @@
 #include <string>
 #include <vector>
 
+#include "data/split.hpp"
 #include "tensor.hpp"
 
 namespace {
@@ -167,4 +168,11 @@ TEST(UtilsRandom, RandomFloatWithinRange) {
     EXPECT_GE(value, min);
     EXPECT_LE(value, max);
   }
+}
+
+TEST(DataSplit, RejectsRatioGreaterThanOne) {
+  std::vector<int> data = {1, 2, 3, 4};
+  std::vector<int> train;
+  std::vector<int> val;
+  EXPECT_THROW(split_data(1.1f, data, train, val), std::invalid_argument);
 }
