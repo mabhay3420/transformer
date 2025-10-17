@@ -1,9 +1,0 @@
-[submodule "thirdparty/json"]
-	path = thirdparty/json
-	url = https://github.com/nlohmann/json.git
-[submodule "thirdparty/mlx"]
-	path = thirdparty/mlx
-	url = https://github.com/mabhay3420/mlx.git
-[submodule "thirdparty/mlx-data"]
-	path = thirdparty/mlx-data
-	url = https://github.com/mabhay3420/mlx-data.git
