@@ -1,3 +1,11 @@
+/**
+ * @file optimizer.hpp
+ * @brief Optimization algorithms for training neural networks.
+ *
+ * Provides SGD, Adam, and AdamW optimizers with configurable learning rate
+ * schedulers. Supports momentum, weight decay, and AMSGrad variants.
+ */
+
 #pragma once
 
 #include <algorithm>
@@ -10,55 +18,108 @@
 
 namespace optim {
 
+/**
+ * @class Optimizer
+ * @brief Base class for optimization algorithms.
+ *
+ * Manages parameter updates and gradient zeroing. Subclasses implement
+ * specific update rules.
+ */
 class Optimizer {
  protected:
-  std::vector<Tensor> params_;
-  size_t step_count_;
+  std::vector<Tensor> params_;  ///< Learnable parameters to optimize
+  size_t step_count_;           ///< Number of steps taken
 
  public:
+  /**
+   * @brief Construct optimizer with parameters.
+   * @param params List of parameter tensors
+   */
   explicit Optimizer(std::vector<Tensor> params)
       : params_(std::move(params)), step_count_(0) {}
   virtual ~Optimizer() = default;
 
+  /**
+   * @brief Zero gradients for all parameters.
+   */
   void zero_grad() {
     for (auto& param : params_) {
       param.zero_grad();
     }
   }
 
+  /**
+   * @brief Perform one optimization step.
+   */
   virtual void step() = 0;
 
  protected:
+  /**
+   * @brief Ensure optimizer state vector has correct size.
+   * @param state State vector to resize
+   * @param target Target size
+   */
   static void ensure_state_size(std::vector<float>& state, size_t target) {
     if (state.size() != target) {
       state.assign(target, 0.0f);
     }
   }
 
+  /**
+   * @brief Check if parameter tensor is valid for optimization.
+   * @param t Parameter tensor
+   * @return True if valid
+   */
   static bool valid_param(const Tensor& t) {
     return t.numel > 0 && t.data() != nullptr && t.grad() != nullptr;
   }
 };
 
+/**
+ * @class OptimizerWithScheduler
+ * @brief Base class for optimizers that use learning rate schedulers.
+ * @tparam Scheduler Learning rate scheduler type
+ */
 template <typename Scheduler>
 class OptimizerWithScheduler : public Optimizer {
  protected:
-  Scheduler* scheduler_;
+  Scheduler* scheduler_;  ///< Pointer to learning rate scheduler
 
  public:
+  /**
+   * @brief Construct optimizer with scheduler.
+   * @param params Parameter tensors
+   * @param scheduler Learning rate scheduler reference
+   */
   OptimizerWithScheduler(std::vector<Tensor> params, Scheduler& scheduler)
       : Optimizer(std::move(params)), scheduler_(&scheduler) {}
 };
 
+/**
+ * @class SGD
+ * @brief Stochastic Gradient Descent optimizer with momentum.
+ * @tparam Scheduler Learning rate scheduler type
+ *
+ * Implements SGD with optional momentum: v = βv + ∇, p -= lr * v
+ */
 template <typename Scheduler>
 class SGD : public OptimizerWithScheduler<Scheduler> {
  public:
+  /**
+   * @brief Construct SGD optimizer.
+   * @param params Parameter tensors
+   * @param scheduler Learning rate scheduler
+   * @param momentum_beta Momentum coefficient (0 for no momentum)
+   */
   SGD(std::vector<Tensor> params, Scheduler& scheduler,
       float momentum_beta = 0.0f)
       : OptimizerWithScheduler<Scheduler>(std::move(params), scheduler),
         momentum_beta_(momentum_beta),
         momentum_(this->params_.size()) {}
 
+  /**
+   * @brief Perform SGD update step.
+   */
   void step() override {
     const float lr = this->scheduler_->get();
     ++this->step_count_;
@@ -89,9 +150,27 @@ class SGD : public OptimizerWithScheduler<Scheduler> {
   std::vector<std::vector<float>> momentum_;
 };
 
+/**
+ * @class Adam
+ * @brief Adam optimizer with weight decay.
+ * @tparam Scheduler Learning rate scheduler type
+ *
+ * Implements Adam algorithm: m = β1*m + (1-β1)*∇, v = β2*v + (1-β2)*∇²
+ * p -= lr * m̂ / (√v̂ + ε), with optional AMSGrad and weight decay.
+ */
 template <typename Scheduler>
 class Adam : public OptimizerWithScheduler<Scheduler> {
  public:
+  /**
+   * @brief Construct Adam optimizer.
+   * @param params Parameter tensors
+   * @param scheduler Learning rate scheduler
+   * @param beta1 First moment decay rate (default 0.9)
+   * @param beta2 Second moment decay rate (default 0.999)
+   * @param weight_decay Weight decay coefficient (default 0.0)
+   * @param amsgrad Use AMSGrad variant (default false)
+   * @param epsilon Numerical stability constant (default 1e-8)
+   */
   Adam(std::vector<Tensor> params, Scheduler& scheduler, float beta1 = 0.9f,
        float beta2 = 0.999f, float weight_decay = 0.0f, bool amsgrad = false,
        float epsilon = 1e-8f)
@@ -105,6 +184,9 @@ class Adam : public OptimizerWithScheduler<Scheduler> {
         m2_(this->params_.size()),
         vhat_(amsgrad ? this->params_.size() : 0) {}
 
+  /**
+   * @brief Perform Adam update step.
+   */
   void step() override {
     const float lr = this->scheduler_->get();
     ++this->step_count_;
@@ -160,9 +242,27 @@ class Adam : public OptimizerWithScheduler<Scheduler> {
   std::vector<std::vector<float>> vhat_;
 };
 
+/**
+ * @class AdamW
+ * @brief AdamW optimizer with decoupled weight decay.
+ * @tparam Scheduler Learning rate scheduler type
+ *
+ * Similar to Adam but applies weight decay before gradient update:
+ * p -= lr * λ * p, then Adam update on the decayed gradient.
+ */
 template <typename Scheduler>
 class AdamW : public OptimizerWithScheduler<Scheduler> {
  public:
+  /**
+   * @brief Construct AdamW optimizer.
+   * @param params Parameter tensors
+   * @param scheduler Learning rate scheduler
+   * @param beta1 First moment decay rate (default 0.9)
+   * @param beta2 Second moment decay rate (default 0.999)
+   * @param weight_decay Weight decay coefficient (default 0.0)
+   * @param amsgrad Use AMSGrad variant (default false)
+   * @param epsilon Numerical stability constant (default 1e-8)
+   */
   AdamW(std::vector<Tensor> params, Scheduler& scheduler, float beta1 = 0.9f,
         float beta2 = 0.999f, float weight_decay = 0.0f, bool amsgrad = false,
         float epsilon = 1e-8f)
@@ -176,6 +276,9 @@ class AdamW : public OptimizerWithScheduler<Scheduler> {
         m2_(this->params_.size()),
         vhat_(amsgrad ? this->params_.size() : 0) {}
 
+  /**
+   * @brief Perform AdamW update step.
+   */
   void step() override {
     const float lr = this->scheduler_->get();
     ++this->step_count_;
