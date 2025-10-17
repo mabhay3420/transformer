@@ -8,6 +8,7 @@
 #include "nn.hpp"
 #include "optimizer.hpp"
 #include "tensor.hpp"
+#include "utils.hpp"
 
 static void fill_vec(float* p, const std::vector<float>& vals) {
   std::copy(vals.begin(), vals.end(), p);
@@ -239,4 +240,158 @@ TEST(Optimizer, AdamWDecoupledWeightDecay) {
   const float expected_decay = 2.0f - 0.1f * 0.01f * 2.0f;
   const float expected_value = expected_decay - 0.1f;
   EXPECT_NEAR(param.data()[0], expected_value, 1e-6f);
+}
+
+TEST(TensorOps, TensorFillAndZeroGrad) {
+  ParameterStore ps;
+  auto t = ps.tensor({2, 3});
+  t.fill(5.0f);
+  for (size_t i = 0; i < t.numel; ++i) {
+    EXPECT_FLOAT_EQ(t.data()[i], 5.0f);
+  }
+  // Set some grads
+  t.grad()[0] = 1.0f;
+  t.grad()[1] = 2.0f;
+  t.zero_grad();
+  for (size_t i = 0; i < t.numel; ++i) {
+    EXPECT_FLOAT_EQ(t.grad()[i], 0.0f);
+  }
+}
+
+TEST(TensorOps, ReluForward) {
+  ParameterStore ps;
+  auto x = ps.tensor({4});
+  fill_vec(x.data(), {-1.0f, 0.0f, 2.0f, -0.5f});
+  auto y = relu(x, ps);
+  EXPECT_FLOAT_EQ(y.data()[0], 0.0f);
+  EXPECT_FLOAT_EQ(y.data()[1], 0.0f);
+  EXPECT_FLOAT_EQ(y.data()[2], 2.0f);
+  EXPECT_FLOAT_EQ(y.data()[3], 0.0f);
+}
+
+TEST(TensorOps, SigmoidForward) {
+  ParameterStore ps;
+  auto x = ps.tensor({3});
+  fill_vec(x.data(), {0.0f, 1.0f, -1.0f});
+  auto y = sigmoid(x, ps);
+  EXPECT_NEAR(y.data()[0], 0.5f, 1e-6);
+  EXPECT_NEAR(y.data()[1], 1.0f / (1.0f + std::exp(-1.0f)), 1e-6);
+  EXPECT_NEAR(y.data()[2], 1.0f / (1.0f + std::exp(1.0f)), 1e-6);
+}
+
+TEST(TensorOps, LogForward) {
+  ParameterStore ps;
+  auto x = ps.tensor({3});
+  fill_vec(x.data(), {1.0f, std::exp(1.0f), std::exp(2.0f)});
+  auto y = vlog(x, ps);
+  EXPECT_NEAR(y.data()[0], 0.0f, 1e-6);
+  EXPECT_NEAR(y.data()[1], 1.0f, 1e-6);
+  EXPECT_NEAR(y.data()[2], 2.0f, 1e-6);
+}
+
+TEST(TensorOps, SoftmaxAndArgmax) {
+  std::vector<float> logits = {1.0f, 2.0f, 0.5f};
+  auto probs = softmax_from_logits(logits.data(), logits.size());
+  EXPECT_NEAR(probs[0] + probs[1] + probs[2], 1.0f, 1e-6);
+  int argmax_idx = argmax_from_logits(logits.data(), logits.size());
+  EXPECT_EQ(argmax_idx, 1);
+}
+
+TEST(TensorOps, FillOneHot) {
+  ParameterStore ps;
+  auto t = ps.tensor({1, 3}, TensorInit::ZeroData);
+  fill_one_hot(t, 0, 1);
+  EXPECT_FLOAT_EQ(t.data()[0], 0.0f);
+  EXPECT_FLOAT_EQ(t.data()[1], 1.0f);
+  EXPECT_FLOAT_EQ(t.data()[2], 0.0f);
+}
+
+TEST(TensorOps, MatmulDifferentShapes) {
+  ParameterStore ps;
+  // 1x2 @ 2x3 = 1x3
+  auto a = ps.tensor({1, 2});
+  auto b = ps.tensor({2, 3});
+  fill_vec(a.data(), {1.0f, 2.0f});
+  fill_vec(b.data(), {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f});
+  auto c = matmul(a, b, ps);
+  EXPECT_EQ(c.shape[0], 1);
+  EXPECT_EQ(c.shape[1], 3);
+  EXPECT_FLOAT_EQ(c.data()[0], 1 * 1 + 2 * 4);  // 1*1 + 2*4 = 9
+  EXPECT_FLOAT_EQ(c.data()[1], 1 * 2 + 2 * 5);  // 12
+  EXPECT_FLOAT_EQ(c.data()[2], 1 * 3 + 2 * 6);  // 15
+}
+
+TEST(TensorOps, MatmulInvalidShapes) {
+  ParameterStore ps;
+  auto a = ps.tensor({2, 3});
+  auto b = ps.tensor({4, 5});
+  EXPECT_THROW(matmul(a, b, ps), std::invalid_argument);
+}
+
+TEST(TensorOps, MatmulNon2D) {
+  ParameterStore ps;
+  auto a = ps.tensor({3});
+  auto b = ps.tensor({3});
+  EXPECT_THROW(matmul(a, b, ps), std::invalid_argument);
+}
+
+TEST(Scheduler, ConstantLRScheduler) {
+  ConstantLRScheduler sched(0.01f);
+  EXPECT_FLOAT_EQ(sched.get(), 0.01f);
+  EXPECT_FLOAT_EQ(sched.get(), 0.01f);
+}
+
+TEST(Scheduler, StepLRScheduler) {
+  StepLRScheduler sched(0.1f, 2, 0.5f);
+  EXPECT_FLOAT_EQ(sched.get(), 0.1f);   // step 1
+  EXPECT_FLOAT_EQ(sched.get(), 0.05f);  // step 2, reduce
+  EXPECT_FLOAT_EQ(sched.get(), 0.05f);  // step 3
+}
+
+TEST(Optimizer, AdamBasicStep) {
+  ParameterStore ps;
+  auto param = ps.tensor({1}, TensorInit::ZeroData);
+  param.data()[0] = 1.0f;
+  param.grad()[0] = 0.1f;
+
+  ConstantLRScheduler scheduler(0.01f);
+  optim::Adam optimizer({param}, scheduler);
+
+  optimizer.step();
+  // Approximate check, exact calculation is complex
+  EXPECT_TRUE(param.data()[0] < 1.0f);  // Should decrease
+}
+
+TEST(ParameterStore, MultipleTensors) {
+  ParameterStore ps;
+  auto t1 = ps.tensor({2});
+  auto t2 = ps.tensor({3});
+  EXPECT_EQ(ps.size(), 5u);
+  EXPECT_GE(ps.capacity_count(), 5u);
+}
+
+TEST(NN, LinearLayer) {
+  ParameterStore ps;
+  nn::Linear linear(4, 2, ps);
+  auto input = ps.tensor({1, 4});
+  fill_vec(input.data(), {1.0f, 2.0f, 3.0f, 4.0f});
+  auto output = linear.forward(input, ps);
+  EXPECT_EQ(output.shape[0], 1);
+  EXPECT_EQ(output.shape[1], 2);
+}
+
+TEST(NN, SequentialModel) {
+  ParameterStore ps;
+  nn::Sequential model;
+  model.emplace_back<nn::Linear>(2, 3, ps);
+  model.emplace_back<nn::Relu>();
+  auto input = ps.tensor({1, 2});
+  fill_vec(input.data(), {1.0f, -1.0f});
+  auto output = model(input, ps);
+  EXPECT_EQ(output.shape[0], 1);
+  EXPECT_EQ(output.shape[1], 3);
+  // Relu should make negative zero
+  EXPECT_TRUE(output.data()[0] >= 0.0f);
+  EXPECT_FLOAT_EQ(output.data()[1], 0.0f);
+  EXPECT_TRUE(output.data()[2] >= 0.0f);
 }

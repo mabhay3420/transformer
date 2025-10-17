@@ -64,7 +64,7 @@ int main(int argc, char** argv) {
       return 0;
     }
     if (arg == "--help" || arg == "-h") {
-      std::cout << "Usage: tformer [command]\n\nDefaults to 'xor-pt'.\n"
+      std::cout << "Usage: tformer [command]\n\nDefaults to 'xor'.\n"
                    "Use --list to see available commands."
                 << std::endl;
       return 0;
