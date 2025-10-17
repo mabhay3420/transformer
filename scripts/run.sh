@@ -7,7 +7,7 @@ vis_mode=""
 for arg in "$@"; do
   case "$arg" in
     t)
-      ./test.sh
+      ./scripts/test.sh
       exit $?
       ;;
     v|v2|v3)
@@ -19,7 +19,7 @@ for arg in "$@"; do
   esac
 done
 
-./build.sh
+./scripts/build.sh
 time ./build/release/tformer "$target"
 if [ -d .venv ]; then
   # optional: activate python venv for vis scripts
@@ -28,12 +28,12 @@ fi
 
 case "$vis_mode" in
   v)
-    python vis_loss.py
+    python scripts/vis_loss.py
     ;;
   v2)
-    python vis_loss_v2.py
+    python scripts/vis_loss_v2.py
     ;;
   v3)
-    python vis_loss_v3.py
+    python scripts/vis_loss_v3.py
     ;;
 esac

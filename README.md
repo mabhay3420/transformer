@@ -5,17 +5,17 @@ A C++ library for machine learning experiments, focusing on tensor operations, n
 ## Quick Start
 
 1. Clone the repository.
-2. Build: `./build.sh`
-3. Run default experiment: `./run.sh`
+2. Build: `./scripts/build.sh`
+3. Run default experiment: `./scripts/run.sh`
 4. List available commands: `./build/release/tformer --list`
-5. Run specific experiment: `./run.sh <command>` (e.g., `bigram`, `mnist`)
+5. Run specific experiment: `./scripts/run.sh <command>` (e.g., `bigram`, `mnist`)
 
-For debug builds: `./build_debug.sh` and `./run_debug.sh`
+For debug builds: `./scripts/build_debug.sh` and `./scripts/run_debug.sh`
 
 ## Guidelines
 
 - Use std library and auto where possible.
-- Run `./format.sh --check` before committing (enforced by pre-commit hook).
+- Run `./scripts/format.sh --check` before committing (enforced by pre-commit hook).
 
 ## Project Layout
 
@@ -25,15 +25,15 @@ For debug builds: `./build_debug.sh` and `./run_debug.sh`
 
 ## Testing
 
-Run tests: `./test.sh`
+Run tests: `./scripts/test.sh`
 
 ## Benchmarks
 
-Microbenchmarks under `microbenchmarks/`. Run via `./bench.sh <name> [args]`.
+Microbenchmarks under `microbenchmarks/`. Run via `./scripts/bench.sh <name> [args]`.
 
-Example: `./bench.sh matmul M=256 K=256 N=256`
+Example: `./scripts/bench.sh matmul M=256 K=256 N=256`
 
-See `bench.sh` for details.
+See `scripts/bench.sh` for details.
 
 ## API Usage Examples
 

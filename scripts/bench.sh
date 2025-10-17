@@ -10,7 +10,7 @@ fi
 TARGET="$1"
 shift
 
-./build.sh
+./scripts/build.sh
 
 case "$TARGET" in
   matmul)
