@@ -355,6 +355,13 @@ TEST(Scheduler, StepLRSchedulerHonorsLimit) {
   EXPECT_FLOAT_EQ(sched.get(), 0.03f);
 }
 
+TEST(Scheduler, StepLRSchedulerRejectsInvalidParameters) {
+  EXPECT_THROW(StepLRScheduler(0.1f, 0, 0.5f), std::invalid_argument);
+  EXPECT_THROW(StepLRScheduler(0.1f, -3, 0.5f), std::invalid_argument);
+  EXPECT_THROW(StepLRScheduler(0.1f, 4, 0.0f), std::invalid_argument);
+  EXPECT_THROW(StepLRScheduler(0.1f, 4, -0.1f), std::invalid_argument);
+}
+
 TEST(Optimizer, AdamBasicStep) {
   ParameterStore ps;
   auto param = ps.tensor({1}, TensorInit::ZeroData);
