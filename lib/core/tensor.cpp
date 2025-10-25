@@ -1,5 +1,7 @@
 #include "tensor.hpp"
 
+#include <Accelerate/Accelerate.h>
+
 #include <algorithm>
 #include <cassert>
 #include <chrono>
@@ -9,14 +11,9 @@
 #include <limits>
 #include <stdexcept>
 
-#include "mlx/device.h"
-#include "mlx/mlx.h"
-
 #if defined(__ARM_NEON) || defined(__ARM_NEON__)
 #include <arm_neon.h>
 #endif
-
-namespace mx = mlx::core;
 
 namespace {
 #if defined(__clang__) || defined(__GNUC__)
@@ -36,14 +33,6 @@ size_t compute_numel(const std::vector<int>& shape) {
 inline void zero_buffer(float* ptr, size_t count) {
   if (!ptr || count == 0) return;
   std::memset(ptr, 0, count * sizeof(float));
-}
-
-inline void ensure_mlx_cpu_device() {
-  static const bool init = []() {
-    mx::set_default_device(mx::Device::cpu);
-    return true;
-  }();
-  (void)init;
 }
 
 #if defined(__ARM_NEON) || defined(__ARM_NEON__)
@@ -306,30 +295,22 @@ void backward_matmul(TapeOp& op) {
   float* gA = op.a.grad();
   float* gB = op.b.grad();
 
-  ensure_mlx_cpu_device();
+  const float alpha = 1.0f;
+  const float beta = 1.0f;
+  const __LAPACK_int m = static_cast<__LAPACK_int>(M);
+  const __LAPACK_int n = static_cast<__LAPACK_int>(N);
+  const __LAPACK_int k = static_cast<__LAPACK_int>(K);
+  const __LAPACK_int ldgy = n;
+  const __LAPACK_int ldb = n;
+  const __LAPACK_int ldga = k;
 
-  mx::array lhs(A, mx::Shape{M, K}, mx::float32);
-  mx::array rhs(B, mx::Shape{K, N}, mx::float32);
-  mx::array grad_y(gY, mx::Shape{M, N}, mx::float32);
+  cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasTrans, m, k, n, alpha, gY, ldgy,
+              B, ldb, beta, gA, ldga);
 
-  mx::array rhs_T = mx::transpose(rhs);
-  mx::array lhs_T = mx::transpose(lhs);
-
-  mx::array grad_a = mx::matmul(grad_y, rhs_T);
-  grad_a.eval();
-  const float* grad_a_ptr = grad_a.data<float>();
-  const size_t grad_a_elems = static_cast<size_t>(M) * static_cast<size_t>(K);
-  for (size_t i = 0; i < grad_a_elems; ++i) {
-    gA[i] += grad_a_ptr[i];
-  }
-
-  mx::array grad_b = mx::matmul(lhs_T, grad_y);
-  grad_b.eval();
-  const float* grad_b_ptr = grad_b.data<float>();
-  const size_t grad_b_elems = static_cast<size_t>(K) * static_cast<size_t>(N);
-  for (size_t i = 0; i < grad_b_elems; ++i) {
-    gB[i] += grad_b_ptr[i];
-  }
+  const __LAPACK_int lda = k;
+  const __LAPACK_int ldgb = n;
+  cblas_sgemm(CblasRowMajor, CblasTrans, CblasNoTrans, k, n, m, alpha, A, lda,
+              gY, ldgy, beta, gB, ldgb);
 }
 
 void backward_add_rowwise(TapeOp& op) {
@@ -914,17 +895,17 @@ Tensor matmul(const Tensor& a, const Tensor& b, ParameterStore& store) {
   const float* A = a.data();
   const float* B = b.data();
   float* C = out.data();
-  ensure_mlx_cpu_device();
+  const float alpha = 1.0f;
+  const float beta = 0.0f;
+  const __LAPACK_int m = static_cast<__LAPACK_int>(M);
+  const __LAPACK_int n = static_cast<__LAPACK_int>(N);
+  const __LAPACK_int k = static_cast<__LAPACK_int>(K);
+  const __LAPACK_int lda = k;
+  const __LAPACK_int ldb = n;
+  const __LAPACK_int ldc = n;
 
-  mx::array lhs(A, mx::Shape{M, K}, mx::float32);
-  mx::array rhs(B, mx::Shape{K, N}, mx::float32);
-
-  mx::array result = mx::matmul(lhs, rhs);
-  result.eval();
-
-  const float* result_ptr = result.data<float>();
-  const size_t total = static_cast<size_t>(M) * static_cast<size_t>(N);
-  std::copy(result_ptr, result_ptr + total, C);
+  cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, m, n, k, alpha, A, lda,
+              B, ldb, beta, C, ldc);
   store.tape.push_back(TapeOp{OpType::Matmul, out, a, b});
   return out;
 }

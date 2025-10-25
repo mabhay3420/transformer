@@ -40,10 +40,21 @@ target_link_libraries(
     tformer_core
     PUBLIC
     nlohmann_json::nlohmann_json
-    mlx
     mlxdata
     bxzstr
 )
+target_compile_definitions(
+    tformer_core
+    PUBLIC
+    ACCELERATE_NEW_LAPACK
+    ACCELERATE_LAPACK_ILP64
+)
+
+find_library(ACCELERATE_FRAMEWORK Accelerate)
+if(NOT ACCELERATE_FRAMEWORK)
+  message(FATAL_ERROR "Accelerate framework not found.")
+endif()
+target_link_libraries(tformer_core PUBLIC ${ACCELERATE_FRAMEWORK})
 
 add_executable(tformer apps/main.cpp)
 target_link_libraries(tformer PRIVATE tformer_core)

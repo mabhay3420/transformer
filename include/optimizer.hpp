@@ -240,7 +240,7 @@ class Adam : public OptimizerWithScheduler<Scheduler> {
   float beta1_;
   float beta2_;
   float weight_decay_;
-  bool use_weight_decay_;
+  [[maybe_unused]] bool use_weight_decay_;
   bool amsgrad_;
   float epsilon_;
   std::vector<std::vector<float>> m1_;
@@ -311,7 +311,7 @@ class AdamW : public OptimizerWithScheduler<Scheduler> {
       auto& m2_vec = m2_[idx];
       std::vector<float>* vhat_vec = amsgrad_ ? &vhat_[idx] : nullptr;
 
-      if (use_weight_decay_) {
+      if (use_weight_decay_ && weight_decay_ != 0.0f) {
         for (size_t i = 0; i < n; ++i) {
           data[i] -= lr * weight_decay_ * data[i];
         }
