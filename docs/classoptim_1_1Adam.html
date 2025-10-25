@@ -114,9 +114,9 @@ Inheritance diagram for optim::Adam&lt; Scheduler &gt;:</div>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-methods" name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
-<tr class="memitem:a456d88b48f7716fdc5779356687d0e7f" id="r_a456d88b48f7716fdc5779356687d0e7f"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classoptim_1_1Adam.html#a456d88b48f7716fdc5779356687d0e7f">Adam</a> (std::vector&lt; <a class="el" href="structTensor.html">Tensor</a> &gt; params, Scheduler &amp;scheduler, float beta1=0.9f, float beta2=0.999f, float weight_decay=0.0f, bool amsgrad=false, float epsilon=1e-8f)</td></tr>
-<tr class="memdesc:a456d88b48f7716fdc5779356687d0e7f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Construct <a class="el" href="classoptim_1_1Adam.html" title="Adam optimizer with weight decay.">Adam</a> optimizer.  <br /></td></tr>
-<tr class="separator:a456d88b48f7716fdc5779356687d0e7f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab9bc3c3903f4bc32af2e16d99b5ce566" id="r_ab9bc3c3903f4bc32af2e16d99b5ce566"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classoptim_1_1Adam.html#ab9bc3c3903f4bc32af2e16d99b5ce566">Adam</a> (std::vector&lt; <a class="el" href="structTensor.html">Tensor</a> &gt; params, Scheduler &amp;scheduler, float beta1=0.9f, float beta2=0.999f, float weight_decay=0.0f, bool use_weight_decay=false, bool amsgrad=false, float epsilon=1e-8f)</td></tr>
+<tr class="memdesc:ab9bc3c3903f4bc32af2e16d99b5ce566"><td class="mdescLeft">&#160;</td><td class="mdescRight">Construct <a class="el" href="classoptim_1_1Adam.html" title="Adam optimizer with weight decay.">Adam</a> optimizer.  <br /></td></tr>
+<tr class="separator:ab9bc3c3903f4bc32af2e16d99b5ce566"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac94daadd6de7e3c908824638aa72736a" id="r_ac94daadd6de7e3c908824638aa72736a"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classoptim_1_1Adam.html#ac94daadd6de7e3c908824638aa72736a">step</a> () override</td></tr>
 <tr class="memdesc:ac94daadd6de7e3c908824638aa72736a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Perform <a class="el" href="classoptim_1_1Adam.html" title="Adam optimizer with weight decay.">Adam</a> update step.  <br /></td></tr>
 <tr class="separator:ac94daadd6de7e3c908824638aa72736a"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -166,8 +166,8 @@ class optim::Adam&lt; Scheduler &gt;</div><p><a class="el" href="classoptim_1_1A
 </dl>
 <p>Implements <a class="el" href="classoptim_1_1Adam.html" title="Adam optimizer with weight decay.">Adam</a> algorithm: m = β1*m + (1-β1)*∇, v = β2*v + (1-β2)*∇² p -= lr * m̂ / (√v̂ + ε), with optional AMSGrad and weight decay. </p>
 </div><h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
-<a id="a456d88b48f7716fdc5779356687d0e7f" name="a456d88b48f7716fdc5779356687d0e7f"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a456d88b48f7716fdc5779356687d0e7f">&#9670;&#160;</a></span>Adam()</h2>
+<a id="ab9bc3c3903f4bc32af2e16d99b5ce566" name="ab9bc3c3903f4bc32af2e16d99b5ce566"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ab9bc3c3903f4bc32af2e16d99b5ce566">&#9670;&#160;</a></span>Adam()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -211,6 +211,12 @@ template&lt;typename Scheduler &gt; </div>
           <td class="paramkey"></td>
           <td></td>
           <td class="paramtype">bool&#160;</td>
+          <td class="paramname"><em>use_weight_decay</em> = <code>false</code>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">bool&#160;</td>
           <td class="paramname"><em>amsgrad</em> = <code>false</code>, </td>
         </tr>
         <tr>
@@ -240,6 +246,7 @@ template&lt;typename Scheduler &gt; </div>
     <tr><td class="paramname">beta1</td><td>First moment decay rate (default 0.9) </td></tr>
     <tr><td class="paramname">beta2</td><td>Second moment decay rate (default 0.999) </td></tr>
     <tr><td class="paramname">weight_decay</td><td>Weight decay coefficient (default 0.0) </td></tr>
+    <tr><td class="paramname">use_weight_decay</td><td>Use weight decay (default false) </td></tr>
     <tr><td class="paramname">amsgrad</td><td>Use AMSGrad variant (default false) </td></tr>
     <tr><td class="paramname">epsilon</td><td>Numerical stability constant (default 1e-8) </td></tr>
   </table>
