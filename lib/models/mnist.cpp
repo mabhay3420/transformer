@@ -22,12 +22,13 @@ void MnistDnnPT() {
 
   const int MAX_TRAIN_SAMPLES = INT_MAX;
   const int MAX_TEST_SAMPLES = INT_MAX;
-  const int default_epochs = 50;
+  const int default_epochs = 20;
   const int default_hidden1 = 512;
-  const int default_hidden2 = 128;
+  const int default_hidden2 = 256;
+  const int num_classes = 10;
+  const float base_lr = 0.001f;
   const int hidden_dim1 = getenv_int("MNIST_HIDDEN_DIM1", default_hidden1);
   const int hidden_dim2 = getenv_int("MNIST_HIDDEN_DIM2", default_hidden2);
-  const int num_classes = 10;
   const int batch_size = std::max(1, getenv_int("MNIST_BATCH_SIZE", 128));
   const int eval_batch =
       std::max(1, getenv_int("MNIST_EVAL_BATCH_SIZE", batch_size));
@@ -38,7 +39,6 @@ void MnistDnnPT() {
     const float denom = static_cast<float>(std::max(dim, baseline));
     return static_cast<float>(baseline) / denom;
   };
-  const float base_lr = 0.001f;
   const float scaled_lr =
       base_lr * std::min(dim_lr_scale(hidden_dim1, default_hidden1),
                          dim_lr_scale(hidden_dim2, default_hidden2));
