@@ -234,7 +234,8 @@ TEST(Optimizer, AdamWDecoupledWeightDecay) {
   param.grad()[0] = 0.5f;
 
   ConstantLRScheduler scheduler(0.1f);
-  optim::AdamW optimizer({param}, scheduler, 0.9f, 0.999f, 0.01f, false, 1e-8f);
+  optim::AdamW optimizer({param}, scheduler, 0.9f, 0.999f, 0.01f, false, false,
+                         1e-8f);
   optimizer.step();
 
   const float expected_decay = 2.0f - 0.1f * 0.01f * 2.0f;

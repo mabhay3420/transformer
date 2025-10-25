@@ -11,10 +11,12 @@
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
+#include <memory>
 #include <utility>
 #include <vector>
 
 #include "tensor.hpp"
+#include "utils.hpp"
 
 namespace optim {
 
@@ -168,16 +170,19 @@ class Adam : public OptimizerWithScheduler<Scheduler> {
    * @param beta1 First moment decay rate (default 0.9)
    * @param beta2 Second moment decay rate (default 0.999)
    * @param weight_decay Weight decay coefficient (default 0.0)
+   * @param use_weight_decay Use weight decay (default false)
    * @param amsgrad Use AMSGrad variant (default false)
    * @param epsilon Numerical stability constant (default 1e-8)
    */
   Adam(std::vector<Tensor> params, Scheduler& scheduler, float beta1 = 0.9f,
-       float beta2 = 0.999f, float weight_decay = 0.0f, bool amsgrad = false,
+       float beta2 = 0.999f, float weight_decay = 0.0f,
+       bool use_weight_decay = false, bool amsgrad = false,
        float epsilon = 1e-8f)
       : OptimizerWithScheduler<Scheduler>(std::move(params), scheduler),
         beta1_(beta1),
         beta2_(beta2),
         weight_decay_(weight_decay),
+        use_weight_decay_(use_weight_decay),
         amsgrad_(amsgrad),
         epsilon_(epsilon),
         m1_(this->params_.size()),
@@ -235,6 +240,7 @@ class Adam : public OptimizerWithScheduler<Scheduler> {
   float beta1_;
   float beta2_;
   float weight_decay_;
+  bool use_weight_decay_;
   bool amsgrad_;
   float epsilon_;
   std::vector<std::vector<float>> m1_;
@@ -260,16 +266,19 @@ class AdamW : public OptimizerWithScheduler<Scheduler> {
    * @param beta1 First moment decay rate (default 0.9)
    * @param beta2 Second moment decay rate (default 0.999)
    * @param weight_decay Weight decay coefficient (default 0.0)
+   * @param use_weight_decay Use weight decay (default false)
    * @param amsgrad Use AMSGrad variant (default false)
    * @param epsilon Numerical stability constant (default 1e-8)
    */
   AdamW(std::vector<Tensor> params, Scheduler& scheduler, float beta1 = 0.9f,
-        float beta2 = 0.999f, float weight_decay = 0.0f, bool amsgrad = false,
+        float beta2 = 0.999f, float weight_decay = 0.0f,
+        bool use_weight_decay = false, bool amsgrad = false,
         float epsilon = 1e-8f)
       : OptimizerWithScheduler<Scheduler>(std::move(params), scheduler),
         beta1_(beta1),
         beta2_(beta2),
         weight_decay_(weight_decay),
+        use_weight_decay_(use_weight_decay),
         amsgrad_(amsgrad),
         epsilon_(epsilon),
         m1_(this->params_.size()),
@@ -302,25 +311,41 @@ class AdamW : public OptimizerWithScheduler<Scheduler> {
       auto& m2_vec = m2_[idx];
       std::vector<float>* vhat_vec = amsgrad_ ? &vhat_[idx] : nullptr;
 
-      if (weight_decay_ != 0.0f) {
+      if (use_weight_decay_) {
         for (size_t i = 0; i < n; ++i) {
           data[i] -= lr * weight_decay_ * data[i];
         }
       }
 
-      for (size_t i = 0; i < n; ++i) {
-        float grad = grad_ptr[i];
-        m1_vec[i] = beta1_ * m1_vec[i] + (1.0f - beta1_) * grad;
-        m2_vec[i] = beta2_ * m2_vec[i] + (1.0f - beta2_) * grad * grad;
+      if (amsgrad_) {
+        for (size_t i = 0; i < n; ++i) {
+          float grad = grad_ptr[i];
+          m1_vec[i] = beta1_ * m1_vec[i] + (1.0f - beta1_) * grad;
+          m2_vec[i] = beta2_ * m2_vec[i] + (1.0f - beta2_) * grad * grad;
 
-        float m1_hat = m1_vec[i] / bc1;
-        float m2_term = m2_vec[i];
-        if (amsgrad_) {
+          // 55%
+          float m1_hat = m1_vec[i] / bc1;
+          float m2_term = m2_vec[i];
           (*vhat_vec)[i] = std::max((*vhat_vec)[i], m2_vec[i]);
           m2_term = (*vhat_vec)[i];
+          float m2_hat = m2_term / bc2;
+          // 30%
+          data[i] -= lr * m1_hat / (std::sqrt(m2_hat) + epsilon_);
         }
-        float m2_hat = m2_term / bc2;
-        data[i] -= lr * m1_hat / (std::sqrt(m2_hat) + epsilon_);
+
+      } else {
+        for (size_t i = 0; i < n; ++i) {
+          float grad = grad_ptr[i];
+          m1_vec[i] = beta1_ * m1_vec[i] + (1.0f - beta1_) * grad;
+          m2_vec[i] = beta2_ * m2_vec[i] + (1.0f - beta2_) * grad * grad;
+
+          // 55%
+          float m1_hat = m1_vec[i] / bc1;
+          float m2_term = m2_vec[i];
+          float m2_hat = m2_term / bc2;
+          // 30%
+          data[i] -= lr * m1_hat / (std::sqrt(m2_hat) + epsilon_);
+        }
       }
     }
   }
@@ -329,6 +354,7 @@ class AdamW : public OptimizerWithScheduler<Scheduler> {
   float beta1_;
   float beta2_;
   float weight_decay_;
+  bool use_weight_decay_;
   bool amsgrad_;
   float epsilon_;
   std::vector<std::vector<float>> m1_;
