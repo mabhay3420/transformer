@@ -28,3 +28,8 @@ jobs:
         run: |
           chmod +x ./scripts/test.sh || true
           ./scripts/test.sh
+
+      - name: Run mnist
+        run: |
+          chmod +x ./scripts/run.sh || true
+          ./scripts/run.sh mnist
