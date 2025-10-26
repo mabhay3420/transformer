@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['naive_0',['Naive',['../matmul__cost__model_8hpp.html#a5228cb0af255fbeb50affe3d8476e4d3a512d6102506da4ae0c35312fafcf7376',1,'matmul_cost_model.hpp']]]
+  ['relu_0',['Relu',['../tensor_8hpp.html#aa1aa1c6a8f3bbed5b167bc2d4511b969a7bfde445daa113a9903d4eaa43b41e2b',1,'tensor.hpp']]]
 ];

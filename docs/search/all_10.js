@@ -13,10 +13,9 @@ var searchData=
   ['test_5fdata_10',['test_data',['../structMnistDataset.html#aa3ee9e673ab461b9d29866971e4adb71',1,'MnistDataset::test_data'],['../structSwedishAutoInsuranceData.html#ad693dd0f41b98a7c92be333dab283f27',1,'SwedishAutoInsuranceData::test_data']]],
   ['test_5flabels_11',['test_labels',['../structMnistDataset.html#aee455c3020b926353e4f28131c25e39d',1,'MnistDataset::test_labels'],['../structSwedishAutoInsuranceData.html#ad6f1306aeacda1bbf571f387c1f26246',1,'SwedishAutoInsuranceData::test_labels']]],
   ['text_2ehpp_12',['text.hpp',['../text_8hpp.html',1,'']]],
-  ['tiled_13',['Tiled',['../matmul__cost__model_8hpp.html#a5228cb0af255fbeb50affe3d8476e4d3a320af35370596a9ea75686c6624a9f07',1,'matmul_cost_model.hpp']]],
-  ['tokenizer_2ehpp_14',['tokenizer.hpp',['../tokenizer_8hpp.html',1,'']]],
-  ['train_15',['train',['../namespacetrain.html',1,'']]],
-  ['train_5fdata_16',['train_data',['../structMnistDataset.html#a1e09ae5a95c039556c79445615f73da4',1,'MnistDataset::train_data'],['../structSampler.html#abe6d85c432e8894ce35d30de0487cfc3',1,'Sampler::train_data'],['../structSwedishAutoInsuranceData.html#a21dedfa349a6b477c6cffda4936b7d08',1,'SwedishAutoInsuranceData::train_data']]],
-  ['train_5flabels_17',['train_labels',['../structMnistDataset.html#a2794d03f2dde2a0dc258efb782e95eb9',1,'MnistDataset::train_labels'],['../structSwedishAutoInsuranceData.html#a43314a53fe79a53ebbe853ae0cf652eb',1,'SwedishAutoInsuranceData::train_labels']]],
-  ['type_18',['type',['../structTapeOp.html#a8a95697bae5b473b26efa88d04ea49e1',1,'TapeOp']]]
+  ['tokenizer_2ehpp_13',['tokenizer.hpp',['../tokenizer_8hpp.html',1,'']]],
+  ['train_14',['train',['../namespacetrain.html',1,'']]],
+  ['train_5fdata_15',['train_data',['../structMnistDataset.html#a1e09ae5a95c039556c79445615f73da4',1,'MnistDataset::train_data'],['../structSampler.html#abe6d85c432e8894ce35d30de0487cfc3',1,'Sampler::train_data'],['../structSwedishAutoInsuranceData.html#a21dedfa349a6b477c6cffda4936b7d08',1,'SwedishAutoInsuranceData::train_data']]],
+  ['train_5flabels_16',['train_labels',['../structMnistDataset.html#a2794d03f2dde2a0dc258efb782e95eb9',1,'MnistDataset::train_labels'],['../structSwedishAutoInsuranceData.html#a43314a53fe79a53ebbe853ae0cf652eb',1,'SwedishAutoInsuranceData::train_labels']]],
+  ['type_17',['type',['../structTapeOp.html#a8a95697bae5b473b26efa88d04ea49e1',1,'TapeOp']]]
 ];

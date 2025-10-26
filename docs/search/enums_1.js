@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['optype_0',['OpType',['../tensor_8hpp.html#aa1aa1c6a8f3bbed5b167bc2d4511b969',1,'tensor.hpp']]]
+  ['tensorinit_0',['TensorInit',['../tensor_8hpp.html#a57211e58f92b94a10e1f637aa62d7a95',1,'tensor.hpp']]]
 ];

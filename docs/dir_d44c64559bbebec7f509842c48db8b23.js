@@ -9,7 +9,6 @@ var dir_d44c64559bbebec7f509842c48db8b23 =
     [ "learning_rate.hpp", "learning__rate_8hpp.html", "learning__rate_8hpp" ],
     [ "linalg.hpp", "linalg_8hpp.html", null ],
     [ "linear_regression.hpp", "linear__regression_8hpp.html", "linear__regression_8hpp" ],
-    [ "matmul_cost_model.hpp", "matmul__cost__model_8hpp.html", "matmul__cost__model_8hpp" ],
     [ "mnist.hpp", "mnist_8hpp.html", "mnist_8hpp" ],
     [ "nlp.hpp", "nlp_8hpp.html", null ],
     [ "nn.hpp", "nn_8hpp.html", "nn_8hpp" ],
