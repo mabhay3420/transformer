@@ -5,9 +5,9 @@
 #include <utility>
 #include <vector>
 
-typedef std::vector<std::vector<int>> vvint;
-typedef std::vector<std::vector<float>> vvfloat;
-typedef std::pair<vvint, vvint> Batch;
+using IntSequenceBatch = std::vector<std::vector<int>>;
+using FloatSequenceBatch = std::vector<std::vector<float>>;
+using Batch = std::pair<IntSequenceBatch, IntSequenceBatch>;
 
 struct Sampler {
   uint32_t batch_size;
