@@ -1,3 +1,5 @@
+#include <Accelerate/Accelerate.h>
+
 #include <algorithm>
 
 #include "bench_runner.hpp"
@@ -177,6 +179,13 @@ void matmul_mlx(const float* A, const float* B, float* C, int M, int K, int N) {
   std::copy(result_ptr, result_ptr + static_cast<size_t>(M) * N, C);
 }
 
+void matmul_cblas_sgemm(const float* A, const float* B, float* C, int M, int K,
+                        int N) {
+  // Row-major SGEMM: C = A x B
+  cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, 1.0f, A, K, B,
+              N, 0.0f, C, N);
+}
+
 const std::vector<MatmulBenchmark>& registry() {
   static std::vector<MatmulBenchmark> benches = {
       {"naive", matmul_naive},
@@ -184,6 +193,7 @@ const std::vector<MatmulBenchmark>& registry() {
 #if defined(__ARM_NEON) || defined(__ARM_NEON__)
       {"tiled_256_neon", matmul_tiled_neon<256>},
 #endif
+      {"cblas_sgemm", matmul_cblas_sgemm},
       {"mlx_auto", matmul_mlx},
   };
   return benches;
