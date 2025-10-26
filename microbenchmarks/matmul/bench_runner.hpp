@@ -34,7 +34,6 @@ struct BenchmarkResult {
 struct BenchmarkSummary {
   BenchmarkConfig config;
   std::vector<BenchmarkResult> results;
-  std::string predicted;
   std::string actual;
   std::string reference;
 };

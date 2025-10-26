@@ -9,8 +9,6 @@
 #include <random>
 #include <sstream>
 
-#include "matmul_cost_model.hpp"
-
 namespace {
 
 struct AccuracyStats {
@@ -101,9 +99,6 @@ BenchmarkSummary collect_benchmark(const BenchmarkConfig& cfg) {
     raw_results.push_back(RawResult{bench.name, ms, std::move(C)});
   }
 
-  summary.predicted =
-      matmul_kernel_name(predict_matmul_kernel(cfg.M, cfg.K, cfg.N));
-
   if (raw_results.empty()) {
     summary.actual.clear();
     summary.reference.clear();
@@ -179,7 +174,6 @@ void run_benchmarks(const BenchmarkConfig& cfg, const std::string& label) {
       std::cout << " (×" << factor << ")";
     }
     if (result.name == reference_name) std::cout << " [reference]";
-    if (result.name == summary.predicted) std::cout << " [predicted]";
     if (result.name == summary.actual) std::cout << " [best]";
     if (result.name != reference_name) {
       if (result.max_abs_error > 0.0) {
@@ -231,6 +225,5 @@ void run_benchmarks(const BenchmarkConfig& cfg, const std::string& label) {
     std::cout.precision(6);
   }
 
-  std::cout << "Predicted best: " << summary.predicted << std::endl;
-  std::cout << "Actual best   : " << summary.actual << std::endl;
+  std::cout << "Best kernel   : " << summary.actual << std::endl;
 }

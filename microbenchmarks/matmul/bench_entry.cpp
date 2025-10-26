@@ -65,29 +65,14 @@ int main(int argc, char** argv) {
     std::mt19937 rng(12345);
     std::uniform_int_distribution<int> dist_mn(1, 512);
     std::uniform_int_distribution<int> dist_k(1, 128);
-    int correct = 0;
-    std::vector<BenchmarkSummary> mismatches;
+    std::cout << "Random trials: " << random_samples << std::endl;
     for (int i = 0; i < random_samples; ++i) {
       BenchmarkConfig sample{dist_mn(rng), dist_k(rng), dist_mn(rng),
                              std::max(1, cfg.iterations)};
-      auto summary = collect_benchmark(sample);
-      if (summary.predicted == summary.actual)
-        correct++;
-      else if (mismatches.size() < 5)
-        mismatches.push_back(summary);
-    }
-    std::cout << "Random trials: " << random_samples << std::endl;
-    std::cout << "Cost model accuracy: " << correct << " / " << random_samples
-              << " (" << (100.0 * correct / random_samples) << "%)"
-              << std::endl;
-    if (!mismatches.empty()) {
-      std::cout << "Examples of mismatches:" << std::endl;
-      for (const auto& summary : mismatches) {
-        std::cout << "  M=" << summary.config.M << " K=" << summary.config.K
-                  << " N=" << summary.config.N << " -> predicted "
-                  << summary.predicted << " but best " << summary.actual
-                  << std::endl;
-      }
+      BenchmarkSummary summary = collect_benchmark(sample);
+      std::cout << "  [" << i + 1 << "] M=" << summary.config.M
+                << " K=" << summary.config.K << " N=" << summary.config.N
+                << " best=" << summary.actual << std::endl;
     }
     return 0;
   }
