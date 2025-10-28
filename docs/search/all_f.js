@@ -23,7 +23,7 @@ var searchData=
   ['steplrscheduler_20',['steplrscheduler',['../structStepLRScheduler.html#a53e68ac17a26be299a14cd09c1809c36',1,'StepLRScheduler::StepLRScheduler()'],['../structStepLRScheduler.html',1,'StepLRScheduler']]],
   ['steps_21',['steps',['../structExpLinspaceLRScheduler.html#a970b92b6cfad4a900a52f4bbdc9027d2',1,'ExpLinspaceLRScheduler']]],
   ['store_22',['store',['../structTensor.html#a64dafd0eeb95a3c0b6d37587bf8bd0af',1,'Tensor']]],
-  ['sub_23',['sub',['../tensor_8hpp.html#af8188634b15beea61418f501b69d61f4',1,'sub(const Tensor &amp;a, const Tensor &amp;b, ParameterStore &amp;store):&#160;tensor.hpp'],['../tensor_8hpp.html#aa1aa1c6a8f3bbed5b167bc2d4511b969ae80155eceb940c89e2de63ad05868db2',1,'Sub:&#160;tensor.hpp']]],
+  ['sub_23',['sub',['../tensor_8hpp.html#aa1aa1c6a8f3bbed5b167bc2d4511b969ae80155eceb940c89e2de63ad05868db2',1,'Sub:&#160;tensor.hpp'],['../tensor_8hpp.html#af8188634b15beea61418f501b69d61f4',1,'sub(const Tensor &amp;a, const Tensor &amp;b, ParameterStore &amp;store):&#160;tensor.hpp']]],
   ['sum_24',['sum',['../tensor_8hpp.html#aa1aa1c6a8f3bbed5b167bc2d4511b969aa0ec87054b5e5b7847d0d8780a01a3d5',1,'Sum:&#160;tensor.hpp'],['../tensor_8hpp.html#a5f84356edd6b97f36290af42a3e53165',1,'sum(const Tensor &amp;x, ParameterStore &amp;store):&#160;tensor.hpp']]],
   ['summary_25',['summary',['../structSwedishAutoInsurance.html#a5d4ee630643a4899e6192e18dee16107',1,'SwedishAutoInsurance::summary()'],['../structMNIST.html#a1f08c4a793be9e39e4aea57de727620d',1,'MNIST::summary()']]],
   ['swedish_5fauto_2ehpp_26',['swedish_auto.hpp',['../swedish__auto_8hpp.html',1,'']]],

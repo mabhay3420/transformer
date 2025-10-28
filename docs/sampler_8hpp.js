@@ -1,7 +1,7 @@
 var sampler_8hpp =
 [
     [ "Sampler", "structSampler.html", "structSampler" ],
-    [ "Batch", "sampler_8hpp.html#a1b7b6f0efb402316ab964c55746a798e", null ],
-    [ "vvfloat", "sampler_8hpp.html#afe523016632534d269c536fb11b2c4f8", null ],
-    [ "vvint", "sampler_8hpp.html#adc383ca08467dd3c230c056f866e0504", null ]
+    [ "Batch", "sampler_8hpp.html#a483e19ff15d41ba647e9b77faf0063d5", null ],
+    [ "FloatSequenceBatch", "sampler_8hpp.html#a114ecfeaf3a105689f0ced8dbcd19193", null ],
+    [ "IntSequenceBatch", "sampler_8hpp.html#abef3250275f93a7c99ed1ec71d3594b0", null ]
 ];

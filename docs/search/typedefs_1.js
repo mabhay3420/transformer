@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['json_0',['json',['../utils_8hpp.html#ab701e3ac61a85b337ec5c1abaad6742d',1,'utils.hpp']]]
+  ['floatsequencebatch_0',['FloatSequenceBatch',['../sampler_8hpp.html#a114ecfeaf3a105689f0ced8dbcd19193',1,'sampler.hpp']]]
 ];

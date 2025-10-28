@@ -12,6 +12,6 @@ var searchData=
   ['mnistdataset_9',['MnistDataset',['../structMnistDataset.html',1,'']]],
   ['mnistdnnpt_10',['MnistDnnPT',['../mnist_8hpp.html#a6ae8362e30fe9757e0882d54cef403c6',1,'mnist.hpp']]],
   ['module_11',['Module',['../structnn_1_1Module.html',1,'nn']]],
-  ['mul_12',['mul',['../tensor_8hpp.html#a3e8995826a02fb2f8ba20e2698588502',1,'mul(const Tensor &amp;a, const Tensor &amp;b, ParameterStore &amp;store):&#160;tensor.hpp'],['../tensor_8hpp.html#aa1aa1c6a8f3bbed5b167bc2d4511b969a62b6d55816cf737bfc6f42e60df1a3f2',1,'Mul:&#160;tensor.hpp']]],
+  ['mul_12',['mul',['../tensor_8hpp.html#aa1aa1c6a8f3bbed5b167bc2d4511b969a62b6d55816cf737bfc6f42e60df1a3f2',1,'Mul:&#160;tensor.hpp'],['../tensor_8hpp.html#a3e8995826a02fb2f8ba20e2698588502',1,'mul(const Tensor &amp;a, const Tensor &amp;b, ParameterStore &amp;store):&#160;tensor.hpp']]],
   ['multinomialdistribution_13',['multinomialdistribution',['../structMultinomialDistribution.html#a152da5c78cffedd4b0c9b2f7a9fdf463',1,'MultinomialDistribution::MultinomialDistribution()'],['../structMultinomialDistribution.html',1,'MultinomialDistribution']]]
 ];
