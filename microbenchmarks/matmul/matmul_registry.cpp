@@ -179,6 +179,21 @@ void matmul_mlx(const float* A, const float* B, float* C, int M, int K, int N) {
   std::copy(result_ptr, result_ptr + static_cast<size_t>(M) * N, C);
 }
 
+void matmul_mlx_gpu(const float* A, const float* B, float* C, int M, int K,
+                    int N) {
+  mx::set_default_device(mx::Device::gpu);
+
+  mx::array lhs(A, mx::Shape{M, K}, mx::float32);
+  mx::array rhs(B, mx::Shape{K, N}, mx::float32);
+
+  mx::array result = mx::matmul(lhs, rhs);
+  result.eval();
+  result.wait();
+
+  const float* result_ptr = result.data<float>();
+  std::copy(result_ptr, result_ptr + static_cast<size_t>(M) * N, C);
+}
+
 void matmul_cblas_sgemm(const float* A, const float* B, float* C, int M, int K,
                         int N) {
   // Row-major SGEMM: C = A x B
@@ -195,6 +210,7 @@ const std::vector<MatmulBenchmark>& registry() {
 #endif
       {"cblas_sgemm", matmul_cblas_sgemm},
       {"mlx_auto", matmul_mlx},
+      {"mlx_gpu", matmul_mlx_gpu},
   };
   return benches;
 }

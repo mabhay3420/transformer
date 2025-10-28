@@ -27,6 +27,14 @@
 			"program": "${workspaceFolder}/build/debug/tformer",
 			"args": [],
 			"cwd": "${workspaceFolder}"
+		},
+		{
+			"type": "lldb",
+			"request": "launch",
+			"name": "Debug Matmul Benchmark",
+			"program": "${workspaceFolder}/build/debug/microbenchmarks/matmul/matmul_bench_main",
+			"args": ["M=10", "N=10", "K=10"],
+			"cwd": "${workspaceFolder}"
 		}
 	]
 }
