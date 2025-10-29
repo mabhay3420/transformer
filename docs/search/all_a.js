@@ -2,7 +2,7 @@ var searchData=
 [
   ['mark_0',['mark',['../structParameterStore.html#aa367b083cf273502f51ba7d12ef97315',1,'ParameterStore']]],
   ['matmul_1',['matmul',['../tensor_8hpp.html#a913c31f5af1987f66bd571bdf5af40c9',1,'matmul(const Tensor &amp;a, const Tensor &amp;b, ParameterStore &amp;store):&#160;tensor.hpp'],['../tensor_8hpp.html#aa1aa1c6a8f3bbed5b167bc2d4511b969a3543268dcb012cef3d015e2f64983872',1,'Matmul:&#160;tensor.hpp']]],
-  ['mnist_2',['mnist',['../structMNIST.html',1,'MNIST'],['../structMNIST.html#a0998f2a40b590d51f71a362e421bec97',1,'MNIST::MNIST()']]],
+  ['mnist_2',['mnist',['../structMNIST.html',1,'MNIST'],['../structMNIST.html#a36f04ef52a0e858cffae8857fed321a2',1,'MNIST::MNIST()']]],
   ['mnist_2ehpp_3',['mnist.hpp',['../data_2mnist_8hpp.html',1,'(Global Namespace)'],['../mnist_8hpp.html',1,'(Global Namespace)']]],
   ['mnist_5fbatch_4',['MNIST_BATCH',['../data_2mnist_8hpp.html#a382bdb0b688a5856d4a0a8d029538e9e',1,'mnist.hpp']]],
   ['mnist_5fin_5',['MNIST_IN',['../data_2mnist_8hpp.html#acb7c86579f9589227139cd9b07b74b0d',1,'mnist.hpp']]],
