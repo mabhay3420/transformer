@@ -1,35 +1,153 @@
 #include "data/mnist.hpp"
 
+#include <fcntl.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
 #include <algorithm>
-#include <cstdlib>
-#include <fstream>
+#include <cerrno>
+#include <cstring>
 #include <iostream>
-#include <memory>
-#include <sstream>
 #include <stdexcept>
 #include <string>
-#include <utility>
 #include <vector>
 
-#include "data/text.hpp"
-#include "mlx/data/core/CSVReader.h"
 #include "utils.hpp"
 
-MNIST::MNIST(int max_lines, std::string train_csv, std::string test_csv)
-    : train_csv(std::move(train_csv)), test_csv(std::move(test_csv)) {
+namespace {
+
+void load_csv_with_mmap(const std::string& filename, MNIST_INS& images,
+                        MNIST_OUTS& labels) {
+  images.clear();
+  labels.clear();
+
+  int fd = ::open(filename.c_str(), O_RDONLY);
+  if (fd == -1) {
+    throw std::runtime_error("Failed to open MNIST CSV file for mmap: " +
+                             filename + " (" + std::strerror(errno) + ")");
+  }
+
+  struct stat st{};
+  if (::fstat(fd, &st) != 0) {
+    int err = errno;
+    ::close(fd);
+    throw std::runtime_error("fstat failed for " + filename + " (" +
+                             std::strerror(err) + ")");
+  }
+  size_t file_size = static_cast<size_t>(st.st_size);
+  if (file_size == 0) {
+    ::close(fd);
+    return;
+  }
+
+  void* mapped =
+      ::mmap(nullptr, file_size, PROT_READ, MAP_PRIVATE, fd, /*offset=*/0);
+  if (mapped == MAP_FAILED) {
+    int err = errno;
+    ::close(fd);
+    throw std::runtime_error("mmap failed for " + filename + " (" +
+                             std::strerror(err) + ")");
+  }
+
+  const char* data = static_cast<const char*>(mapped);
+  size_t estimated_rows =
+      static_cast<size_t>(std::count(data, data + file_size, '\n'));
+  if (data[file_size - 1] != '\n') {
+    ++estimated_rows;
+  }
+  if (estimated_rows > 0) {
+    images.reserve(estimated_rows);
+    labels.reserve(estimated_rows);
+  }
+
+  std::vector<float> pixels(784, 0.0f);
+  bool have_label = false;
+  float label = 0.0f;
+  int pixel_index = 0;
+  float value = 0.0f;
+
+  try {
+    const char* ptr = data;
+    const char* end = data + file_size;
+
+    while (ptr < end) {
+      unsigned char current = static_cast<unsigned char>(*ptr);
+      if (current >= '0' && current <= '9') {
+        value = value * 10.0f + static_cast<float>(current - '0');
+      }
+
+      const char* next_ptr = ptr + 1;
+      bool at_end = (next_ptr >= end);
+      char next = at_end ? '\n' : *next_ptr;
+
+      if (next == ',' || next == '\n' || next == '\r' || at_end) {
+        if (!have_label) {
+          label = value;
+          have_label = true;
+        } else if (pixel_index < static_cast<int>(pixels.size())) {
+          pixels[pixel_index] = value / 255.0f;
+          ++pixel_index;
+        }
+
+        value = 0.0f;
+
+        if (next == '\n' || next == '\r' || at_end) {
+          if (have_label) {
+            if (pixel_index < static_cast<int>(pixels.size())) {
+              std::fill(pixels.begin() + pixel_index, pixels.end(), 0.0f);
+            }
+            images.push_back(pixels);
+            labels.push_back(label);
+          }
+          have_label = false;
+          pixel_index = 0;
+          std::fill(pixels.begin(), pixels.end(), 0.0f);
+        }
+
+        ptr = next_ptr;
+        if (!at_end) {
+          if (*ptr == '\r') {
+            ++ptr;
+            if (ptr < end && *ptr == '\n') {
+              ++ptr;
+            }
+          } else {
+            ++ptr;
+          }
+        }
+        continue;
+      }
+
+      ++ptr;
+    }
+
+    ::munmap(const_cast<char*>(data), file_size);
+    ::close(fd);
+  } catch (...) {
+    ::munmap(const_cast<char*>(data), file_size);
+    ::close(fd);
+    throw;
+  }
+}
+
+}  // namespace
+
+MNIST::MNIST(std::string train_csv_path, std::string test_csv_path) {
   const std::string data_dir = getenv_str("MNIST_DATA_DIR", "data_tmp");
-  if (this->train_csv.empty()) {
-    this->train_csv = data_dir + "/mnist_train.csv";
+  if (train_csv_path.empty()) {
+    train_csv = data_dir + "/mnist_train.csv";
+  } else {
+    train_csv = train_csv_path;
   }
-  if (this->test_csv.empty()) {
-    this->test_csv = data_dir + "/mnist_test.csv";
+  if (test_csv_path.empty()) {
+    test_csv = data_dir + "/mnist_test.csv";
+  } else {
+    test_csv = test_csv_path;
   }
-  auto train_batch = load_data(this->train_csv, max_lines);
-  auto test_batch = load_data(this->test_csv, max_lines);
-  data.train_data = std::move(train_batch.first);
-  data.train_labels = std::move(train_batch.second);
-  data.test_data = std::move(test_batch.first);
-  data.test_labels = std::move(test_batch.second);
+
+  load_data(train_csv, data.train_data, data.train_labels);
+  load_data(test_csv, data.test_data, data.test_labels);
 }
 
 void MNIST::summary() {
@@ -39,51 +157,7 @@ void MNIST::summary() {
   std::cout << "Test labels size: " << data.test_labels.size() << std::endl;
 }
 
-MNIST_BATCH MNIST::load_data(const std::string& csv_filename, int max_lines) {
-  MNIST_INS images;
-  MNIST_OUTS labels;
-
-  std::string csv_contents = load_text_data(csv_filename);
-  if (csv_contents.empty()) {
-    return {std::move(images), std::move(labels)};
-  }
-
-  size_t total_rows = static_cast<size_t>(
-      std::count(csv_contents.begin(), csv_contents.end(), '\n'));
-  if (!csv_contents.empty() && csv_contents.back() != '\n') {
-    total_rows += 1;
-  }
-  if (total_rows == 0) {
-    return {std::move(images), std::move(labels)};
-  }
-  if (max_lines > 0) {
-    total_rows = std::min<size_t>(total_rows, static_cast<size_t>(max_lines));
-  }
-  images.reserve(total_rows);
-  labels.reserve(total_rows);
-
-  auto csv_stream =
-      std::make_shared<std::istringstream>(std::move(csv_contents));
-  mlx::data::core::CSVReader reader(csv_stream, ',', '"');
-
-  size_t loaded = 0;
-  while (loaded < total_rows) {
-    auto row = reader.next();
-    if (row.empty()) break;
-    if (row.size() < 2) {
-      throw std::runtime_error("MNIST CSV row must contain label and pixels");
-    }
-
-    labels.push_back(
-        static_cast<float>(std::strtol(row.front().c_str(), nullptr, 10)));
-
-    MNIST_IN pixels(row.size() - 1);
-    for (size_t i = 1; i < row.size(); ++i) {
-      pixels[i - 1] = std::strtof(row[i].c_str(), nullptr) / 255.0f;
-    }
-    images.push_back(std::move(pixels));
-    ++loaded;
-  }
-
-  return {std::move(images), std::move(labels)};
+void MNIST::load_data(const std::string& csv_filename, MNIST_INS& images,
+                      MNIST_OUTS& labels) {
+  load_csv_with_mmap(csv_filename, images, labels);
 }

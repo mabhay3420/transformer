@@ -44,7 +44,7 @@ void MnistDnnPT() {
                          dim_lr_scale(hidden_dim2, default_hidden2));
   const float lr = getenv_float("MNIST_LR", scaled_lr);
 
-  MNIST mnist(MAX_TRAIN_SAMPLES);
+  MNIST mnist;
   mnist.summary();
 
   int input_dim = static_cast<int>(mnist.data.train_data[0].size());

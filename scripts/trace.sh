@@ -1,4 +1,4 @@
-TARGET=${2:-"xor-pt"}
+TARGET=${2:-"xor"}
 ./scripts/build_debug.sh
 sudo rm -rf tformer_trace.trace ./build/debug/tformer.dSYM
 xcrun dsymutil ./build/debug/tformer -o ./build/debug/tformer.dSYM

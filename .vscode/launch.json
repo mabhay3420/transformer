@@ -17,7 +17,7 @@
 			"request": "launch",
 			"name": "Launch MNIST",
 			"program": "${workspaceFolder}/build/debug/tformer",
-			"args": ["mnist-pt"],
+			"args": ["mnist"],
 			"cwd": "${workspaceFolder}"
 		},
 		{
@@ -34,6 +34,14 @@
 			"name": "Debug Matmul Benchmark",
 			"program": "${workspaceFolder}/build/debug/microbenchmarks/matmul/matmul_bench_main",
 			"args": ["M=10", "N=10", "K=10"],
+			"cwd": "${workspaceFolder}"
+		},
+		{
+			"type": "lldb",
+			"request": "launch",
+			"name": "Debug MNIST CSV Benchmark",
+			"program": "${workspaceFolder}/build/debug/microbenchmarks/mnist_csv/mnist_csv_bench_main",
+			"args": [],
 			"cwd": "${workspaceFolder}"
 		}
 	]

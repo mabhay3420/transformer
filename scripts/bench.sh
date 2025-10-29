@@ -22,6 +22,9 @@ case "$TARGET" in
   csv_loader)
     ./build/release/microbenchmarks/csv_loader/csv_loader_bench_main "$@"
     ;;
+  mnist_csv)
+    ./build/release/microbenchmarks/mnist_csv/mnist_csv_bench_main "$@"
+    ;;
   *)
     echo "Unknown benchmark: $TARGET"
     exit 1
