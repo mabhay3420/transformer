@@ -323,75 +323,79 @@ $(document).ready(function(){initNavTree('optimizer_8hpp_source.html',''); initR
 <div class="line"><a id="l00296" name="l00296"></a><span class="lineno">  296</span>    <span class="keyword">const</span> <span class="keywordtype">float</span> bc2 =</div>
 <div class="line"><a id="l00297" name="l00297"></a><span class="lineno">  297</span>        1.0f - std::pow(beta2_, <span class="keyword">static_cast&lt;</span><span class="keywordtype">float</span><span class="keyword">&gt;</span>(this-&gt;<a class="code hl_variable" href="classoptim_1_1Optimizer.html#a76053e62b3ab69ec9fecf22d3909972e">step_count_</a>));</div>
 <div class="line"><a id="l00298" name="l00298"></a><span class="lineno">  298</span> </div>
-<div class="line"><a id="l00299" name="l00299"></a><span class="lineno">  299</span>    <span class="keywordflow">for</span> (<span class="keywordtype">size_t</span> idx = 0; idx &lt; this-&gt;<a class="code hl_variable" href="classoptim_1_1Optimizer.html#aad43a44085c393e55f9f21012ad78e11">params_</a>.size(); ++idx) {</div>
-<div class="line"><a id="l00300" name="l00300"></a><span class="lineno">  300</span>      <a class="code hl_struct" href="structTensor.html">Tensor</a>&amp; param = this-&gt;<a class="code hl_variable" href="classoptim_1_1Optimizer.html#aad43a44085c393e55f9f21012ad78e11">params_</a>[idx];</div>
-<div class="line"><a id="l00301" name="l00301"></a><span class="lineno">  301</span>      <span class="keywordflow">if</span> (!<a class="code hl_function" href="classoptim_1_1Optimizer.html#ae49f7491e2f65b815afcfd94d5f1671b">Optimizer::valid_param</a>(param)) <span class="keywordflow">continue</span>;</div>
-<div class="line"><a id="l00302" name="l00302"></a><span class="lineno">  302</span>      <span class="keywordtype">float</span>* data = param.<a class="code hl_function" href="structTensor.html#a68b3bf158149399d366aee5cf21aa951">data</a>();</div>
-<div class="line"><a id="l00303" name="l00303"></a><span class="lineno">  303</span>      <span class="keyword">const</span> <span class="keywordtype">float</span>* grad_ptr = param.<a class="code hl_function" href="structTensor.html#afaed2ad287228df5d00eb689ad8d3776">grad</a>();</div>
-<div class="line"><a id="l00304" name="l00304"></a><span class="lineno">  304</span>      <span class="keyword">const</span> <span class="keywordtype">size_t</span> n = param.<a class="code hl_variable" href="structTensor.html#a10ca340abccb2fa3476d3ec64346c238">numel</a>;</div>
-<div class="line"><a id="l00305" name="l00305"></a><span class="lineno">  305</span>      <a class="code hl_function" href="classoptim_1_1Optimizer.html#ae7308bc1b1f376b6a9cb7ae66c3af88e">Optimizer::ensure_state_size</a>(m1_[idx], n);</div>
-<div class="line"><a id="l00306" name="l00306"></a><span class="lineno">  306</span>      <a class="code hl_function" href="classoptim_1_1Optimizer.html#ae7308bc1b1f376b6a9cb7ae66c3af88e">Optimizer::ensure_state_size</a>(m2_[idx], n);</div>
-<div class="line"><a id="l00307" name="l00307"></a><span class="lineno">  307</span>      <span class="keywordflow">if</span> (amsgrad_) {</div>
-<div class="line"><a id="l00308" name="l00308"></a><span class="lineno">  308</span>        <a class="code hl_function" href="classoptim_1_1Optimizer.html#ae7308bc1b1f376b6a9cb7ae66c3af88e">Optimizer::ensure_state_size</a>(vhat_[idx], n);</div>
-<div class="line"><a id="l00309" name="l00309"></a><span class="lineno">  309</span>      }</div>
-<div class="line"><a id="l00310" name="l00310"></a><span class="lineno">  310</span>      <span class="keyword">auto</span>&amp; m1_vec = m1_[idx];</div>
-<div class="line"><a id="l00311" name="l00311"></a><span class="lineno">  311</span>      <span class="keyword">auto</span>&amp; m2_vec = m2_[idx];</div>
-<div class="line"><a id="l00312" name="l00312"></a><span class="lineno">  312</span>      std::vector&lt;float&gt;* vhat_vec = amsgrad_ ? &amp;vhat_[idx] : <span class="keyword">nullptr</span>;</div>
-<div class="line"><a id="l00313" name="l00313"></a><span class="lineno">  313</span> </div>
-<div class="line"><a id="l00314" name="l00314"></a><span class="lineno">  314</span>      <span class="keywordflow">if</span> (use_weight_decay_ &amp;&amp; weight_decay_ != 0.0f) {</div>
-<div class="line"><a id="l00315" name="l00315"></a><span class="lineno">  315</span>        <span class="keywordflow">for</span> (<span class="keywordtype">size_t</span> i = 0; i &lt; n; ++i) {</div>
-<div class="line"><a id="l00316" name="l00316"></a><span class="lineno">  316</span>          data[i] -= lr * weight_decay_ * data[i];</div>
-<div class="line"><a id="l00317" name="l00317"></a><span class="lineno">  317</span>        }</div>
-<div class="line"><a id="l00318" name="l00318"></a><span class="lineno">  318</span>      }</div>
-<div class="line"><a id="l00319" name="l00319"></a><span class="lineno">  319</span> </div>
-<div class="line"><a id="l00320" name="l00320"></a><span class="lineno">  320</span>      <span class="keywordflow">if</span> (amsgrad_) {</div>
-<div class="line"><a id="l00321" name="l00321"></a><span class="lineno">  321</span>        <span class="keywordflow">for</span> (<span class="keywordtype">size_t</span> i = 0; i &lt; n; ++i) {</div>
-<div class="line"><a id="l00322" name="l00322"></a><span class="lineno">  322</span>          <span class="keywordtype">float</span> grad = grad_ptr[i];</div>
-<div class="line"><a id="l00323" name="l00323"></a><span class="lineno">  323</span>          m1_vec[i] = beta1_ * m1_vec[i] + (1.0f - beta1_) * grad;</div>
-<div class="line"><a id="l00324" name="l00324"></a><span class="lineno">  324</span>          m2_vec[i] = beta2_ * m2_vec[i] + (1.0f - beta2_) * grad * grad;</div>
-<div class="line"><a id="l00325" name="l00325"></a><span class="lineno">  325</span> </div>
-<div class="line"><a id="l00326" name="l00326"></a><span class="lineno">  326</span>          <span class="comment">// 55%</span></div>
-<div class="line"><a id="l00327" name="l00327"></a><span class="lineno">  327</span>          <span class="keywordtype">float</span> m1_hat = m1_vec[i] / bc1;</div>
-<div class="line"><a id="l00328" name="l00328"></a><span class="lineno">  328</span>          <span class="keywordtype">float</span> m2_term = m2_vec[i];</div>
-<div class="line"><a id="l00329" name="l00329"></a><span class="lineno">  329</span>          (*vhat_vec)[i] = std::max((*vhat_vec)[i], m2_vec[i]);</div>
-<div class="line"><a id="l00330" name="l00330"></a><span class="lineno">  330</span>          m2_term = (*vhat_vec)[i];</div>
-<div class="line"><a id="l00331" name="l00331"></a><span class="lineno">  331</span>          <span class="keywordtype">float</span> m2_hat = m2_term / bc2;</div>
-<div class="line"><a id="l00332" name="l00332"></a><span class="lineno">  332</span>          <span class="comment">// 30%</span></div>
-<div class="line"><a id="l00333" name="l00333"></a><span class="lineno">  333</span>          data[i] -= lr * m1_hat / (std::sqrt(m2_hat) + epsilon_);</div>
-<div class="line"><a id="l00334" name="l00334"></a><span class="lineno">  334</span>        }</div>
-<div class="line"><a id="l00335" name="l00335"></a><span class="lineno">  335</span> </div>
-<div class="line"><a id="l00336" name="l00336"></a><span class="lineno">  336</span>      } <span class="keywordflow">else</span> {</div>
-<div class="line"><a id="l00337" name="l00337"></a><span class="lineno">  337</span>        <span class="keywordflow">for</span> (<span class="keywordtype">size_t</span> i = 0; i &lt; n; ++i) {</div>
-<div class="line"><a id="l00338" name="l00338"></a><span class="lineno">  338</span>          <span class="keywordtype">float</span> grad = grad_ptr[i];</div>
-<div class="line"><a id="l00339" name="l00339"></a><span class="lineno">  339</span>          m1_vec[i] = beta1_ * m1_vec[i] + (1.0f - beta1_) * grad;</div>
-<div class="line"><a id="l00340" name="l00340"></a><span class="lineno">  340</span>          m2_vec[i] = beta2_ * m2_vec[i] + (1.0f - beta2_) * grad * grad;</div>
-<div class="line"><a id="l00341" name="l00341"></a><span class="lineno">  341</span> </div>
-<div class="line"><a id="l00342" name="l00342"></a><span class="lineno">  342</span>          <span class="comment">// 55%</span></div>
-<div class="line"><a id="l00343" name="l00343"></a><span class="lineno">  343</span>          <span class="keywordtype">float</span> m1_hat = m1_vec[i] / bc1;</div>
-<div class="line"><a id="l00344" name="l00344"></a><span class="lineno">  344</span>          <span class="keywordtype">float</span> m2_term = m2_vec[i];</div>
-<div class="line"><a id="l00345" name="l00345"></a><span class="lineno">  345</span>          <span class="keywordtype">float</span> m2_hat = m2_term / bc2;</div>
-<div class="line"><a id="l00346" name="l00346"></a><span class="lineno">  346</span>          <span class="comment">// 30%</span></div>
-<div class="line"><a id="l00347" name="l00347"></a><span class="lineno">  347</span>          data[i] -= lr * m1_hat / (std::sqrt(m2_hat) + epsilon_);</div>
-<div class="line"><a id="l00348" name="l00348"></a><span class="lineno">  348</span>        }</div>
-<div class="line"><a id="l00349" name="l00349"></a><span class="lineno">  349</span>      }</div>
-<div class="line"><a id="l00350" name="l00350"></a><span class="lineno">  350</span>    }</div>
-<div class="line"><a id="l00351" name="l00351"></a><span class="lineno">  351</span>  }</div>
+<div class="line"><a id="l00299" name="l00299"></a><span class="lineno">  299</span>    <span class="keyword">const</span> <span class="keywordtype">float</span> invbc1 = 1.0f / bc1;</div>
+<div class="line"><a id="l00300" name="l00300"></a><span class="lineno">  300</span>    <span class="keyword">const</span> <span class="keywordtype">float</span> invbc2 = 1.0f / bc2;</div>
+<div class="line"><a id="l00301" name="l00301"></a><span class="lineno">  301</span> </div>
+<div class="line"><a id="l00302" name="l00302"></a><span class="lineno">  302</span>    <span class="keywordflow">for</span> (<span class="keywordtype">size_t</span> idx = 0; idx &lt; this-&gt;<a class="code hl_variable" href="classoptim_1_1Optimizer.html#aad43a44085c393e55f9f21012ad78e11">params_</a>.size(); ++idx) {</div>
+<div class="line"><a id="l00303" name="l00303"></a><span class="lineno">  303</span>      <a class="code hl_struct" href="structTensor.html">Tensor</a>&amp; param = this-&gt;<a class="code hl_variable" href="classoptim_1_1Optimizer.html#aad43a44085c393e55f9f21012ad78e11">params_</a>[idx];</div>
+<div class="line"><a id="l00304" name="l00304"></a><span class="lineno">  304</span>      <span class="keywordflow">if</span> (!<a class="code hl_function" href="classoptim_1_1Optimizer.html#ae49f7491e2f65b815afcfd94d5f1671b">Optimizer::valid_param</a>(param)) <span class="keywordflow">continue</span>;</div>
+<div class="line"><a id="l00305" name="l00305"></a><span class="lineno">  305</span>      <span class="keywordtype">float</span>* data = param.<a class="code hl_function" href="structTensor.html#a68b3bf158149399d366aee5cf21aa951">data</a>();</div>
+<div class="line"><a id="l00306" name="l00306"></a><span class="lineno">  306</span>      <span class="keyword">const</span> <span class="keywordtype">float</span>* grad_ptr = param.<a class="code hl_function" href="structTensor.html#afaed2ad287228df5d00eb689ad8d3776">grad</a>();</div>
+<div class="line"><a id="l00307" name="l00307"></a><span class="lineno">  307</span>      <span class="keyword">const</span> <span class="keywordtype">size_t</span> n = param.<a class="code hl_variable" href="structTensor.html#a10ca340abccb2fa3476d3ec64346c238">numel</a>;</div>
+<div class="line"><a id="l00308" name="l00308"></a><span class="lineno">  308</span>      <a class="code hl_function" href="classoptim_1_1Optimizer.html#ae7308bc1b1f376b6a9cb7ae66c3af88e">Optimizer::ensure_state_size</a>(m1_[idx], n);</div>
+<div class="line"><a id="l00309" name="l00309"></a><span class="lineno">  309</span>      <a class="code hl_function" href="classoptim_1_1Optimizer.html#ae7308bc1b1f376b6a9cb7ae66c3af88e">Optimizer::ensure_state_size</a>(m2_[idx], n);</div>
+<div class="line"><a id="l00310" name="l00310"></a><span class="lineno">  310</span>      <span class="keywordflow">if</span> (amsgrad_) {</div>
+<div class="line"><a id="l00311" name="l00311"></a><span class="lineno">  311</span>        <a class="code hl_function" href="classoptim_1_1Optimizer.html#ae7308bc1b1f376b6a9cb7ae66c3af88e">Optimizer::ensure_state_size</a>(vhat_[idx], n);</div>
+<div class="line"><a id="l00312" name="l00312"></a><span class="lineno">  312</span>      }</div>
+<div class="line"><a id="l00313" name="l00313"></a><span class="lineno">  313</span>      <span class="keyword">auto</span>&amp; m1_vec = m1_[idx];</div>
+<div class="line"><a id="l00314" name="l00314"></a><span class="lineno">  314</span>      <span class="keyword">auto</span>&amp; m2_vec = m2_[idx];</div>
+<div class="line"><a id="l00315" name="l00315"></a><span class="lineno">  315</span>      std::vector&lt;float&gt;* vhat_vec = amsgrad_ ? &amp;vhat_[idx] : <span class="keyword">nullptr</span>;</div>
+<div class="line"><a id="l00316" name="l00316"></a><span class="lineno">  316</span> </div>
+<div class="line"><a id="l00317" name="l00317"></a><span class="lineno">  317</span>      <span class="keywordflow">if</span> (use_weight_decay_ &amp;&amp; weight_decay_ != 0.0f) {</div>
+<div class="line"><a id="l00318" name="l00318"></a><span class="lineno">  318</span>        <span class="keywordflow">for</span> (<span class="keywordtype">size_t</span> i = 0; i &lt; n; ++i) {</div>
+<div class="line"><a id="l00319" name="l00319"></a><span class="lineno">  319</span>          data[i] -= lr * weight_decay_ * data[i];</div>
+<div class="line"><a id="l00320" name="l00320"></a><span class="lineno">  320</span>        }</div>
+<div class="line"><a id="l00321" name="l00321"></a><span class="lineno">  321</span>      }</div>
+<div class="line"><a id="l00322" name="l00322"></a><span class="lineno">  322</span> </div>
+<div class="line"><a id="l00323" name="l00323"></a><span class="lineno">  323</span>      <span class="keywordflow">if</span> (amsgrad_) {</div>
+<div class="line"><a id="l00324" name="l00324"></a><span class="lineno">  324</span>        <span class="keywordflow">for</span> (<span class="keywordtype">size_t</span> i = 0; i &lt; n; ++i) {</div>
+<div class="line"><a id="l00325" name="l00325"></a><span class="lineno">  325</span>          <span class="keywordtype">float</span> grad = grad_ptr[i];</div>
+<div class="line"><a id="l00326" name="l00326"></a><span class="lineno">  326</span>          m1_vec[i] = beta1_ * m1_vec[i] + (1.0f - beta1_) * grad;</div>
+<div class="line"><a id="l00327" name="l00327"></a><span class="lineno">  327</span>          m2_vec[i] = beta2_ * m2_vec[i] + (1.0f - beta2_) * grad * grad;</div>
+<div class="line"><a id="l00328" name="l00328"></a><span class="lineno">  328</span> </div>
+<div class="line"><a id="l00329" name="l00329"></a><span class="lineno">  329</span>          <span class="comment">// 55%</span></div>
+<div class="line"><a id="l00330" name="l00330"></a><span class="lineno">  330</span>          <span class="comment">// float m1_hat = m1_vec[i] / bc1;</span></div>
+<div class="line"><a id="l00331" name="l00331"></a><span class="lineno">  331</span>          <span class="keywordtype">float</span> m1_hat = m1_vec[i] * invbc1;</div>
+<div class="line"><a id="l00332" name="l00332"></a><span class="lineno">  332</span>          <span class="keywordtype">float</span> m2_term = m2_vec[i];</div>
+<div class="line"><a id="l00333" name="l00333"></a><span class="lineno">  333</span>          (*vhat_vec)[i] = std::max((*vhat_vec)[i], m2_vec[i]);</div>
+<div class="line"><a id="l00334" name="l00334"></a><span class="lineno">  334</span>          m2_term = (*vhat_vec)[i];</div>
+<div class="line"><a id="l00335" name="l00335"></a><span class="lineno">  335</span>          <span class="keywordtype">float</span> m2_hat = m2_term * invbc2;</div>
+<div class="line"><a id="l00336" name="l00336"></a><span class="lineno">  336</span>          <span class="comment">// 30%</span></div>
+<div class="line"><a id="l00337" name="l00337"></a><span class="lineno">  337</span>          data[i] -= lr * m1_hat / (std::sqrt(m2_hat) + epsilon_);</div>
+<div class="line"><a id="l00338" name="l00338"></a><span class="lineno">  338</span>        }</div>
+<div class="line"><a id="l00339" name="l00339"></a><span class="lineno">  339</span> </div>
+<div class="line"><a id="l00340" name="l00340"></a><span class="lineno">  340</span>      } <span class="keywordflow">else</span> {</div>
+<div class="line"><a id="l00341" name="l00341"></a><span class="lineno">  341</span>        <span class="keywordflow">for</span> (<span class="keywordtype">size_t</span> i = 0; i &lt; n; ++i) {</div>
+<div class="line"><a id="l00342" name="l00342"></a><span class="lineno">  342</span>          <span class="keywordtype">float</span> grad = grad_ptr[i];</div>
+<div class="line"><a id="l00343" name="l00343"></a><span class="lineno">  343</span>          <span class="keyword">auto</span> m1_vec_i = beta1_ * m1_vec[i] + (1.0f - beta1_) * grad;</div>
+<div class="line"><a id="l00344" name="l00344"></a><span class="lineno">  344</span>          <span class="keyword">auto</span> m2_vec_i = beta2_ * m2_vec[i] + (1.0f - beta2_) * grad * grad;</div>
+<div class="line"><a id="l00345" name="l00345"></a><span class="lineno">  345</span> </div>
+<div class="line"><a id="l00346" name="l00346"></a><span class="lineno">  346</span>          <span class="keywordtype">float</span> m1_hat = m1_vec_i * invbc1;</div>
+<div class="line"><a id="l00347" name="l00347"></a><span class="lineno">  347</span>          <span class="keywordtype">float</span> m2_term = m2_vec_i;</div>
+<div class="line"><a id="l00348" name="l00348"></a><span class="lineno">  348</span>          <span class="keywordtype">float</span> m2_hat = m2_term * invbc2;</div>
+<div class="line"><a id="l00349" name="l00349"></a><span class="lineno">  349</span>          data[i] -= lr * m1_hat / (std::sqrt(m2_hat) + epsilon_);</div>
+<div class="line"><a id="l00350" name="l00350"></a><span class="lineno">  350</span>          m1_vec[i] = m1_vec_i;</div>
+<div class="line"><a id="l00351" name="l00351"></a><span class="lineno">  351</span>          m2_vec[i] = m2_vec_i;</div>
+<div class="line"><a id="l00352" name="l00352"></a><span class="lineno">  352</span>        }</div>
+<div class="line"><a id="l00353" name="l00353"></a><span class="lineno">  353</span>      }</div>
+<div class="line"><a id="l00354" name="l00354"></a><span class="lineno">  354</span>    }</div>
+<div class="line"><a id="l00355" name="l00355"></a><span class="lineno">  355</span>  }</div>
 </div>
-<div class="line"><a id="l00352" name="l00352"></a><span class="lineno">  352</span> </div>
-<div class="line"><a id="l00353" name="l00353"></a><span class="lineno">  353</span> <span class="keyword">private</span>:</div>
-<div class="line"><a id="l00354" name="l00354"></a><span class="lineno">  354</span>  <span class="keywordtype">float</span> beta1_;</div>
-<div class="line"><a id="l00355" name="l00355"></a><span class="lineno">  355</span>  <span class="keywordtype">float</span> beta2_;</div>
-<div class="line"><a id="l00356" name="l00356"></a><span class="lineno">  356</span>  <span class="keywordtype">float</span> weight_decay_;</div>
-<div class="line"><a id="l00357" name="l00357"></a><span class="lineno">  357</span>  <span class="keywordtype">bool</span> use_weight_decay_;</div>
-<div class="line"><a id="l00358" name="l00358"></a><span class="lineno">  358</span>  <span class="keywordtype">bool</span> amsgrad_;</div>
-<div class="line"><a id="l00359" name="l00359"></a><span class="lineno">  359</span>  <span class="keywordtype">float</span> epsilon_;</div>
-<div class="line"><a id="l00360" name="l00360"></a><span class="lineno">  360</span>  std::vector&lt;std::vector&lt;float&gt;&gt; m1_;</div>
-<div class="line"><a id="l00361" name="l00361"></a><span class="lineno">  361</span>  std::vector&lt;std::vector&lt;float&gt;&gt; m2_;</div>
-<div class="line"><a id="l00362" name="l00362"></a><span class="lineno">  362</span>  std::vector&lt;std::vector&lt;float&gt;&gt; vhat_;</div>
-<div class="line"><a id="l00363" name="l00363"></a><span class="lineno">  363</span>};</div>
+<div class="line"><a id="l00356" name="l00356"></a><span class="lineno">  356</span> </div>
+<div class="line"><a id="l00357" name="l00357"></a><span class="lineno">  357</span> <span class="keyword">private</span>:</div>
+<div class="line"><a id="l00358" name="l00358"></a><span class="lineno">  358</span>  <span class="keywordtype">float</span> beta1_;</div>
+<div class="line"><a id="l00359" name="l00359"></a><span class="lineno">  359</span>  <span class="keywordtype">float</span> beta2_;</div>
+<div class="line"><a id="l00360" name="l00360"></a><span class="lineno">  360</span>  <span class="keywordtype">float</span> weight_decay_;</div>
+<div class="line"><a id="l00361" name="l00361"></a><span class="lineno">  361</span>  <span class="keywordtype">bool</span> use_weight_decay_;</div>
+<div class="line"><a id="l00362" name="l00362"></a><span class="lineno">  362</span>  <span class="keywordtype">bool</span> amsgrad_;</div>
+<div class="line"><a id="l00363" name="l00363"></a><span class="lineno">  363</span>  <span class="keywordtype">float</span> epsilon_;</div>
+<div class="line"><a id="l00364" name="l00364"></a><span class="lineno">  364</span>  std::vector&lt;std::vector&lt;float&gt;&gt; m1_;</div>
+<div class="line"><a id="l00365" name="l00365"></a><span class="lineno">  365</span>  std::vector&lt;std::vector&lt;float&gt;&gt; m2_;</div>
+<div class="line"><a id="l00366" name="l00366"></a><span class="lineno">  366</span>  std::vector&lt;std::vector&lt;float&gt;&gt; vhat_;</div>
+<div class="line"><a id="l00367" name="l00367"></a><span class="lineno">  367</span>};</div>
 </div>
-<div class="line"><a id="l00364" name="l00364"></a><span class="lineno">  364</span> </div>
-<div class="line"><a id="l00365" name="l00365"></a><span class="lineno">  365</span>}  <span class="comment">// namespace optim</span></div>
+<div class="line"><a id="l00368" name="l00368"></a><span class="lineno">  368</span> </div>
+<div class="line"><a id="l00369" name="l00369"></a><span class="lineno">  369</span>}  <span class="comment">// namespace optim</span></div>
 </div>
 <div class="ttc" id="aclassoptim_1_1AdamW_html"><div class="ttname"><a href="classoptim_1_1AdamW.html">optim::AdamW</a></div><div class="ttdoc">AdamW optimizer with decoupled weight decay.</div><div class="ttdef"><b>Definition</b> optimizer.hpp:260</div></div>
 <div class="ttc" id="aclassoptim_1_1AdamW_html_a0314fda8f79d1780794ac03d188c99ef"><div class="ttname"><a href="classoptim_1_1AdamW.html#a0314fda8f79d1780794ac03d188c99ef">optim::AdamW::AdamW</a></div><div class="ttdeci">AdamW(std::vector&lt; Tensor &gt; params, Scheduler &amp;scheduler, float beta1=0.9f, float beta2=0.999f, float weight_decay=0.0f, bool use_weight_decay=false, bool amsgrad=false, float epsilon=1e-8f)</div><div class="ttdoc">Construct AdamW optimizer.</div><div class="ttdef"><b>Definition</b> optimizer.hpp:273</div></div>
