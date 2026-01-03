@@ -111,7 +111,7 @@ void backward_sum(TapeOp& op) {
 }
 
 // Use Accelerate-backed GEMM for matmul gradients.
-void backward_matmul(TapeOp& op) {
+__attribute__((noinline)) void backward_matmul(TapeOp& op) {
   int M = op.a.shape[0];
   int K = op.a.shape[1];
   int N = op.b.shape[1];

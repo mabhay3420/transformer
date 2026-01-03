@@ -25,6 +25,9 @@ case "$TARGET" in
   mnist_csv)
     ./build/release/microbenchmarks/mnist_csv/mnist_csv_bench_main "$@"
     ;;
+  adamw)
+    ./build/release/microbenchmarks/adamw/adamw_bench_main "$@"
+    ;;
   *)
     echo "Unknown benchmark: $TARGET"
     exit 1

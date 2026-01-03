@@ -24,7 +24,7 @@ fi
 MODE="$1"
 shift || true
 
-if [[ "$MODE" != "t" && "$MODE" != "m" ]]; then
+if [[ "$MODE" != "t" && "$MODE" != "m" && "$MODE" != "c" ]]; then
   usage
   exit 1
 fi
@@ -85,12 +85,14 @@ else
   codesign --sign - --force "$TRACE_BIN"
 fi
 
-TRACE_TEMPLATE="Time Profiler"
-XC_CMD=(xctrace record --template "$TRACE_TEMPLATE" --output "$TRACE_OUT" --launch "$TRACE_BIN")
 if [[ "$MODE" == "m" ]]; then
   TRACE_TEMPLATE="Allocations"
-  XC_CMD=(sudo xctrace record --template "$TRACE_TEMPLATE" --output "$TRACE_OUT" --launch "$TRACE_BIN")
+elif [[ "$MODE" == "c" ]]; then
+  TRACE_TEMPLATE="CPU Profiler"
+else
+  TRACE_TEMPLATE="Time Profiler"
 fi
+XC_CMD=(sudo xctrace record --template "$TRACE_TEMPLATE" --output "$TRACE_OUT" --launch "$TRACE_BIN")
 
 if [[ ${#TRACE_ARGS[@]} -gt 0 ]]; then
   XC_CMD+=("${TRACE_ARGS[@]}")
