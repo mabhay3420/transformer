@@ -1,5 +1,5 @@
 TARGET=${2:-"xor"}
-sudo rm -rf tformer_trace.trace ./build/debug/tformer.dSYM
+rm -rf tformer_trace.trace ./build/debug/tformer.dSYM
 ./scripts/build_debug.sh
 xcrun dsymutil ./build/debug/tformer -o ./build/debug/tformer.dSYM
 sudo codesign --entitlements entitlements.plist --sign - --force ./build/debug/tformer

@@ -296,6 +296,9 @@ class AdamW : public OptimizerWithScheduler<Scheduler> {
     const float bc2 =
         1.0f - std::pow(beta2_, static_cast<float>(this->step_count_));
 
+    const float invbc1 = 1.0f / bc1;
+    const float invbc2 = 1.0f / bc2;
+
     for (size_t idx = 0; idx < this->params_.size(); ++idx) {
       Tensor& param = this->params_[idx];
       if (!Optimizer::valid_param(param)) continue;
@@ -324,11 +327,12 @@ class AdamW : public OptimizerWithScheduler<Scheduler> {
           m2_vec[i] = beta2_ * m2_vec[i] + (1.0f - beta2_) * grad * grad;
 
           // 55%
-          float m1_hat = m1_vec[i] / bc1;
+          // float m1_hat = m1_vec[i] / bc1;
+          float m1_hat = m1_vec[i] * invbc1;
           float m2_term = m2_vec[i];
           (*vhat_vec)[i] = std::max((*vhat_vec)[i], m2_vec[i]);
           m2_term = (*vhat_vec)[i];
-          float m2_hat = m2_term / bc2;
+          float m2_hat = m2_term * invbc2;
           // 30%
           data[i] -= lr * m1_hat / (std::sqrt(m2_hat) + epsilon_);
         }
@@ -336,15 +340,15 @@ class AdamW : public OptimizerWithScheduler<Scheduler> {
       } else {
         for (size_t i = 0; i < n; ++i) {
           float grad = grad_ptr[i];
-          m1_vec[i] = beta1_ * m1_vec[i] + (1.0f - beta1_) * grad;
-          m2_vec[i] = beta2_ * m2_vec[i] + (1.0f - beta2_) * grad * grad;
+          auto m1_vec_i = beta1_ * m1_vec[i] + (1.0f - beta1_) * grad;
+          auto m2_vec_i = beta2_ * m2_vec[i] + (1.0f - beta2_) * grad * grad;
 
-          // 55%
-          float m1_hat = m1_vec[i] / bc1;
-          float m2_term = m2_vec[i];
-          float m2_hat = m2_term / bc2;
-          // 30%
+          float m1_hat = m1_vec_i * invbc1;
+          float m2_term = m2_vec_i;
+          float m2_hat = m2_term * invbc2;
           data[i] -= lr * m1_hat / (std::sqrt(m2_hat) + epsilon_);
+          m1_vec[i] = m1_vec_i;
+          m2_vec[i] = m2_vec_i;
         }
       }
     }
