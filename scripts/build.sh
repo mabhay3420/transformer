@@ -29,8 +29,8 @@ BUILD_TYPE=${BUILD_TYPE:-Release}
 TARGET=""
 EXTRA_ARGS=()
 
-# VECTOR_DIAGNOSTIC_FLAGS=${VECTOR_DIAGNOSTIC_FLAGS:-"-Rpass=loop-vectorize -Rpass-missed=loop-vectorize -Rpass-analysis=loop-vectorize"}
-VECTOR_DIAGNOSTIC_FLAGS=
+VECTOR_DIAGNOSTIC_FLAGS=${VECTOR_DIAGNOSTIC_FLAGS:-"-Rpass=loop-vectorize -Rpass-missed=loop-vectorize -Rpass-analysis=loop-vectorize"}
+# VECTOR_DIAGNOSTIC_FLAGS=
 CPU_FLAG=$(detect_apple_mcpu)
 DEFAULT_CXX_FLAGS="${CXXFLAGS:-} -O3 ${CPU_FLAG} ${VECTOR_DIAGNOSTIC_FLAGS}"
 
