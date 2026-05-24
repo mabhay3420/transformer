@@ -12,3 +12,7 @@ compile_commands.json
 
 logs/
 docs/
+
+.venv/
+gpt2_model/
+tests/data/
